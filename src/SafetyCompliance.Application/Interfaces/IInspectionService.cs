@@ -8,6 +8,7 @@ public interface IInspectionService
     Task<InspectionRoundDto> StartInspectionRoundAsync(int plantId, string userId, CancellationToken ct = default);
     Task<List<EquipmentInspectionDto>> GetEquipmentInspectionsAsync(int roundId, CancellationToken ct = default);
     Task SubmitResponseAsync(SubmitResponseDto dto, CancellationToken ct = default);
+    Task SaveEquipmentCommentAsync(int equipmentInspectionId, string? comments, CancellationToken ct = default);
     Task CompleteRoundAsync(int roundId, CancellationToken ct = default);
     Task<int> UploadPhotoAsync(int equipmentInspectionId, string fileName, string filePath, string contentType, long fileSize, string userId, CancellationToken ct = default);
 }
