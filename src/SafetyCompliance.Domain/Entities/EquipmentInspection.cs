@@ -9,8 +9,6 @@ public class EquipmentInspection : BaseEntity
     public bool IsComplete { get; set; }
     public string? Comments { get; set; }
     public DateTime? InspectedAt { get; set; }
-    public decimal? Latitude { get; set; }
-    public decimal? Longitude { get; set; }
 
     public InspectionRound InspectionRound { get; set; } = null!;
     public Equipment Equipment { get; set; } = null!;

@@ -9,7 +9,6 @@ public class InspectionPhoto : BaseEntity
     public string FilePath { get; set; } = string.Empty;
     public string ContentType { get; set; } = string.Empty;
     public long FileSizeBytes { get; set; }
-    public string? Caption { get; set; }
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
     public string UploadedById { get; set; } = string.Empty;
 
