@@ -20,7 +20,11 @@
       "Bash(dotnet build --nologo --verbosity quiet)",
       "Bash(git add -A)",
       "Bash(git -C /c/Users/USER-PC/Desktop/SafetyCompliance log --oneline -3)",
-      "Bash(git -C /c/Users/USER-PC/Desktop/SafetyCompliance merge claude/objective-cohen --no-edit)"
+      "Bash(git -C /c/Users/USER-PC/Desktop/SafetyCompliance merge claude/objective-cohen --no-edit)",
+      "Bash(git -C /c/Users/USER-PC/Desktop/SafetyCompliance push origin main)",
+      "Bash(git -C /c/Users/USER-PC/Desktop/SafetyCompliance branch)",
+      "Bash(git -C /c/Users/USER-PC/Desktop/SafetyCompliance push origin master)",
+      "Bash(git -C /c/Users/USER-PC/Desktop/SafetyCompliance log --oneline -5)"
     ]
   }
 }
