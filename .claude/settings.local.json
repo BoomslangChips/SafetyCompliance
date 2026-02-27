@@ -18,7 +18,9 @@
       "Bash(git add src/SafetyCompliance.Domain/Entities/Comment.cs src/SafetyCompliance.Domain/Entities/InspectionSchedule.cs src/SafetyCompliance.Domain/Entities/Issue.cs src/SafetyCompliance.Domain/Entities/InspectionRound.cs src/SafetyCompliance.Application/DTOs/CalendarDto.cs src/SafetyCompliance.Application/DTOs/CommentDto.cs src/SafetyCompliance.Application/DTOs/IssueDto.cs src/SafetyCompliance.Application/DTOs/ScheduleDto.cs src/SafetyCompliance.Application/Interfaces/IIssueService.cs src/SafetyCompliance.Application/Interfaces/IScheduleService.cs src/SafetyCompliance.Application/Services/IssueService.cs src/SafetyCompliance.Application/Services/ScheduleService.cs src/SafetyCompliance.Application/DependencyInjection.cs src/SafetyCompliance.Infrastructure/Data/ApplicationDbContext.cs src/SafetyCompliance.Shared.UI/_Imports.razor src/SafetyCompliance.Shared.UI/Components/Layout/NavMenu.razor src/SafetyCompliance.Shared.UI/Components/Pages/Dashboard.razor src/SafetyCompliance.Shared.UI/Components/Pages/Inspections/InspectionDashboard.razor src/SafetyCompliance.Shared.UI/Components/Pages/Inspections/InspectionRoundDetail.razor src/SafetyCompliance.Shared.UI/Components/Pages/Issues/IssueDetail.razor src/SafetyCompliance.Shared.UI/Components/Pages/Issues/IssueList.razor src/SafetyCompliance.Shared.UI/Components/Pages/Schedules/ScheduleManagement.razor src/SafetyCompliance.Shared.UI/wwwroot/css/app.css)",
       "Bash(git push origin claude/objective-cohen)",
       "Bash(dotnet build --nologo --verbosity quiet)",
-      "Bash(git add -A)"
+      "Bash(git add -A)",
+      "Bash(git -C /c/Users/USER-PC/Desktop/SafetyCompliance log --oneline -3)",
+      "Bash(git -C /c/Users/USER-PC/Desktop/SafetyCompliance merge claude/objective-cohen --no-edit)"
     ]
   }
 }
