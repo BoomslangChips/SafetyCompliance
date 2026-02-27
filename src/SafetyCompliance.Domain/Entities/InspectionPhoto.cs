@@ -14,5 +14,4 @@ public class InspectionPhoto : BaseEntity
     public string UploadedById { get; set; } = string.Empty;
 
     public EquipmentInspection EquipmentInspection { get; set; } = null!;
-    public ApplicationUser UploadedBy { get; set; } = null!;
 }

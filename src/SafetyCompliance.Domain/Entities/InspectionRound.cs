@@ -19,8 +19,6 @@ public class InspectionRound : BaseEntity
 
     public Plant Plant { get; set; } = null!;
     public InspectionSchedule? InspectionSchedule { get; set; }
-    public ApplicationUser InspectedBy { get; set; } = null!;
-    public ApplicationUser? ReviewedBy { get; set; }
     public ICollection<EquipmentInspection> EquipmentInspections { get; set; } = [];
     public ICollection<Issue> Issues { get; set; } = [];
     public ICollection<Comment> Comments { get; set; } = [];

@@ -14,8 +14,8 @@ public class InspectionRoundConfiguration : IEntityTypeConfiguration<InspectionR
         builder.Property(x => x.Status).HasConversion<byte>();
         builder.HasIndex(x => new { x.PlantId, x.InspectionDate });
         builder.HasIndex(x => new { x.PlantId, x.InspectionMonth }).IsUnique();
-        builder.HasOne(x => x.InspectedBy).WithMany().HasForeignKey(x => x.InspectedById).OnDelete(DeleteBehavior.NoAction);
-        builder.HasOne(x => x.ReviewedBy).WithMany().HasForeignKey(x => x.ReviewedById).IsRequired(false).OnDelete(DeleteBehavior.NoAction);
+        builder.Property(x => x.InspectedById).HasMaxLength(450);
+        builder.Property(x => x.ReviewedById).HasMaxLength(450);
         builder.HasMany(x => x.EquipmentInspections).WithOne(x => x.InspectionRound).HasForeignKey(x => x.InspectionRoundId).OnDelete(DeleteBehavior.Cascade);
     }
 }

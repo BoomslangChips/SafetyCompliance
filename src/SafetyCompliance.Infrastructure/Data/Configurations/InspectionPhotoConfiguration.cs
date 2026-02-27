@@ -15,6 +15,6 @@ public class InspectionPhotoConfiguration : IEntityTypeConfiguration<InspectionP
         builder.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
         builder.Property(x => x.Caption).HasMaxLength(300);
         builder.HasIndex(x => x.EquipmentInspectionId);
-        builder.HasOne(x => x.UploadedBy).WithMany().HasForeignKey(x => x.UploadedById).OnDelete(DeleteBehavior.NoAction);
+        builder.Property(x => x.UploadedById).HasMaxLength(450);
     }
 }

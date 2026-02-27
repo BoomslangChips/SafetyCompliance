@@ -15,7 +15,7 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
             .OrderByDescending(ir => ir.InspectionDate)
             .Select(ir => new InspectionRoundDto(
                 ir.Id, ir.PlantId, ir.Plant.Name, ir.InspectionDate, ir.InspectionMonth,
-                ir.Status, ir.InspectedBy.FirstName + " " + ir.InspectedBy.LastName,
+                ir.Status, ir.InspectedById,
                 ir.EquipmentInspections.Count,
                 ir.EquipmentInspections.Count(ei => ei.IsComplete),
                 ir.CompletedAt))
