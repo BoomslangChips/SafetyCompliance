@@ -11,6 +11,8 @@ public class Plant : AuditableEntity
     public string? ContactPhone { get; set; }
     public string? ContactEmail { get; set; }
     public bool IsActive { get; set; } = true;
+    public string? PhotoBase64 { get; set; }
+    public string? PhotoFileName { get; set; }
 
     public Company Company { get; set; } = null!;
     public ICollection<Section> Sections { get; set; } = [];

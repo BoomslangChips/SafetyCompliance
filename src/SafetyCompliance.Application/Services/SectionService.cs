@@ -15,7 +15,8 @@ public class SectionService(ApplicationDbContext context) : ISectionService
             .OrderBy(s => s.SortOrder)
             .Select(s => new SectionDto(
                 s.Id, s.PlantId, s.Plant.Name, s.Name, s.Description, s.SortOrder, s.IsActive,
-                s.Equipment.Count(e => e.IsActive)))
+                s.Equipment.Count(e => e.IsActive),
+                s.PhotoBase64, s.PhotoFileName))
             .ToListAsync(ct);
     }
 
@@ -25,7 +26,8 @@ public class SectionService(ApplicationDbContext context) : ISectionService
             .Where(s => s.Id == id)
             .Select(s => new SectionDto(
                 s.Id, s.PlantId, s.Plant.Name, s.Name, s.Description, s.SortOrder, s.IsActive,
-                s.Equipment.Count(e => e.IsActive)))
+                s.Equipment.Count(e => e.IsActive),
+                s.PhotoBase64, s.PhotoFileName))
             .FirstOrDefaultAsync(ct);
     }
 
@@ -37,6 +39,8 @@ public class SectionService(ApplicationDbContext context) : ISectionService
             Name = dto.Name,
             Description = dto.Description,
             SortOrder = dto.SortOrder,
+            PhotoBase64 = dto.PhotoBase64,
+            PhotoFileName = dto.PhotoFileName,
             CreatedById = userId
         };
 
@@ -44,7 +48,7 @@ public class SectionService(ApplicationDbContext context) : ISectionService
         await context.SaveChangesAsync(ct);
 
         var plantName = await context.Plants.Where(p => p.Id == dto.PlantId).Select(p => p.Name).FirstAsync(ct);
-        return new SectionDto(section.Id, section.PlantId, plantName, section.Name, section.Description, section.SortOrder, section.IsActive, 0);
+        return new SectionDto(section.Id, section.PlantId, plantName, section.Name, section.Description, section.SortOrder, section.IsActive, 0, section.PhotoBase64, section.PhotoFileName);
     }
 
     public async Task UpdateSectionAsync(SectionUpdateDto dto, string userId, CancellationToken ct = default)
@@ -56,6 +60,11 @@ public class SectionService(ApplicationDbContext context) : ISectionService
         section.Description = dto.Description;
         section.SortOrder = dto.SortOrder;
         section.IsActive = dto.IsActive;
+        if (dto.PhotoBase64 is not null)
+        {
+            section.PhotoBase64 = dto.PhotoBase64;
+            section.PhotoFileName = dto.PhotoFileName;
+        }
         section.ModifiedAt = DateTime.UtcNow;
         section.ModifiedById = userId;
 

@@ -21,6 +21,13 @@ else
         <button class="btn btn-primary" @onclick="() => _showCreatePlant = true">Add Plant</button>
     </div>
 
+    @if (_company.PhotoBase64 is not null)
+    {
+        <div class="entity-photo">
+            <img src="@($"data:image/jpeg;base64,{_company.PhotoBase64}")" alt="@_company.Name" />
+        </div>
+    }
+
     @if (_showCreatePlant)
     {
         <div class="modal-overlay" @onclick="() => _showCreatePlant = false">
@@ -47,6 +54,17 @@ else
                         <label>Contact Email</label>
                         <InputText @bind-Value="_plantCreate.ContactEmail" class="form-control" />
                     </div>
+                    <div class="form-group">
+                        <label>Photo</label>
+                        <InputFile OnChange="OnPlantPhotoSelected" class="form-control" accept="image/*" />
+                        @if (_plantCreate.PhotoBase64 is not null)
+                        {
+                            <div class="photo-preview">
+                                <img src="@($"data:image/jpeg;base64,{_plantCreate.PhotoBase64}")" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _plantCreate.PhotoBase64 = null; _plantCreate.PhotoFileName = null; }">Remove</button>
+                            </div>
+                        }
+                    </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Save</button>
                         <button type="button" class="btn btn-secondary" @onclick="() => _showCreatePlant = false">Cancel</button>
@@ -60,6 +78,12 @@ else
         @foreach (var plant in _plants)
         {
             <div class="card clickable" @onclick="() => GoToPlant(plant.Id)">
+                @if (plant.PhotoBase64 is not null)
+                {
+                    <div class="card-photo">
+                        <img src="@($"data:image/jpeg;base64,{plant.PhotoBase64}")" alt="@plant.Name" />
+                    </div>
+                }
                 <h3>@plant.Name</h3>
                 <p class="card-subtitle">@(plant.ContactName ?? "No contact")</p>
                 <div class="card-stats">
@@ -94,11 +118,21 @@ else
 
     private async Task CreatePlant()
     {
-        var dto = new PlantCreateDto(CompanyId, _plantCreate.Name, _plantCreate.Description, _plantCreate.ContactName, _plantCreate.ContactPhone, _plantCreate.ContactEmail);
+        var dto = new PlantCreateDto(CompanyId, _plantCreate.Name, _plantCreate.Description, _plantCreate.ContactName, _plantCreate.ContactPhone, _plantCreate.ContactEmail, _plantCreate.PhotoBase64, _plantCreate.PhotoFileName);
         await PlantService.CreatePlantAsync(dto, "current-user");
         await LoadData();
         _showCreatePlant = false;
         _plantCreate = new();
+    }
+
+    private async Task OnPlantPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+        _plantCreate.PhotoBase64 = Convert.ToBase64String(buffer);
+        _plantCreate.PhotoFileName = file.Name;
     }
 
     private void GoToPlant(int id) => Navigation.NavigateTo($"/plants/{id}");
@@ -111,5 +145,7 @@ else
         public string? ContactName { get; set; }
         public string? ContactPhone { get; set; }
         public string? ContactEmail { get; set; }
+        public string? PhotoBase64 { get; set; }
+        public string? PhotoFileName { get; set; }
     }
 }

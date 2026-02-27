@@ -37,6 +37,17 @@
                     <label>Contact Phone</label>
                     <InputText @bind-Value="_createDto.ContactPhone" class="form-control" />
                 </div>
+                <div class="form-group">
+                    <label>Photo</label>
+                    <InputFile OnChange="OnPhotoSelected" class="form-control" accept="image/*" />
+                    @if (_createDto.PhotoBase64 is not null)
+                    {
+                        <div class="photo-preview">
+                            <img src="@($"data:image/jpeg;base64,{_createDto.PhotoBase64}")" alt="Preview" />
+                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _createDto.PhotoBase64 = null; _createDto.PhotoFileName = null; }">Remove</button>
+                        </div>
+                    }
+                </div>
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Save</button>
                     <button type="button" class="btn btn-secondary" @onclick="() => _showCreate = false">Cancel</button>
@@ -50,6 +61,12 @@
     @foreach (var company in _companies)
     {
         <div class="card clickable" @onclick="() => GoToCompany(company.Id)">
+            @if (company.PhotoBase64 is not null)
+            {
+                <div class="card-photo">
+                    <img src="@($"data:image/jpeg;base64,{company.PhotoBase64}")" alt="@company.Name" />
+                </div>
+            }
             <h3>@company.Name</h3>
             <p class="card-subtitle">@(company.Code ?? "No code") &middot; @(company.Address ?? "No address")</p>
             <div class="card-stats">
@@ -70,11 +87,21 @@
 
     private async Task CreateCompany()
     {
-        var dto = new CompanyCreateDto(_createDto.Name, _createDto.Code, _createDto.Address, _createDto.ContactName, _createDto.ContactEmail, _createDto.ContactPhone);
+        var dto = new CompanyCreateDto(_createDto.Name, _createDto.Code, _createDto.Address, _createDto.ContactName, _createDto.ContactEmail, _createDto.ContactPhone, _createDto.PhotoBase64, _createDto.PhotoFileName);
         await CompanyService.CreateCompanyAsync(dto, "current-user");
         _companies = await CompanyService.GetAllCompaniesAsync();
         _showCreate = false;
         _createDto = new();
+    }
+
+    private async Task OnPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+        _createDto.PhotoBase64 = Convert.ToBase64String(buffer);
+        _createDto.PhotoFileName = file.Name;
     }
 
     private void GoToCompany(int id) => Navigation.NavigateTo($"/companies/{id}");
@@ -87,5 +114,7 @@
         public string? ContactName { get; set; }
         public string? ContactEmail { get; set; }
         public string? ContactPhone { get; set; }
+        public string? PhotoBase64 { get; set; }
+        public string? PhotoFileName { get; set; }
     }
 }

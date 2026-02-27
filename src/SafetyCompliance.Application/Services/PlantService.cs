@@ -15,7 +15,8 @@ public class PlantService(ApplicationDbContext context) : IPlantService
             .Select(p => new PlantDto(
                 p.Id, p.CompanyId, p.Company.Name, p.Name, p.Description, p.ContactName, p.ContactPhone, p.ContactEmail, p.IsActive,
                 p.Sections.Count(s => s.IsActive),
-                p.Sections.Where(s => s.IsActive).SelectMany(s => s.Equipment.Where(e => e.IsActive)).Count()))
+                p.Sections.Where(s => s.IsActive).SelectMany(s => s.Equipment.Where(e => e.IsActive)).Count(),
+                p.PhotoBase64, p.PhotoFileName))
             .ToListAsync(ct);
     }
 
@@ -26,7 +27,8 @@ public class PlantService(ApplicationDbContext context) : IPlantService
             .Select(p => new PlantDto(
                 p.Id, p.CompanyId, p.Company.Name, p.Name, p.Description, p.ContactName, p.ContactPhone, p.ContactEmail, p.IsActive,
                 p.Sections.Count(s => s.IsActive),
-                p.Sections.Where(s => s.IsActive).SelectMany(s => s.Equipment.Where(e => e.IsActive)).Count()))
+                p.Sections.Where(s => s.IsActive).SelectMany(s => s.Equipment.Where(e => e.IsActive)).Count(),
+                p.PhotoBase64, p.PhotoFileName))
             .FirstOrDefaultAsync(ct);
     }
 
@@ -40,6 +42,8 @@ public class PlantService(ApplicationDbContext context) : IPlantService
             ContactName = dto.ContactName,
             ContactPhone = dto.ContactPhone,
             ContactEmail = dto.ContactEmail,
+            PhotoBase64 = dto.PhotoBase64,
+            PhotoFileName = dto.PhotoFileName,
             CreatedById = userId
         };
 
@@ -60,6 +64,11 @@ public class PlantService(ApplicationDbContext context) : IPlantService
         plant.ContactPhone = dto.ContactPhone;
         plant.ContactEmail = dto.ContactEmail;
         plant.IsActive = dto.IsActive;
+        if (dto.PhotoBase64 is not null)
+        {
+            plant.PhotoBase64 = dto.PhotoBase64;
+            plant.PhotoFileName = dto.PhotoFileName;
+        }
         plant.ModifiedAt = DateTime.UtcNow;
         plant.ModifiedById = userId;
 
