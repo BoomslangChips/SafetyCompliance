@@ -11,7 +11,7 @@ public class InspectionRoundConfiguration : IEntityTypeConfiguration<InspectionR
         builder.ToTable("InspectionRounds");
         builder.HasKey(x => x.Id);
         builder.Property(x => x.InspectionMonth).HasMaxLength(7);
-        builder.Property(x => x.Status).HasConversion<byte>();
+        builder.Property(x => x.Status).HasConversion<int>();
         builder.HasIndex(x => new { x.PlantId, x.InspectionDate });
         builder.HasIndex(x => new { x.PlantId, x.InspectionMonth }).IsUnique();
         builder.Property(x => x.InspectedById).HasMaxLength(450);
