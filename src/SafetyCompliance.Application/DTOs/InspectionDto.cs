@@ -10,7 +10,8 @@ public record InspectionRoundDto(
 public record EquipmentInspectionDto(
     int Id, int InspectionRoundId, int EquipmentId, string EquipmentIdentifier,
     string EquipmentDescription, string EquipmentTypeName, string? SubTypeName, string? Size,
-    bool IsComplete, string? Comments, List<InspectionResponseDto> Responses, int PhotoCount);
+    bool IsComplete, string? Comments, List<InspectionResponseDto> Responses, int PhotoCount,
+    int SectionId, string SectionName);
 
 public record InspectionResponseDto(
     int Id, int ChecklistItemTemplateId, string ItemName, int SortOrder,
