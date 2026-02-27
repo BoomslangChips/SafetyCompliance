@@ -21,7 +21,6 @@ public class Issue : AuditableEntity
     public InspectionRound? InspectionRound { get; set; }
     public EquipmentInspection? EquipmentInspection { get; set; }
     public Equipment? Equipment { get; set; }
-    public ApplicationUser? ResolvedBy { get; set; }
     public ICollection<Comment> Comments { get; set; } = [];
 }
 
