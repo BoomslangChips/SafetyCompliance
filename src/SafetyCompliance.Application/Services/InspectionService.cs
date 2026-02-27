@@ -106,7 +106,9 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
                         r.Id, r.ChecklistItemTemplateId, r.ChecklistItemTemplate.ItemName,
                         r.ChecklistItemTemplate.SortOrder, r.Response, r.Comment))
                     .ToList(),
-                ei.Photos.Count))
+                ei.Photos.Count,
+                ei.Equipment.Section.Id,
+                ei.Equipment.Section.Name))
             .ToListAsync(ct);
     }
 

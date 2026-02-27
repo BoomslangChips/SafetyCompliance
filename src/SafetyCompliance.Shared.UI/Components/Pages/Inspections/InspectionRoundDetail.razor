@@ -13,6 +13,10 @@
         {
             <button class="btn btn-primary" @onclick="CompleteRound">Complete Round</button>
         }
+        @if (_allComplete)
+        {
+            <span class="status-badge status-completed">All Complete</span>
+        }
     </div>
 </div>
 
@@ -20,60 +24,124 @@
 {
     <p>Loading...</p>
 }
+else if (!_inspections.Any())
+{
+    <div class="empty-state">
+        <p>No equipment found for this inspection round. Make sure the plant has active equipment with checklist templates configured.</p>
+    </div>
+}
 else
 {
     <div class="progress-bar-container">
         <div class="progress-bar" style="width: @(_progress)%"></div>
-        <span class="progress-text">@_completedCount / @_inspections.Count complete</span>
+        <span class="progress-text">@_completedCount / @_inspections.Count equipment complete</span>
     </div>
 
-    @foreach (var inspection in _inspections)
+    @foreach (var sectionGroup in _inspections.GroupBy(i => new { i.SectionId, i.SectionName }))
     {
-        <div class="checklist-card @(inspection.IsComplete ? "complete" : "")">
-            <div class="checklist-header">
-                <h3>@inspection.EquipmentIdentifier - @inspection.EquipmentTypeName @(inspection.SubTypeName is not null ? $"({inspection.SubTypeName})" : "") @(inspection.Size is not null ? inspection.Size : "")</h3>
-                <div class="checklist-header-actions">
-                    @if (inspection.IsComplete)
-                    {
-                        <span class="status-badge status-completed">Complete</span>
-                    }
-                    <button class="btn btn-sm btn-warning" @onclick="() => ShowFlagIssue(inspection)" title="Flag issue">Flag Issue</button>
-                </div>
-            </div>
-            <p class="checklist-desc">@inspection.EquipmentDescription</p>
+        var sectionInspections = sectionGroup.ToList();
+        var checklistHeaders = sectionInspections
+            .Where(i => i.Responses.Any())
+            .SelectMany(i => i.Responses)
+            .Select(r => new { r.ChecklistItemTemplateId, r.ItemName, r.SortOrder })
+            .DistinctBy(r => r.ChecklistItemTemplateId)
+            .OrderBy(r => r.SortOrder)
+            .ToList();
 
-            <div class="checklist-items">
-                @foreach (var response in inspection.Responses)
-                {
-                    <div class="checklist-item @(response.Response == true ? "pass" : response.Response == false ? "fail" : "")">
-                        <span class="item-name">@response.ItemName</span>
-                        <div class="item-actions">
-                            <button class="btn-yes @(response.Response == true ? "active" : "")"
-                                    @onclick="() => SubmitResponse(inspection.Id, response.ChecklistItemTemplateId, true)">Pass</button>
-                            <button class="btn-no @(response.Response == false ? "active" : "")"
-                                    @onclick="() => SubmitResponse(inspection.Id, response.ChecklistItemTemplateId, false)">Fail</button>
-                        </div>
-                    </div>
-                }
+        <div class="section-inspection-block">
+            <div class="section-header-bar">
+                <h2>@sectionGroup.Key.SectionName</h2>
+                <span class="section-progress">
+                    @sectionInspections.Count(i => i.IsComplete) / @sectionInspections.Count
+                </span>
             </div>
 
-            @{
-                var failedItems = inspection.Responses.Where(r => r.Response == false).ToList();
-            }
-            @if (failedItems.Any())
+            @if (checklistHeaders.Any())
             {
-                <div class="failed-items-warning">
-                    <strong>@failedItems.Count item(s) failed:</strong>
-                    @foreach (var failed in failedItems)
-                    {
-                        <span class="failed-item-name">@failed.ItemName</span>
-                    }
+                <div class="checklist-table-wrapper">
+                    <table class="checklist-table">
+                        <thead>
+                            <tr>
+                                <th class="col-num">#</th>
+                                <th class="col-equip">Equipment</th>
+                                @foreach (var header in checklistHeaders)
+                                {
+                                    <th class="col-check">@header.ItemName</th>
+                                }
+                                <th class="col-status">Status</th>
+                                <th class="col-action"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ var rowNum = 0; }
+                            @foreach (var inspection in sectionInspections)
+                            {
+                                rowNum++;
+                                <tr class="@(inspection.IsComplete ? "row-complete" : "")">
+                                    <td class="col-num">@rowNum</td>
+                                    <td class="col-equip">
+                                        <strong>@inspection.EquipmentIdentifier</strong>
+                                        @if (inspection.Size is not null)
+                                        {
+                                            <span class="equip-detail">@inspection.Size</span>
+                                        }
+                                        @if (inspection.SubTypeName is not null)
+                                        {
+                                            <span class="equip-detail">@inspection.SubTypeName</span>
+                                        }
+                                    </td>
+                                    @foreach (var header in checklistHeaders)
+                                    {
+                                        var response = inspection.Responses
+                                            .FirstOrDefault(r => r.ChecklistItemTemplateId == header.ChecklistItemTemplateId);
+                                        <td class="col-check @(response?.Response == true ? "cell-pass" : response?.Response == false ? "cell-fail" : "")">
+                                            @if (response is not null)
+                                            {
+                                                <div class="check-toggle">
+                                                    <button class="toggle-yes @(response.Response == true ? "active" : "")"
+                                                            @onclick="() => SubmitResponse(inspection.Id, header.ChecklistItemTemplateId, true)">&#10003;</button>
+                                                    <button class="toggle-no @(response.Response == false ? "active" : "")"
+                                                            @onclick="() => SubmitResponse(inspection.Id, header.ChecklistItemTemplateId, false)">&#10007;</button>
+                                                </div>
+                                            }
+                                        </td>
+                                    }
+                                    <td class="col-status">
+                                        @if (inspection.IsComplete)
+                                        {
+                                            <span class="badge-done">Done</span>
+                                        }
+                                        else
+                                        {
+                                            var answered = inspection.Responses.Count(r => r.Response.HasValue);
+                                            <span class="badge-partial">@answered/@inspection.Responses.Count</span>
+                                        }
+                                    </td>
+                                    <td class="col-action">
+                                        <button class="btn btn-xs btn-warning" @onclick="() => ShowFlagIssue(inspection)">Flag</button>
+                                    </td>
+                                </tr>
+                                @if (inspection.Responses.Any(r => r.Response == false))
+                                {
+                                    <tr class="failed-row">
+                                        <td colspan="@(3 + checklistHeaders.Count + 2)">
+                                            <span class="failed-label">Failed:</span>
+                                            @foreach (var failed in inspection.Responses.Where(r => r.Response == false))
+                                            {
+                                                <span class="failed-tag">@failed.ItemName</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
                 </div>
             }
-
-            <div class="photo-section">
-                <span>@inspection.PhotoCount photo(s)</span>
-            </div>
+            else
+            {
+                <p class="no-checklist-msg">No checklist items configured for equipment types in this section.</p>
+            }
         </div>
     }
 
