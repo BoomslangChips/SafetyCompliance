@@ -52,12 +52,11 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
 
         foreach (var eq in activeEquipment)
         {
-            var inspection = new EquipmentInspection
+            context.EquipmentInspections.Add(new EquipmentInspection
             {
                 InspectionRoundId = round.Id,
                 EquipmentId = eq.Id
-            };
-            context.EquipmentInspections.Add(inspection);
+            });
         }
 
         await context.SaveChangesAsync(ct);
@@ -90,13 +89,16 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
 
     public async Task<List<EquipmentInspectionDto>> GetEquipmentInspectionsAsync(int roundId, CancellationToken ct = default)
     {
-        return await context.EquipmentInspections
+        // Load inspections
+        var inspections = await context.EquipmentInspections
             .Where(ei => ei.InspectionRoundId == roundId)
             .OrderBy(ei => ei.Equipment.Section.SortOrder)
+            .ThenBy(ei => ei.Equipment.EquipmentType.Name)
             .ThenBy(ei => ei.Equipment.SortOrder)
             .Select(ei => new EquipmentInspectionDto(
                 ei.Id, ei.InspectionRoundId, ei.EquipmentId,
                 ei.Equipment.Identifier, ei.Equipment.Description ?? "",
+                ei.Equipment.EquipmentTypeId,
                 ei.Equipment.EquipmentType.Name,
                 ei.Equipment.EquipmentSubType != null ? ei.Equipment.EquipmentSubType.Name : null,
                 ei.Equipment.Size, ei.IsComplete, ei.Comments,
@@ -108,8 +110,32 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
                     .ToList(),
                 ei.Photos.Count,
                 ei.Equipment.Section.Id,
-                ei.Equipment.Section.Name))
+                ei.Equipment.Section.Name,
+                (ActiveServiceBookingDto?)null))
             .ToListAsync(ct);
+
+        // Load active service bookings separately to avoid complex subquery
+        var equipmentIds = inspections.Select(i => i.EquipmentId).Distinct().ToList();
+        var activeBookings = await context.ServiceBookings
+            .Where(sb => equipmentIds.Contains(sb.EquipmentId)
+                && (sb.Status == ServiceBookingStatus.Sent || sb.Status == ServiceBookingStatus.InService))
+            .GroupBy(sb => sb.EquipmentId)
+            .Select(g => g.OrderByDescending(sb => sb.SentDate).First())
+            .ToDictionaryAsync(sb => sb.EquipmentId, ct);
+
+        // Merge active bookings into DTOs
+        if (activeBookings.Count > 0)
+        {
+            inspections = inspections.Select(i =>
+                activeBookings.TryGetValue(i.EquipmentId, out var booking)
+                    ? i with { ActiveServiceBooking = new ActiveServiceBookingDto(
+                        booking.Id, booking.ServiceProvider, booking.Status,
+                        booking.SentDate, booking.ExpectedReturnDate) }
+                    : i)
+                .ToList();
+        }
+
+        return inspections;
     }
 
     public async Task SubmitResponseAsync(SubmitResponseDto dto, CancellationToken ct = default)
@@ -137,6 +163,15 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
             }
         }
 
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task SaveEquipmentCommentAsync(int equipmentInspectionId, string? comments, CancellationToken ct = default)
+    {
+        var inspection = await context.EquipmentInspections.FindAsync([equipmentInspectionId], ct)
+            ?? throw new InvalidOperationException($"Equipment inspection {equipmentInspectionId} not found");
+
+        inspection.Comments = comments;
         await context.SaveChangesAsync(ct);
     }
 

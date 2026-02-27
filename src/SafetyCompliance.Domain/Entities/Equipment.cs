@@ -21,4 +21,5 @@ public class Equipment : AuditableEntity
     public EquipmentType EquipmentType { get; set; } = null!;
     public EquipmentSubType? EquipmentSubType { get; set; }
     public ICollection<EquipmentInspection> EquipmentInspections { get; set; } = [];
+    public ICollection<ServiceBooking> ServiceBookings { get; set; } = [];
 }

@@ -1,22 +1,13 @@
 @page "/inspections/{RoundId:int}"
 @inject IInspectionService InspectionService
 @inject IIssueService IssueService
+@inject IServiceBookingService ServiceBookingService
 @inject NavigationManager Navigation
 
 <div class="page-header">
     <div>
-        <button class="btn btn-link" @onclick="GoBack">&larr; Back</button>
+        <button class="btn btn-link" @onclick="GoBack">&larr; Back to Inspections</button>
         <h1>Inspection Checklist</h1>
-    </div>
-    <div class="header-actions">
-        @if (_inspections.Any() && !_allComplete)
-        {
-            <button class="btn btn-primary" @onclick="CompleteRound">Complete Round</button>
-        }
-        @if (_allComplete)
-        {
-            <span class="status-badge status-completed">All Complete</span>
-        }
     </div>
 </div>
 
@@ -34,113 +25,143 @@ else
 {
     <div class="progress-bar-container">
         <div class="progress-bar" style="width: @(_progress)%"></div>
-        <span class="progress-text">@_completedCount / @_inspections.Count equipment complete</span>
+        <span class="progress-text">@_completedCount / @_inspections.Count equipment complete (@((int)_progress)%)</span>
     </div>
 
     @foreach (var sectionGroup in _inspections.GroupBy(i => new { i.SectionId, i.SectionName }))
     {
-        var sectionInspections = sectionGroup.ToList();
-        var checklistHeaders = sectionInspections
-            .Where(i => i.Responses.Any())
-            .SelectMany(i => i.Responses)
-            .Select(r => new { r.ChecklistItemTemplateId, r.ItemName, r.SortOrder })
-            .DistinctBy(r => r.ChecklistItemTemplateId)
-            .OrderBy(r => r.SortOrder)
-            .ToList();
-
         <div class="section-inspection-block">
             <div class="section-header-bar">
                 <h2>@sectionGroup.Key.SectionName</h2>
                 <span class="section-progress">
-                    @sectionInspections.Count(i => i.IsComplete) / @sectionInspections.Count
+                    @sectionGroup.Count(i => i.IsComplete) / @sectionGroup.Count()
                 </span>
             </div>
 
-            @if (checklistHeaders.Any())
+            @foreach (var typeGroup in sectionGroup.GroupBy(i => new { i.EquipmentTypeId, i.EquipmentTypeName }))
             {
-                <div class="checklist-table-wrapper">
-                    <table class="checklist-table">
-                        <thead>
-                            <tr>
-                                <th class="col-num">#</th>
-                                <th class="col-equip">Equipment</th>
-                                @foreach (var header in checklistHeaders)
-                                {
-                                    <th class="col-check">@header.ItemName</th>
-                                }
-                                <th class="col-status">Status</th>
-                                <th class="col-action"></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{ var rowNum = 0; }
-                            @foreach (var inspection in sectionInspections)
-                            {
-                                rowNum++;
-                                <tr class="@(inspection.IsComplete ? "row-complete" : "")">
-                                    <td class="col-num">@rowNum</td>
-                                    <td class="col-equip">
-                                        <strong>@inspection.EquipmentIdentifier</strong>
-                                        @if (inspection.Size is not null)
+                var typeInspections = typeGroup.ToList();
+                var checklistHeaders = typeInspections
+                    .Where(i => i.Responses.Any())
+                    .SelectMany(i => i.Responses)
+                    .Select(r => new { r.ChecklistItemTemplateId, r.ItemName, r.SortOrder })
+                    .DistinctBy(r => r.ChecklistItemTemplateId)
+                    .OrderBy(r => r.SortOrder)
+                    .ToList();
+
+                <div class="equipment-type-group">
+                    <div class="type-header-bar">
+                        <h3>@typeGroup.Key.EquipmentTypeName</h3>
+                        <span class="type-count">@typeInspections.Count items</span>
+                    </div>
+
+                    @if (checklistHeaders.Any())
+                    {
+                        <div class="checklist-table-wrapper">
+                            <table class="checklist-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-num">#</th>
+                                        <th class="col-equip">Equipment</th>
+                                        @foreach (var header in checklistHeaders)
                                         {
-                                            <span class="equip-detail">@inspection.Size</span>
+                                            <th class="col-check">@header.ItemName</th>
                                         }
-                                        @if (inspection.SubTypeName is not null)
-                                        {
-                                            <span class="equip-detail">@inspection.SubTypeName</span>
-                                        }
-                                    </td>
-                                    @foreach (var header in checklistHeaders)
-                                    {
-                                        var response = inspection.Responses
-                                            .FirstOrDefault(r => r.ChecklistItemTemplateId == header.ChecklistItemTemplateId);
-                                        <td class="col-check @(response?.Response == true ? "cell-pass" : response?.Response == false ? "cell-fail" : "")">
-                                            @if (response is not null)
-                                            {
-                                                <div class="check-toggle">
-                                                    <button class="toggle-yes @(response.Response == true ? "active" : "")"
-                                                            @onclick="() => SubmitResponse(inspection.Id, header.ChecklistItemTemplateId, true)">&#10003;</button>
-                                                    <button class="toggle-no @(response.Response == false ? "active" : "")"
-                                                            @onclick="() => SubmitResponse(inspection.Id, header.ChecklistItemTemplateId, false)">&#10007;</button>
-                                                </div>
-                                            }
-                                        </td>
-                                    }
-                                    <td class="col-status">
-                                        @if (inspection.IsComplete)
-                                        {
-                                            <span class="badge-done">Done</span>
-                                        }
-                                        else
-                                        {
-                                            var answered = inspection.Responses.Count(r => r.Response.HasValue);
-                                            <span class="badge-partial">@answered/@inspection.Responses.Count</span>
-                                        }
-                                    </td>
-                                    <td class="col-action">
-                                        <button class="btn btn-xs btn-warning" @onclick="() => ShowFlagIssue(inspection)">Flag</button>
-                                    </td>
-                                </tr>
-                                @if (inspection.Responses.Any(r => r.Response == false))
-                                {
-                                    <tr class="failed-row">
-                                        <td colspan="@(3 + checklistHeaders.Count + 2)">
-                                            <span class="failed-label">Failed:</span>
-                                            @foreach (var failed in inspection.Responses.Where(r => r.Response == false))
-                                            {
-                                                <span class="failed-tag">@failed.ItemName</span>
-                                            }
-                                        </td>
+                                        <th class="col-status">Status</th>
+                                        <th class="col-action">Actions</th>
                                     </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
+                                </thead>
+                                <tbody>
+                                    @{ var rowNum = 0; }
+                                    @foreach (var inspection in typeInspections)
+                                    {
+                                        rowNum++;
+                                        var isOutForService = inspection.ActiveServiceBooking is not null;
+                                        <tr class="@(inspection.IsComplete ? "row-complete" : "") @(isOutForService ? "row-out-for-service" : "")">
+                                            <td class="col-num">@rowNum</td>
+                                            <td class="col-equip">
+                                                <strong>@inspection.EquipmentIdentifier</strong>
+                                                @if (isOutForService)
+                                                {
+                                                    <span class="service-badge">
+                                                        Out for Service (@inspection.ActiveServiceBooking!.ServiceProvider)
+                                                    </span>
+                                                }
+                                                @if (inspection.Size is not null)
+                                                {
+                                                    <span class="equip-detail">@inspection.Size</span>
+                                                }
+                                                @if (inspection.SubTypeName is not null)
+                                                {
+                                                    <span class="equip-detail">@inspection.SubTypeName</span>
+                                                }
+                                            </td>
+                                            @foreach (var header in checklistHeaders)
+                                            {
+                                                var response = inspection.Responses
+                                                    .FirstOrDefault(r => r.ChecklistItemTemplateId == header.ChecklistItemTemplateId);
+                                                <td class="col-check @(response?.Response == true ? "cell-pass" : response?.Response == false ? "cell-fail" : "")">
+                                                    @if (response is not null)
+                                                    {
+                                                        <div class="check-toggle">
+                                                            <button class="toggle-yes @(response.Response == true ? "active" : "")"
+                                                                    @onclick="() => SubmitResponse(inspection.Id, header.ChecklistItemTemplateId, true)">&#10003;</button>
+                                                            <button class="toggle-no @(response.Response == false ? "active" : "")"
+                                                                    @onclick="() => SubmitResponse(inspection.Id, header.ChecklistItemTemplateId, false)">&#10007;</button>
+                                                        </div>
+                                                    }
+                                                </td>
+                                            }
+                                            <td class="col-status">
+                                                @if (inspection.IsComplete)
+                                                {
+                                                    <span class="badge-done">Done</span>
+                                                }
+                                                else
+                                                {
+                                                    var answered = inspection.Responses.Count(r => r.Response.HasValue);
+                                                    <span class="badge-partial">@answered/@inspection.Responses.Count</span>
+                                                }
+                                            </td>
+                                            <td class="col-action">
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-xs btn-warning" @onclick="() => ShowFlagIssue(inspection)">Flag</button>
+                                                    <button class="btn btn-xs btn-service" @onclick="() => ShowServiceModal(inspection)">Service</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        @if (inspection.Responses.Any(r => r.Response == false))
+                                        {
+                                            <tr class="failed-row">
+                                                <td colspan="@(3 + checklistHeaders.Count + 2)">
+                                                    <span class="failed-label">Failed:</span>
+                                                    @foreach (var failed in inspection.Responses.Where(r => r.Response == false))
+                                                    {
+                                                        <span class="failed-tag">@failed.ItemName</span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                        <tr class="comment-row">
+                                            <td></td>
+                                            <td colspan="@(checklistHeaders.Count + 2)">
+                                                <div class="equipment-comment">
+                                                    <textarea rows="1" placeholder="Comment for @inspection.EquipmentIdentifier..."
+                                                              value="@(_equipmentComments.GetValueOrDefault(inspection.Id))"
+                                                              @onchange="(e) => OnCommentChanged(inspection.Id, e)" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="no-checklist-msg">No checklist items configured for this equipment type.</p>
+                    }
                 </div>
-            }
-            else
-            {
-                <p class="no-checklist-msg">No checklist items configured for equipment types in this section.</p>
             }
         </div>
     }
@@ -156,12 +177,6 @@ else
                     <span class="comment-date">@comment.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
                 </div>
                 <p class="comment-text">@comment.Text</p>
-                @if (comment.PhotoBase64 is not null)
-                {
-                    <div class="comment-photo">
-                        <img src="@GetPhotoSrc(comment.PhotoBase64)" alt="Comment photo" />
-                    </div>
-                }
             </div>
         }
 
@@ -170,6 +185,25 @@ else
                 <InputTextArea @bind-Value="_newCommentText" class="form-control" rows="2" placeholder="Add a comment about this inspection..." />
             </div>
             <button class="btn btn-primary btn-sm" @onclick="AddComment" disabled="@(string.IsNullOrWhiteSpace(_newCommentText))">Post Comment</button>
+        </div>
+    </div>
+
+    <div class="complete-round-footer">
+        <div class="footer-content">
+            <div class="footer-status">
+                <span>@_completedCount / @_inspections.Count inspected</span>
+                @if (_incompleteCount > 0)
+                {
+                    <span class="footer-warning">@_incompleteCount incomplete</span>
+                }
+                @if (_outForServiceCount > 0)
+                {
+                    <span class="footer-service-info">@_outForServiceCount out for service</span>
+                }
+            </div>
+            <button class="btn btn-success btn-lg" @onclick="ShowCompleteConfirmation">
+                Complete Inspection Round
+            </button>
         </div>
     </div>
 }
@@ -204,17 +238,91 @@ else
     </div>
 }
 
+@if (_showServiceModal)
+{
+    <div class="modal-overlay" @onclick="() => _showServiceModal = false">
+        <div class="modal" @onclick:stopPropagation>
+            <h2>Send for Service - @_serviceEquipmentIdentifier</h2>
+            <div class="form-group">
+                <label>Service Provider</label>
+                <InputText @bind-Value="_serviceProvider" class="form-control" placeholder="Service company name" />
+            </div>
+            <div class="form-group">
+                <label>Reason</label>
+                <InputTextArea @bind-Value="_serviceReason" class="form-control" rows="2" placeholder="Why is this equipment being sent for service?" />
+            </div>
+            <div class="form-group">
+                <label>Expected Return Date</label>
+                <InputDate @bind-Value="_serviceExpectedReturn" class="form-control" />
+            </div>
+            <div class="form-group">
+                <label>Notes (optional)</label>
+                <InputTextArea @bind-Value="_serviceNotes" class="form-control" rows="2" />
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-primary" @onclick="CreateServiceBooking"
+                        disabled="@(string.IsNullOrWhiteSpace(_serviceProvider) || string.IsNullOrWhiteSpace(_serviceReason))">
+                    Send for Service
+                </button>
+                <button class="btn btn-secondary" @onclick="() => _showServiceModal = false">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_showCompleteConfirmation)
+{
+    <div class="modal-overlay" @onclick="() => _showCompleteConfirmation = false">
+        <div class="modal" @onclick:stopPropagation>
+            <h2>Complete Inspection Round</h2>
+
+            @if (_incompleteCount > 0 || _failedItemCount > 0 || _outForServiceCount > 0)
+            {
+                <div class="completion-warning">
+                    <h3>Warning: Outstanding Items</h3>
+                    @if (_incompleteCount > 0)
+                    {
+                        <p>@_incompleteCount equipment item(s) have not been fully inspected.</p>
+                    }
+                    @if (_failedItemCount > 0)
+                    {
+                        <p>@_failedItemCount checklist item(s) marked as failed.</p>
+                    }
+                    @if (_outForServiceCount > 0)
+                    {
+                        <p>@_outForServiceCount equipment item(s) currently out for service.</p>
+                    }
+                    <p>You can still complete the round. These items will be recorded as-is.</p>
+                </div>
+            }
+            else
+            {
+                <p>All equipment has been inspected. Ready to complete.</p>
+            }
+
+            <div class="form-actions">
+                <button class="btn btn-success" @onclick="ConfirmCompleteRound">Confirm Complete</button>
+                <button class="btn btn-secondary" @onclick="() => _showCompleteConfirmation = false">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public int RoundId { get; set; }
 
     private List<EquipmentInspectionDto> _inspections = [];
     private List<CommentDto> _comments = [];
+    private Dictionary<int, string?> _equipmentComments = new();
     private bool _loading = true;
     private int _completedCount;
     private double _progress;
-    private bool _allComplete;
+    private int _incompleteCount;
+    private int _failedItemCount;
+    private int _outForServiceCount;
     private string _newCommentText = string.Empty;
 
+    // Flag issue modal
     private bool _showFlagIssue;
     private int _flagEquipmentInspectionId;
     private int _flagEquipmentId;
@@ -223,31 +331,52 @@ else
     private string? _flagIssueDescription;
     private IssuePriority _flagIssuePriority = IssuePriority.Medium;
 
+    // Service booking modal
+    private bool _showServiceModal;
+    private int _serviceEquipmentId;
+    private int _serviceEquipmentInspectionId;
+    private string _serviceEquipmentIdentifier = "";
+    private string _serviceProvider = string.Empty;
+    private string _serviceReason = string.Empty;
+    private DateOnly? _serviceExpectedReturn;
+    private string? _serviceNotes;
+
+    // Complete confirmation modal
+    private bool _showCompleteConfirmation;
+
     protected override async Task OnInitializedAsync() => await LoadData();
 
     private async Task LoadData()
     {
         _inspections = await InspectionService.GetEquipmentInspectionsAsync(RoundId);
         _comments = await IssueService.GetInspectionCommentsAsync(RoundId);
+
+        _equipmentComments.Clear();
+        foreach (var insp in _inspections)
+            _equipmentComments[insp.Id] = insp.Comments;
+
         _completedCount = _inspections.Count(i => i.IsComplete);
         _progress = _inspections.Count > 0 ? (double)_completedCount / _inspections.Count * 100 : 0;
-        _allComplete = _completedCount == _inspections.Count && _inspections.Count > 0;
+        _incompleteCount = _inspections.Count(i => !i.IsComplete);
+        _failedItemCount = _inspections.Sum(i => i.Responses.Count(r => r.Response == false));
+        _outForServiceCount = _inspections.Count(i => i.ActiveServiceBooking is not null);
         _loading = false;
     }
 
     private async Task SubmitResponse(int equipmentInspectionId, int checklistItemTemplateId, bool response)
     {
-        var dto = new SubmitResponseDto(equipmentInspectionId, checklistItemTemplateId, response, null);
-        await InspectionService.SubmitResponseAsync(dto);
+        await InspectionService.SubmitResponseAsync(new SubmitResponseDto(equipmentInspectionId, checklistItemTemplateId, response, null));
         await LoadData();
     }
 
-    private async Task CompleteRound()
+    private async Task OnCommentChanged(int equipmentInspectionId, ChangeEventArgs e)
     {
-        await InspectionService.CompleteRoundAsync(RoundId);
-        Navigation.NavigateTo("/inspections");
+        var comment = e.Value?.ToString();
+        _equipmentComments[equipmentInspectionId] = comment;
+        await InspectionService.SaveEquipmentCommentAsync(equipmentInspectionId, comment);
     }
 
+    // Flag Issue
     private void ShowFlagIssue(EquipmentInspectionDto inspection)
     {
         _flagEquipmentInspectionId = inspection.Id;
@@ -274,6 +403,47 @@ else
         _showFlagIssue = false;
     }
 
+    // Service Booking
+    private void ShowServiceModal(EquipmentInspectionDto inspection)
+    {
+        _serviceEquipmentId = inspection.EquipmentId;
+        _serviceEquipmentInspectionId = inspection.Id;
+        _serviceEquipmentIdentifier = inspection.EquipmentIdentifier;
+        _serviceProvider = string.Empty;
+        _serviceReason = string.Empty;
+        _serviceExpectedReturn = null;
+        _serviceNotes = null;
+        _showServiceModal = true;
+    }
+
+    private async Task CreateServiceBooking()
+    {
+        var dto = new ServiceBookingCreateDto(
+            _serviceEquipmentId, _serviceEquipmentInspectionId,
+            _serviceProvider, _serviceReason,
+            _serviceExpectedReturn, _serviceNotes);
+        await ServiceBookingService.CreateBookingAsync(dto, "current-user");
+        _showServiceModal = false;
+        await LoadData();
+    }
+
+    // Complete Round
+    private void ShowCompleteConfirmation()
+    {
+        _incompleteCount = _inspections.Count(i => !i.IsComplete);
+        _failedItemCount = _inspections.Sum(i => i.Responses.Count(r => r.Response == false));
+        _outForServiceCount = _inspections.Count(i => i.ActiveServiceBooking is not null);
+        _showCompleteConfirmation = true;
+    }
+
+    private async Task ConfirmCompleteRound()
+    {
+        await InspectionService.CompleteRoundAsync(RoundId);
+        _showCompleteConfirmation = false;
+        Navigation.NavigateTo("/inspections");
+    }
+
+    // Comments
     private async Task AddComment()
     {
         if (string.IsNullOrWhiteSpace(_newCommentText)) return;
@@ -284,5 +454,4 @@ else
     }
 
     private void GoBack() => Navigation.NavigateTo("/inspections");
-    private static string GetPhotoSrc(string base64) => $"data:image/jpeg;base64,{base64}";
 }
