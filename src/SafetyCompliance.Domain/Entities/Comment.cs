@@ -14,5 +14,4 @@ public class Comment : BaseEntity
 
     public InspectionRound? InspectionRound { get; set; }
     public Issue? Issue { get; set; }
-    public ApplicationUser CreatedBy { get; set; } = null!;
 }

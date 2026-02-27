@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build)",
+      "Bash(dotnet ef migrations add AddPhotoSupport --project src/SafetyCompliance.Infrastructure --startup-project src/SafetyCompliance.Web)",
+      "Bash(dotnet add src/SafetyCompliance.Web/SafetyCompliance.Web.csproj package Microsoft.EntityFrameworkCore.Design)",
+      "Bash(git add src/SafetyCompliance.Domain/Entities/Company.cs src/SafetyCompliance.Domain/Entities/Plant.cs src/SafetyCompliance.Domain/Entities/Section.cs src/SafetyCompliance.Application/DTOs/CompanyDto.cs src/SafetyCompliance.Application/DTOs/PlantDto.cs src/SafetyCompliance.Application/DTOs/SectionDto.cs src/SafetyCompliance.Application/DTOs/HierarchyDto.cs src/SafetyCompliance.Application/DTOs/SetupDto.cs src/SafetyCompliance.Application/Interfaces/ICompanyService.cs src/SafetyCompliance.Application/Interfaces/ISetupService.cs src/SafetyCompliance.Application/Services/CompanyService.cs src/SafetyCompliance.Application/Services/PlantService.cs src/SafetyCompliance.Application/Services/SectionService.cs src/SafetyCompliance.Application/Services/SetupService.cs src/SafetyCompliance.Application/DependencyInjection.cs src/SafetyCompliance.Shared.UI/Components/Layout/NavMenu.razor src/SafetyCompliance.Shared.UI/Components/Pages/Companies/CompanyDetail.razor src/SafetyCompliance.Shared.UI/Components/Pages/Companies/CompanyList.razor src/SafetyCompliance.Shared.UI/Components/Pages/Plants/PlantDetail.razor src/SafetyCompliance.Shared.UI/Components/Pages/Setup/SetupWizard.razor src/SafetyCompliance.Shared.UI/Components/Pages/Setup/HierarchyOverview.razor src/SafetyCompliance.Shared.UI/wwwroot/css/app.css src/SafetyCompliance.Web/SafetyCompliance.Web.csproj src/SafetyCompliance.Infrastructure/Migrations/)",
+      "Bash(git commit:*)",
+      "Bash(git push -u origin claude/objective-cohen)",
+      "Bash(git -C \"C:/Users/USER-PC/Desktop/SafetyCompliance\" remote -v)",
+      "Bash(git -C \"C:/Users/USER-PC/Desktop/SafetyCompliance\" remote add origin https://github.com/BoomslangChips/SafetyCompliance.git)",
+      "Bash(git -C \"C:/Users/USER-PC/Desktop/SafetyCompliance\" push -u origin main)",
+      "Bash(git -C \"C:/Users/USER-PC/Desktop/SafetyCompliance\" branch -a)",
+      "Bash(git -C \"C:/Users/USER-PC/Desktop/SafetyCompliance\" push -u origin master)",
+      "Bash(gh pr:*)",
+      "Bash(where.exe gh)",
+      "Bash(git status -u)",
+      "Bash(git add src/SafetyCompliance.Domain/Entities/Comment.cs src/SafetyCompliance.Domain/Entities/InspectionSchedule.cs src/SafetyCompliance.Domain/Entities/Issue.cs src/SafetyCompliance.Domain/Entities/InspectionRound.cs src/SafetyCompliance.Application/DTOs/CalendarDto.cs src/SafetyCompliance.Application/DTOs/CommentDto.cs src/SafetyCompliance.Application/DTOs/IssueDto.cs src/SafetyCompliance.Application/DTOs/ScheduleDto.cs src/SafetyCompliance.Application/Interfaces/IIssueService.cs src/SafetyCompliance.Application/Interfaces/IScheduleService.cs src/SafetyCompliance.Application/Services/IssueService.cs src/SafetyCompliance.Application/Services/ScheduleService.cs src/SafetyCompliance.Application/DependencyInjection.cs src/SafetyCompliance.Infrastructure/Data/ApplicationDbContext.cs src/SafetyCompliance.Shared.UI/_Imports.razor src/SafetyCompliance.Shared.UI/Components/Layout/NavMenu.razor src/SafetyCompliance.Shared.UI/Components/Pages/Dashboard.razor src/SafetyCompliance.Shared.UI/Components/Pages/Inspections/InspectionDashboard.razor src/SafetyCompliance.Shared.UI/Components/Pages/Inspections/InspectionRoundDetail.razor src/SafetyCompliance.Shared.UI/Components/Pages/Issues/IssueDetail.razor src/SafetyCompliance.Shared.UI/Components/Pages/Issues/IssueList.razor src/SafetyCompliance.Shared.UI/Components/Pages/Schedules/ScheduleManagement.razor src/SafetyCompliance.Shared.UI/wwwroot/css/app.css)",
+      "Bash(git push origin claude/objective-cohen)",
+      "Bash(dotnet build --nologo --verbosity quiet)",
+      "Bash(git add -A)"
+    ]
+  }
+}

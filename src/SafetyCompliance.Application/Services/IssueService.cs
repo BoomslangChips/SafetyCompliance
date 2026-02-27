@@ -25,7 +25,7 @@ public class IssueService(ApplicationDbContext context) : IIssueService
             .Select(i => new IssueDto(
                 i.Id, i.Title, i.Description, i.Priority, i.Status,
                 i.AssignedTo, i.DueDate, i.ResolvedAt,
-                i.ResolvedBy != null ? i.ResolvedBy.FirstName + " " + i.ResolvedBy.LastName : null,
+                i.ResolvedById,
                 i.InspectionRoundId, i.EquipmentInspectionId, i.EquipmentId,
                 i.Equipment != null ? i.Equipment.Identifier : null,
                 i.Equipment != null ? i.Equipment.EquipmentType.Name : null,
@@ -43,7 +43,7 @@ public class IssueService(ApplicationDbContext context) : IIssueService
             .Select(i => new IssueDto(
                 i.Id, i.Title, i.Description, i.Priority, i.Status,
                 i.AssignedTo, i.DueDate, i.ResolvedAt,
-                i.ResolvedBy != null ? i.ResolvedBy.FirstName + " " + i.ResolvedBy.LastName : null,
+                i.ResolvedById,
                 i.InspectionRoundId, i.EquipmentInspectionId, i.EquipmentId,
                 i.Equipment != null ? i.Equipment.Identifier : null,
                 i.Equipment != null ? i.Equipment.EquipmentType.Name : null,
