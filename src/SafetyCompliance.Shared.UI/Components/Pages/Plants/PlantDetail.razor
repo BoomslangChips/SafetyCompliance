@@ -1,0 +1,283 @@
+@page "/plants/{PlantId:int}"
+@inject IPlantService PlantService
+@inject ISectionService SectionService
+@inject IEquipmentService EquipmentService
+@inject NavigationManager Navigation
+
+@if (_plant is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="page-header">
+        <div>
+            <button class="btn btn-link" @onclick="GoBack">&larr; Back</button>
+            <h1>@_plant.Name</h1>
+            @if (_plant.Description is not null)
+            {
+                <p class="card-subtitle">@_plant.Description</p>
+            }
+            @if (_plant.ContactName is not null)
+            {
+                <p class="card-subtitle">Contact: @_plant.ContactName @(_plant.ContactPhone is not null ? $"- {_plant.ContactPhone}" : "") @(_plant.ContactEmail is not null ? $"- {_plant.ContactEmail}" : "")</p>
+            }
+        </div>
+        <button class="btn btn-primary" @onclick="() => _showCreateSection = true">Add Section</button>
+    </div>
+
+    @if (_showCreateSection)
+    {
+        <div class="modal-overlay" @onclick="() => _showCreateSection = false">
+            <div class="modal" @onclick:stopPropagation>
+                <h2>Add Section</h2>
+                <EditForm Model="_sectionCreate" OnValidSubmit="CreateSection">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <InputText @bind-Value="_sectionCreate.Name" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <InputText @bind-Value="_sectionCreate.Description" class="form-control" />
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showCreateSection = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @if (_showAddEquipment)
+    {
+        <div class="modal-overlay" @onclick="CloseEquipmentModal">
+            <div class="modal modal-wide" @onclick:stopPropagation>
+                <h2>Add Equipment to @(_addEquipmentSectionName)</h2>
+                <EditForm Model="_equipmentCreate" OnValidSubmit="CreateEquipment">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Identifier (e.g. FE-01)</label>
+                            <InputText @bind-Value="_equipmentCreate.Identifier" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Equipment Type</label>
+                            <select class="form-control" @onchange="OnEquipmentTypeChanged">
+                                <option value="">-- Select Type --</option>
+                                @foreach (var eqType in _equipmentTypes)
+                                {
+                                    <option value="@eqType.Id">@eqType.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    @if (_availableSubTypes.Any())
+                    {
+                        <div class="form-group">
+                            <label>Sub-Type</label>
+                            <select class="form-control" @onchange="OnSubTypeChanged">
+                                <option value="">-- Select Sub-Type (optional) --</option>
+                                @foreach (var st in _availableSubTypes)
+                                {
+                                    <option value="@st.Id">@st.Name</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    <div class="form-group">
+                        <label>Description</label>
+                        <InputText @bind-Value="_equipmentCreate.Description" class="form-control" />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Size</label>
+                            <InputText @bind-Value="_equipmentCreate.Size" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Serial Number</label>
+                            <InputText @bind-Value="_equipmentCreate.SerialNumber" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Equipment</button>
+                        <button type="button" class="btn btn-secondary" @onclick="CloseEquipmentModal">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @if (!_sections.Any())
+    {
+        <p class="empty-state">No sections yet. Add a section to organize your equipment.</p>
+    }
+
+    @foreach (var sect in _sections)
+    {
+        <div class="section-card">
+            <div class="section-header">
+                <div>
+                    <h2>@sect.Name</h2>
+                    @if (sect.Description is not null)
+                    {
+                        <p class="section-desc">@sect.Description</p>
+                    }
+                </div>
+                <button class="btn btn-sm btn-primary" @onclick="() => ShowAddEquipment(sect.Id, sect.Name)">Add Equipment</button>
+            </div>
+
+            @if (_equipmentBySection.TryGetValue(sect.Id, out var equipment) && equipment.Any())
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Type</th>
+                            <th>Sub-Type</th>
+                            <th>Description</th>
+                            <th>Size</th>
+                            <th>Serial</th>
+                            <th>Next Service</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var eq in equipment)
+                        {
+                            <tr>
+                                <td><strong>@eq.Identifier</strong></td>
+                                <td>@eq.EquipmentTypeName</td>
+                                <td>@(eq.SubTypeName ?? "-")</td>
+                                <td>@(eq.Description ?? "-")</td>
+                                <td>@(eq.Size ?? "-")</td>
+                                <td>@(eq.SerialNumber ?? "-")</td>
+                                <td>@(eq.NextServiceDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="empty-state">No equipment in this section yet.</p>
+            }
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public int PlantId { get; set; }
+
+    private PlantDto? _plant;
+    private List<SectionDto> _sections = [];
+    private Dictionary<int, List<EquipmentDto>> _equipmentBySection = [];
+    private List<EquipmentTypeDto> _equipmentTypes = [];
+    private List<EquipmentSubTypeDto> _availableSubTypes = [];
+    private bool _showCreateSection;
+    private bool _showAddEquipment;
+    private int _addEquipmentSectionId;
+    private string _addEquipmentSectionName = "";
+    private SectionCreateModel _sectionCreate = new();
+    private EquipmentCreateModel _equipmentCreate = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _equipmentTypes = await EquipmentService.GetEquipmentTypesAsync();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _plant = await PlantService.GetPlantByIdAsync(PlantId);
+        _sections = await SectionService.GetSectionsByPlantAsync(PlantId);
+
+        _equipmentBySection.Clear();
+        foreach (var sect in _sections)
+        {
+            _equipmentBySection[sect.Id] = await EquipmentService.GetEquipmentBySectionAsync(sect.Id);
+        }
+    }
+
+    private async Task CreateSection()
+    {
+        var maxOrder = _sections.Any() ? _sections.Max(s => s.SortOrder) + 1 : 1;
+        var dto = new SectionCreateDto(PlantId, _sectionCreate.Name, _sectionCreate.Description, maxOrder);
+        await SectionService.CreateSectionAsync(dto, "current-user");
+        await LoadData();
+        _showCreateSection = false;
+        _sectionCreate = new();
+    }
+
+    private void ShowAddEquipment(int sectionId, string sectionName)
+    {
+        _addEquipmentSectionId = sectionId;
+        _addEquipmentSectionName = sectionName;
+        _equipmentCreate = new();
+        _availableSubTypes = [];
+        _showAddEquipment = true;
+    }
+
+    private void CloseEquipmentModal()
+    {
+        _showAddEquipment = false;
+        _equipmentCreate = new();
+        _availableSubTypes = [];
+    }
+
+    private async Task OnEquipmentTypeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var typeId))
+        {
+            _equipmentCreate.EquipmentTypeId = typeId;
+            _availableSubTypes = await EquipmentService.GetSubTypesByTypeAsync(typeId);
+            _equipmentCreate.EquipmentSubTypeId = null;
+        }
+    }
+
+    private void OnSubTypeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var subTypeId))
+            _equipmentCreate.EquipmentSubTypeId = subTypeId;
+        else
+            _equipmentCreate.EquipmentSubTypeId = null;
+    }
+
+    private async Task CreateEquipment()
+    {
+        var existingEquipment = _equipmentBySection.TryGetValue(_addEquipmentSectionId, out var eqs) ? eqs : [];
+        var maxOrder = existingEquipment.Any() ? existingEquipment.Max(e => e.SortOrder) + 1 : 1;
+
+        var dto = new EquipmentCreateDto(
+            _addEquipmentSectionId,
+            _equipmentCreate.EquipmentTypeId,
+            _equipmentCreate.EquipmentSubTypeId,
+            _equipmentCreate.Identifier,
+            _equipmentCreate.Description,
+            _equipmentCreate.Size,
+            _equipmentCreate.SerialNumber,
+            null,
+            null,
+            maxOrder);
+
+        await EquipmentService.CreateEquipmentAsync(dto, "current-user");
+        await LoadData();
+        CloseEquipmentModal();
+    }
+
+    private void GoBack() => Navigation.NavigateTo($"/companies/{_plant?.CompanyId}");
+
+    private class SectionCreateModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
+    private class EquipmentCreateModel
+    {
+        public string Identifier { get; set; } = string.Empty;
+        public int EquipmentTypeId { get; set; }
+        public int? EquipmentSubTypeId { get; set; }
+        public string? Description { get; set; }
+        public string? Size { get; set; }
+        public string? SerialNumber { get; set; }
+    }
+}

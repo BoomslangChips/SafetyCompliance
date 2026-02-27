@@ -1,0 +1,127 @@
+@page "/inspections"
+@inject ICompanyService CompanyService
+@inject IPlantService PlantService
+@inject IInspectionService InspectionService
+@inject NavigationManager Navigation
+
+<div class="page-header">
+    <h1>Inspections</h1>
+</div>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="form-group">
+        <label>Select Company</label>
+        <select class="form-control" @onchange="OnCompanyChanged">
+            <option value="">-- Select Company --</option>
+            @foreach (var company in _companies)
+            {
+                <option value="@company.Id">@company.Name</option>
+            }
+        </select>
+    </div>
+
+    @if (_selectedCompanyId > 0)
+    {
+        <div class="form-group">
+            <label>Select Plant</label>
+            <select class="form-control" @onchange="OnPlantChanged">
+                <option value="">-- Select Plant --</option>
+                @foreach (var plant in _plants)
+                {
+                    <option value="@plant.Id">@plant.Name</option>
+                }
+            </select>
+        </div>
+    }
+
+    @if (_selectedPlantId > 0)
+    {
+        <div class="inspection-actions">
+            <button class="btn btn-primary" @onclick="StartNewRound" disabled="@_hasCurrentMonthRound">
+                @(_hasCurrentMonthRound ? "Already Inspected This Month" : "Start Monthly Inspection")
+            </button>
+        </div>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Date</th>
+                    <th>Inspector</th>
+                    <th>Progress</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var round in _rounds)
+                {
+                    <tr>
+                        <td>@round.InspectionMonth</td>
+                        <td>@round.InspectionDate</td>
+                        <td>@round.InspectorName</td>
+                        <td>@round.CompletedEquipment / @round.TotalEquipment</td>
+                        <td><span class="status-badge status-@round.Status.ToString().ToLower()">@round.Status</span></td>
+                        <td><button class="btn btn-sm btn-secondary" @onclick="() => GoToRound(round.Id)">Open</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private List<CompanyDto> _companies = [];
+    private List<PlantDto> _plants = [];
+    private List<InspectionRoundDto> _rounds = [];
+    private int _selectedCompanyId;
+    private int _selectedPlantId;
+    private bool _hasCurrentMonthRound;
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _companies = await CompanyService.GetAllCompaniesAsync();
+        _loading = false;
+    }
+
+    private async Task OnCompanyChanged(ChangeEventArgs e)
+    {
+        _selectedPlantId = 0;
+        _rounds = [];
+        if (int.TryParse(e.Value?.ToString(), out var companyId))
+        {
+            _selectedCompanyId = companyId;
+            _plants = await PlantService.GetPlantsByCompanyAsync(companyId);
+        }
+    }
+
+    private async Task OnPlantChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var plantId))
+        {
+            _selectedPlantId = plantId;
+            await LoadRounds();
+        }
+    }
+
+    private async Task LoadRounds()
+    {
+        _rounds = await InspectionService.GetInspectionRoundsAsync(_selectedPlantId);
+        var currentMonth = DateTime.UtcNow.ToString("yyyy-MM");
+        _hasCurrentMonthRound = _rounds.Any(r => r.InspectionMonth == currentMonth);
+    }
+
+    private void GoToRound(int id) => Navigation.NavigateTo($"/inspections/{id}");
+
+    private async Task StartNewRound()
+    {
+        await InspectionService.StartInspectionRoundAsync(_selectedPlantId, "current-user");
+        await LoadRounds();
+    }
+}

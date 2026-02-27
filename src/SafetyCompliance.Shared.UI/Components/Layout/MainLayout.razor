@@ -1,0 +1,23 @@
+@inherits LayoutComponentBase
+
+<div class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <span class="brand-icon">&#9888;</span>
+            <span class="brand-text">SafeCheck</span>
+        </div>
+        <NavMenu />
+    </aside>
+    <main class="main-content">
+        <header class="top-bar">
+            <AuthorizeView>
+                <Authorized>
+                    <span class="user-greeting">@context.User.Identity?.Name</span>
+                </Authorized>
+            </AuthorizeView>
+        </header>
+        <div class="page-content">
+            @Body
+        </div>
+    </main>
+</div>

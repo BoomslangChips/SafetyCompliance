@@ -1,0 +1,56 @@
+@page "/"
+@inject ICompanyService CompanyService
+
+<h1>Safety &amp; Compliance Dashboard</h1>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="dashboard-grid">
+        <div class="stat-card">
+            <div class="stat-value">@_companies.Count</div>
+            <div class="stat-label">Companies</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">@_companies.Sum(c => c.PlantCount)</div>
+            <div class="stat-label">Plants</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">@_companies.Sum(c => c.TotalEquipment)</div>
+            <div class="stat-label">Equipment</div>
+        </div>
+    </div>
+
+    <h2>Companies</h2>
+    <div class="card-list">
+        @foreach (var company in _companies)
+        {
+            <div class="card clickable" @onclick="() => GoToCompany(company.Id)">
+                <h3>@company.Name</h3>
+                <p class="card-subtitle">@(company.Code ?? "")</p>
+                <div class="card-stats">
+                    <span>@company.PlantCount plants</span>
+                    <span>@company.TotalEquipment equipment</span>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Inject] private NavigationManager Navigation { get; set; } = null!;
+
+    private List<CompanyDto> _companies = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _companies = await CompanyService.GetAllCompaniesAsync();
+        _loading = false;
+    }
+
+    private void GoToCompany(int id) => Navigation.NavigateTo($"/companies/{id}");
+}

@@ -1,0 +1,76 @@
+@page "/equipment-types"
+@inject IEquipmentService EquipmentService
+@inject NavigationManager Navigation
+
+<div class="page-header">
+    <h1>Equipment Types</h1>
+    <button class="btn btn-primary" @onclick="() => _showCreate = true">Add Equipment Type</button>
+</div>
+
+@if (_showCreate)
+{
+    <div class="modal-overlay" @onclick="() => _showCreate = false">
+        <div class="modal" @onclick:stopPropagation>
+            <h2>Add Equipment Type</h2>
+            <EditForm Model="_createModel" OnValidSubmit="CreateType">
+                <div class="form-group">
+                    <label>Name</label>
+                    <InputText @bind-Value="_createModel.Name" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <InputText @bind-Value="_createModel.Description" class="form-control" />
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" @onclick="() => _showCreate = false">Cancel</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div class="card-list">
+    @foreach (var eqType in _types)
+    {
+        <div class="card clickable" @onclick="() => GoToType(eqType.Id)">
+            <h3>@eqType.Name</h3>
+            <p class="card-subtitle">@(eqType.Description ?? "No description")</p>
+            <div class="card-stats">
+                <span>@eqType.ChecklistItemCount checklist items</span>
+                <span>@eqType.SubTypeCount sub-types</span>
+            </div>
+        </div>
+    }
+
+    @if (!_types.Any())
+    {
+        <p class="empty-state">No equipment types yet. Add one to get started.</p>
+    }
+</div>
+
+@code {
+    private List<EquipmentTypeDto> _types = [];
+    private bool _showCreate;
+    private CreateModel _createModel = new();
+
+    protected override async Task OnInitializedAsync()
+        => _types = await EquipmentService.GetEquipmentTypesAsync();
+
+    private async Task CreateType()
+    {
+        var dto = new EquipmentTypeCreateDto(_createModel.Name, _createModel.Description);
+        await EquipmentService.CreateEquipmentTypeAsync(dto);
+        _types = await EquipmentService.GetEquipmentTypesAsync();
+        _showCreate = false;
+        _createModel = new();
+    }
+
+    private void GoToType(int id) => Navigation.NavigateTo($"/equipment-types/{id}");
+
+    private class CreateModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+}

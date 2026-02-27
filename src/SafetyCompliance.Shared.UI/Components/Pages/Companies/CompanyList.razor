@@ -1,0 +1,91 @@
+@page "/companies"
+@inject ICompanyService CompanyService
+@inject NavigationManager Navigation
+
+<div class="page-header">
+    <h1>Companies</h1>
+    <button class="btn btn-primary" @onclick="() => _showCreate = true">Add Company</button>
+</div>
+
+@if (_showCreate)
+{
+    <div class="modal-overlay" @onclick="() => _showCreate = false">
+        <div class="modal" @onclick:stopPropagation>
+            <h2>Add Company</h2>
+            <EditForm Model="_createDto" OnValidSubmit="CreateCompany">
+                <div class="form-group">
+                    <label>Name</label>
+                    <InputText @bind-Value="_createDto.Name" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Code</label>
+                    <InputText @bind-Value="_createDto.Code" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <InputText @bind-Value="_createDto.Address" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Contact Name</label>
+                    <InputText @bind-Value="_createDto.ContactName" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Contact Email</label>
+                    <InputText @bind-Value="_createDto.ContactEmail" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Contact Phone</label>
+                    <InputText @bind-Value="_createDto.ContactPhone" class="form-control" />
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" @onclick="() => _showCreate = false">Cancel</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<div class="card-list">
+    @foreach (var company in _companies)
+    {
+        <div class="card clickable" @onclick="() => GoToCompany(company.Id)">
+            <h3>@company.Name</h3>
+            <p class="card-subtitle">@(company.Code ?? "No code") &middot; @(company.Address ?? "No address")</p>
+            <div class="card-stats">
+                <span>@company.PlantCount plants</span>
+                <span>@company.TotalEquipment equipment</span>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<CompanyDto> _companies = [];
+    private CompanyCreateModel _createDto = new();
+    private bool _showCreate;
+
+    protected override async Task OnInitializedAsync()
+        => _companies = await CompanyService.GetAllCompaniesAsync();
+
+    private async Task CreateCompany()
+    {
+        var dto = new CompanyCreateDto(_createDto.Name, _createDto.Code, _createDto.Address, _createDto.ContactName, _createDto.ContactEmail, _createDto.ContactPhone);
+        await CompanyService.CreateCompanyAsync(dto, "current-user");
+        _companies = await CompanyService.GetAllCompaniesAsync();
+        _showCreate = false;
+        _createDto = new();
+    }
+
+    private void GoToCompany(int id) => Navigation.NavigateTo($"/companies/{id}");
+
+    private class CompanyCreateModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Code { get; set; }
+        public string? Address { get; set; }
+        public string? ContactName { get; set; }
+        public string? ContactEmail { get; set; }
+        public string? ContactPhone { get; set; }
+    }
+}

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SafetyCompliance.Application\SafetyCompliance.Application.csproj" />
+    <ProjectReference Include="..\SafetyCompliance.Infrastructure\SafetyCompliance.Infrastructure.csproj" />
+    <ProjectReference Include="..\SafetyCompliance.Shared.UI\SafetyCompliance.Shared.UI.csproj" />
+  </ItemGroup>
+</Project>

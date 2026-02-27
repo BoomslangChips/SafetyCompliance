@@ -1,0 +1,115 @@
+@page "/companies/{CompanyId:int}"
+@inject ICompanyService CompanyService
+@inject IPlantService PlantService
+@inject NavigationManager Navigation
+
+@if (_company is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="page-header">
+        <div>
+            <button class="btn btn-link" @onclick="GoBack">&larr; Back</button>
+            <h1>@_company.Name</h1>
+            @if (_company.Code is not null)
+            {
+                <span class="card-subtitle">@_company.Code</span>
+            }
+        </div>
+        <button class="btn btn-primary" @onclick="() => _showCreatePlant = true">Add Plant</button>
+    </div>
+
+    @if (_showCreatePlant)
+    {
+        <div class="modal-overlay" @onclick="() => _showCreatePlant = false">
+            <div class="modal" @onclick:stopPropagation>
+                <h2>Add Plant</h2>
+                <EditForm Model="_plantCreate" OnValidSubmit="CreatePlant">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <InputText @bind-Value="_plantCreate.Name" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <InputText @bind-Value="_plantCreate.Description" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Name</label>
+                        <InputText @bind-Value="_plantCreate.ContactName" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Phone</label>
+                        <InputText @bind-Value="_plantCreate.ContactPhone" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Email</label>
+                        <InputText @bind-Value="_plantCreate.ContactEmail" class="form-control" />
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showCreatePlant = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    <div class="card-list">
+        @foreach (var plant in _plants)
+        {
+            <div class="card clickable" @onclick="() => GoToPlant(plant.Id)">
+                <h3>@plant.Name</h3>
+                <p class="card-subtitle">@(plant.ContactName ?? "No contact")</p>
+                <div class="card-stats">
+                    <span>@plant.SectionCount sections</span>
+                    <span>@plant.EquipmentCount equipment</span>
+                </div>
+            </div>
+        }
+
+        @if (!_plants.Any())
+        {
+            <p class="empty-state">No plants yet. Add one to get started.</p>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public int CompanyId { get; set; }
+
+    private CompanyDto? _company;
+    private List<PlantDto> _plants = [];
+    private bool _showCreatePlant;
+    private PlantCreateModel _plantCreate = new();
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _company = await CompanyService.GetCompanyByIdAsync(CompanyId);
+        _plants = await PlantService.GetPlantsByCompanyAsync(CompanyId);
+    }
+
+    private async Task CreatePlant()
+    {
+        var dto = new PlantCreateDto(CompanyId, _plantCreate.Name, _plantCreate.Description, _plantCreate.ContactName, _plantCreate.ContactPhone, _plantCreate.ContactEmail);
+        await PlantService.CreatePlantAsync(dto, "current-user");
+        await LoadData();
+        _showCreatePlant = false;
+        _plantCreate = new();
+    }
+
+    private void GoToPlant(int id) => Navigation.NavigateTo($"/plants/{id}");
+    private void GoBack() => Navigation.NavigateTo("/companies");
+
+    private class PlantCreateModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? ContactName { get; set; }
+        public string? ContactPhone { get; set; }
+        public string? ContactEmail { get; set; }
+    }
+}

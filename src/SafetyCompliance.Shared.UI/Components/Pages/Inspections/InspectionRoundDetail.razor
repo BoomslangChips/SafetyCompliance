@@ -1,0 +1,91 @@
+@page "/inspections/{RoundId:int}"
+@inject IInspectionService InspectionService
+@inject NavigationManager Navigation
+
+<div class="page-header">
+    <button class="btn btn-link" @onclick='() => Navigation.NavigateTo("/inspections")'>&larr; Back</button>
+    <h1>Inspection Checklist</h1>
+    @if (_inspections.Any() && !_allComplete)
+    {
+        <button class="btn btn-primary" @onclick="CompleteRound">Complete Round</button>
+    }
+</div>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="progress-bar-container">
+        <div class="progress-bar" style="width: @(_progress)%"></div>
+        <span class="progress-text">@_completedCount / @_inspections.Count complete</span>
+    </div>
+
+    @foreach (var inspection in _inspections)
+    {
+        <div class="checklist-card @(inspection.IsComplete ? "complete" : "")">
+            <div class="checklist-header">
+                <h3>@inspection.EquipmentIdentifier - @inspection.EquipmentTypeName @(inspection.SubTypeName is not null ? $"({inspection.SubTypeName})" : "") @(inspection.Size is not null ? inspection.Size : "")</h3>
+                @if (inspection.IsComplete)
+                {
+                    <span class="status-badge status-completed">Complete</span>
+                }
+            </div>
+            <p class="checklist-desc">@inspection.EquipmentDescription</p>
+
+            <div class="checklist-items">
+                @foreach (var response in inspection.Responses)
+                {
+                    <div class="checklist-item @(response.Response == true ? "pass" : response.Response == false ? "fail" : "")">
+                        <span class="item-name">@response.ItemName</span>
+                        <div class="item-actions">
+                            <button class="btn-yes @(response.Response == true ? "active" : "")"
+                                    @onclick="() => SubmitResponse(inspection.Id, response.ChecklistItemTemplateId, true)">Yes</button>
+                            <button class="btn-no @(response.Response == false ? "active" : "")"
+                                    @onclick="() => SubmitResponse(inspection.Id, response.ChecklistItemTemplateId, false)">No</button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="photo-section">
+                <span>@inspection.PhotoCount photo(s)</span>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public int RoundId { get; set; }
+
+    private List<EquipmentInspectionDto> _inspections = [];
+    private bool _loading = true;
+    private int _completedCount;
+    private double _progress;
+    private bool _allComplete;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _inspections = await InspectionService.GetEquipmentInspectionsAsync(RoundId);
+        _completedCount = _inspections.Count(i => i.IsComplete);
+        _progress = _inspections.Count > 0 ? (double)_completedCount / _inspections.Count * 100 : 0;
+        _allComplete = _completedCount == _inspections.Count && _inspections.Count > 0;
+        _loading = false;
+    }
+
+    private async Task SubmitResponse(int equipmentInspectionId, int checklistItemTemplateId, bool response)
+    {
+        var dto = new SubmitResponseDto(equipmentInspectionId, checklistItemTemplateId, response, null);
+        await InspectionService.SubmitResponseAsync(dto);
+        await LoadData();
+    }
+
+    private async Task CompleteRound()
+    {
+        await InspectionService.CompleteRoundAsync(RoundId);
+        Navigation.NavigateTo("/inspections");
+    }
+}

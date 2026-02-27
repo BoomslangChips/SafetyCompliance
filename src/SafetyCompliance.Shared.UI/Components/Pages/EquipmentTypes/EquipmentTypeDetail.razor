@@ -1,0 +1,183 @@
+@page "/equipment-types/{TypeId:int}"
+@inject IEquipmentService EquipmentService
+@inject NavigationManager Navigation
+
+@if (_type is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="page-header">
+        <div>
+            <button class="btn btn-link" @onclick="GoBack">&larr; Back</button>
+            <h1>@_type.Name</h1>
+            <p class="card-subtitle">@(_type.Description ?? "")</p>
+        </div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header">
+            <h2>Sub-Types</h2>
+            <button class="btn btn-sm btn-primary" @onclick="() => _showAddSubType = true">Add Sub-Type</button>
+        </div>
+
+        @if (_showAddSubType)
+        {
+            <div class="inline-form">
+                <EditForm Model="_subTypeModel" OnValidSubmit="CreateSubType">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Name</label>
+                            <InputText @bind-Value="_subTypeModel.Name" class="form-control" />
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Add</button>
+                            <button type="button" class="btn btn-secondary" @onclick="() => _showAddSubType = false">Cancel</button>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        @if (_subTypes.Any())
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var st in _subTypes)
+                    {
+                        <tr>
+                            <td>@st.Name</td>
+                            <td><span class="status-badge status-@(st.IsActive ? "active" : "inactive")">@(st.IsActive ? "Active" : "Inactive")</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="empty-state">No sub-types defined.</p>
+        }
+    </div>
+
+    <div class="section-card">
+        <div class="section-header">
+            <h2>Checklist Items</h2>
+            <button class="btn btn-sm btn-primary" @onclick="() => _showAddChecklist = true">Add Checklist Item</button>
+        </div>
+
+        @if (_showAddChecklist)
+        {
+            <div class="inline-form">
+                <EditForm Model="_checklistModel" OnValidSubmit="CreateChecklistItem">
+                    <div class="form-group">
+                        <label>Item Name</label>
+                        <InputText @bind-Value="_checklistModel.ItemName" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <InputText @bind-Value="_checklistModel.Description" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <InputCheckbox @bind-Value="_checklistModel.IsRequired" /> Required
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Add</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showAddChecklist = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        @if (_checklistItems.Any())
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Item</th>
+                        <th>Description</th>
+                        <th>Required</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in _checklistItems)
+                    {
+                        <tr>
+                            <td>@item.SortOrder</td>
+                            <td>@item.ItemName</td>
+                            <td>@(item.Description ?? "-")</td>
+                            <td>@(item.IsRequired ? "Yes" : "No")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="empty-state">No checklist items defined. Add items that inspectors will check during inspections.</p>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public int TypeId { get; set; }
+
+    private EquipmentTypeDto? _type;
+    private List<EquipmentSubTypeDto> _subTypes = [];
+    private List<ChecklistItemTemplateDto> _checklistItems = [];
+    private bool _showAddSubType;
+    private bool _showAddChecklist;
+    private SubTypeModel _subTypeModel = new();
+    private ChecklistModel _checklistModel = new();
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _type = await EquipmentService.GetEquipmentTypeByIdAsync(TypeId);
+        _subTypes = await EquipmentService.GetSubTypesByTypeAsync(TypeId);
+        _checklistItems = await EquipmentService.GetChecklistTemplatesAsync(TypeId);
+    }
+
+    private async Task CreateSubType()
+    {
+        var dto = new EquipmentSubTypeCreateDto(TypeId, _subTypeModel.Name);
+        await EquipmentService.CreateSubTypeAsync(dto);
+        await LoadData();
+        _showAddSubType = false;
+        _subTypeModel = new();
+    }
+
+    private async Task CreateChecklistItem()
+    {
+        var maxOrder = _checklistItems.Any() ? _checklistItems.Max(c => c.SortOrder) + 1 : 1;
+        var dto = new ChecklistItemTemplateCreateDto(TypeId, _checklistModel.ItemName, _checklistModel.Description, maxOrder, _checklistModel.IsRequired);
+        await EquipmentService.CreateChecklistTemplateAsync(dto);
+        await LoadData();
+        _showAddChecklist = false;
+        _checklistModel = new();
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/equipment-types");
+
+    private class SubTypeModel
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
+    private class ChecklistModel
+    {
+        public string ItemName { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public bool IsRequired { get; set; } = true;
+    }
+}
