@@ -8,4 +8,5 @@ public interface ICompanyService
     Task<CompanyDto?> GetCompanyByIdAsync(int id, CancellationToken ct = default);
     Task<CompanyDto> CreateCompanyAsync(CompanyCreateDto dto, string userId, CancellationToken ct = default);
     Task UpdateCompanyAsync(CompanyUpdateDto dto, string userId, CancellationToken ct = default);
+    Task<List<HierarchyCompanyDto>> GetHierarchyAsync(CancellationToken ct = default);
 }

@@ -1,0 +1,166 @@
+@page "/overview"
+@inject ICompanyService CompanyService
+@inject NavigationManager Navigation
+
+<div class="page-header">
+    <h1>Hierarchy Overview</h1>
+    <p class="card-subtitle">Full view of your Company &rarr; Plant &rarr; Section &rarr; Equipment structure</p>
+</div>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else if (!_hierarchy.Any())
+{
+    <div class="empty-state-card">
+        <h2>No data yet</h2>
+        <p>Use the Setup Wizard to create your first company hierarchy.</p>
+        <button class="btn btn-primary" @onclick="GoToSetup">Go to Setup Wizard</button>
+    </div>
+}
+else
+{
+    <div class="overview-stats">
+        <div class="stat-card">
+            <div class="stat-value">@_hierarchy.Count</div>
+            <div class="stat-label">Companies</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">@_hierarchy.Sum(c => c.PlantCount)</div>
+            <div class="stat-label">Plants</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">@_hierarchy.Sum(c => c.Plants.Sum(p => p.SectionCount))</div>
+            <div class="stat-label">Sections</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">@_hierarchy.Sum(c => c.TotalEquipment)</div>
+            <div class="stat-label">Equipment</div>
+        </div>
+    </div>
+
+    @foreach (var company in _hierarchy)
+    {
+        var companyId = company.Id;
+        <div class="hierarchy-company">
+            <div class="hierarchy-header company-level" @onclick="() => GoToCompany(companyId)">
+                <div class="hierarchy-header-content">
+                    @if (company.PhotoBase64 is not null)
+                    {
+                        <img class="hierarchy-thumb" src="@GetPhotoSrc(company.PhotoBase64)" alt="" />
+                    }
+                    else
+                    {
+                        <span class="hierarchy-icon">&#127970;</span>
+                    }
+                    <div>
+                        <h2>@company.Name</h2>
+                        @if (company.Code is not null)
+                        {
+                            <span class="card-subtitle">@company.Code</span>
+                        }
+                    </div>
+                </div>
+                <div class="hierarchy-counts">
+                    <span class="count-badge">@company.PlantCount plants</span>
+                    <span class="count-badge">@company.TotalEquipment equipment</span>
+                </div>
+            </div>
+
+            <div class="hierarchy-children">
+                @foreach (var plant in company.Plants)
+                {
+                    var plantId = plant.Id;
+                    <div class="hierarchy-plant">
+                        <div class="hierarchy-header plant-level" @onclick="() => GoToPlant(plantId)">
+                            <div class="hierarchy-header-content">
+                                @if (plant.PhotoBase64 is not null)
+                                {
+                                    <img class="hierarchy-thumb" src="@GetPhotoSrc(plant.PhotoBase64)" alt="" />
+                                }
+                                else
+                                {
+                                    <span class="hierarchy-icon">&#127981;</span>
+                                }
+                                <div>
+                                    <h3>@plant.Name</h3>
+                                    @if (plant.Description is not null)
+                                    {
+                                        <span class="card-subtitle">@plant.Description</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="hierarchy-counts">
+                                <span class="count-badge">@plant.SectionCount sections</span>
+                                <span class="count-badge">@plant.EquipmentCount equipment</span>
+                            </div>
+                        </div>
+
+                        <div class="hierarchy-children">
+                            @foreach (var sect in plant.Sections)
+                            {
+                                <div class="hierarchy-section">
+                                    <div class="hierarchy-header section-level">
+                                        <div class="hierarchy-header-content">
+                                            @if (sect.PhotoBase64 is not null)
+                                            {
+                                                <img class="hierarchy-thumb-sm" src="@GetPhotoSrc(sect.PhotoBase64)" alt="" />
+                                            }
+                                            else
+                                            {
+                                                <span class="hierarchy-icon-sm">&#128193;</span>
+                                            }
+                                            <div>
+                                                <h4>@sect.Name</h4>
+                                                @if (sect.Description is not null)
+                                                {
+                                                    <span class="card-subtitle">@sect.Description</span>
+                                                }
+                                            </div>
+                                        </div>
+                                        <span class="count-badge">@sect.EquipmentCount equipment</span>
+                                    </div>
+
+                                    @if (sect.Equipment.Any())
+                                    {
+                                        <div class="hierarchy-equipment-list">
+                                            @foreach (var eq in sect.Equipment)
+                                            {
+                                                <div class="hierarchy-equipment-item">
+                                                    <span class="eq-icon">&#9881;</span>
+                                                    <strong>@eq.Identifier</strong>
+                                                    <span class="eq-type">@eq.EquipmentTypeName</span>
+                                                    @if (eq.SubTypeName is not null)
+                                                    {
+                                                        <span class="eq-subtype">@eq.SubTypeName</span>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private List<HierarchyCompanyDto> _hierarchy = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _hierarchy = await CompanyService.GetHierarchyAsync();
+        _loading = false;
+    }
+
+    private static string GetPhotoSrc(string base64) => $"data:image/jpeg;base64,{base64}";
+    private void GoToSetup() => Navigation.NavigateTo("/setup");
+    private void GoToCompany(int id) => Navigation.NavigateTo($"/companies/{id}");
+    private void GoToPlant(int id) => Navigation.NavigateTo($"/plants/{id}");
+}
