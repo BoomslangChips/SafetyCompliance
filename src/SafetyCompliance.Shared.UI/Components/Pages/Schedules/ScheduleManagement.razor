@@ -1,0 +1,224 @@
+@page "/schedules"
+@inject IScheduleService ScheduleService
+@inject IPlantService PlantService
+@inject ICompanyService CompanyService
+@inject NavigationManager Navigation
+
+<div class="page-header">
+    <h1>Inspection Schedules</h1>
+    <button class="btn btn-primary" @onclick="() => _showCreate = true">Create Schedule</button>
+</div>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="filter-bar">
+        <select class="form-control filter-select" @onchange="OnPlantFilterChanged">
+            <option value="">All Plants</option>
+            @foreach (var plant in _allPlants)
+            {
+                <option value="@plant.Id">@plant.Name</option>
+            }
+        </select>
+    </div>
+
+    @if (!_schedules.Any())
+    {
+        <div class="empty-state-card">
+            <h2>No schedules yet</h2>
+            <p>Create an inspection schedule to automate your compliance tracking.</p>
+        </div>
+    }
+    else
+    {
+        <div class="schedule-list">
+            @foreach (var sched in _schedules)
+            {
+                var isOverdue = sched.NextDueDate < DateOnly.FromDateTime(DateTime.UtcNow) && sched.IsActive;
+                <div class="schedule-card @(isOverdue ? "overdue" : "") @(!sched.IsActive ? "inactive" : "")">
+                    <div class="schedule-card-header">
+                        <div>
+                            <h3>@sched.Name</h3>
+                            <span class="schedule-plant">@sched.PlantName</span>
+                        </div>
+                        <div class="schedule-frequency">
+                            <span class="freq-badge">@FormatFrequency(sched.Frequency, sched.FrequencyInterval)</span>
+                        </div>
+                    </div>
+                    @if (sched.Description is not null)
+                    {
+                        <p class="schedule-desc">@sched.Description</p>
+                    }
+                    <div class="schedule-card-footer">
+                        <div class="schedule-dates">
+                            <span>Next: <strong class="@(isOverdue ? "text-danger" : "")">@sched.NextDueDate.ToString("yyyy-MM-dd")</strong></span>
+                            @if (sched.LastCompletedDate.HasValue)
+                            {
+                                <span>Last: @sched.LastCompletedDate.Value.ToString("yyyy-MM-dd")</span>
+                            }
+                        </div>
+                        <div class="schedule-stats">
+                            <span>@sched.CompletedRounds / @sched.TotalRounds rounds</span>
+                            @if (!sched.IsActive)
+                            {
+                                <span class="status-badge status-inactive">Inactive</span>
+                            }
+                            else if (isOverdue)
+                            {
+                                <span class="status-badge status-overdue">Overdue</span>
+                            }
+                            else
+                            {
+                                <span class="status-badge status-active">Active</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@if (_showCreate)
+{
+    <div class="modal-overlay" @onclick="() => _showCreate = false">
+        <div class="modal modal-wide" @onclick:stopPropagation>
+            <h2>Create Inspection Schedule</h2>
+            <EditForm Model="_createModel" OnValidSubmit="CreateSchedule">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Schedule Name</label>
+                        <InputText @bind-Value="_createModel.Name" class="form-control" placeholder="e.g. Monthly Fire Extinguisher Check" />
+                    </div>
+                    <div class="form-group">
+                        <label>Plant</label>
+                        <select class="form-control" @onchange="OnCreatePlantChanged">
+                            <option value="">-- Select Plant --</option>
+                            @foreach (var plant in _allPlants)
+                            {
+                                <option value="@plant.Id">@plant.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <InputText @bind-Value="_createModel.Description" class="form-control" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Frequency</label>
+                        <InputSelect @bind-Value="_createModel.Frequency" class="form-control">
+                            <option value="@FrequencyType.Daily">Daily</option>
+                            <option value="@FrequencyType.Weekly">Weekly</option>
+                            <option value="@FrequencyType.BiWeekly">Bi-Weekly</option>
+                            <option value="@FrequencyType.Monthly">Monthly</option>
+                            <option value="@FrequencyType.Quarterly">Quarterly</option>
+                            <option value="@FrequencyType.SemiAnnually">Semi-Annually</option>
+                            <option value="@FrequencyType.Annually">Annually</option>
+                        </InputSelect>
+                    </div>
+                    <div class="form-group">
+                        <label>Interval</label>
+                        <InputNumber @bind-Value="_createModel.FrequencyInterval" class="form-control" min="1" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <InputDate @bind-Value="_createModel.StartDate" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>End Date (optional)</label>
+                        <InputDate @bind-Value="_createModel.EndDate" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Create Schedule</button>
+                    <button type="button" class="btn btn-secondary" @onclick="() => _showCreate = false">Cancel</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    private List<InspectionScheduleDto> _schedules = [];
+    private List<PlantDto> _allPlants = [];
+    private bool _loading = true;
+    private bool _showCreate;
+    private int? _filterPlantId;
+    private ScheduleCreateModel _createModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var companies = await CompanyService.GetAllCompaniesAsync();
+        foreach (var company in companies)
+        {
+            var plants = await PlantService.GetPlantsByCompanyAsync(company.Id);
+            _allPlants.AddRange(plants);
+        }
+        await LoadSchedules();
+        _loading = false;
+    }
+
+    private async Task LoadSchedules()
+    {
+        _schedules = await ScheduleService.GetSchedulesAsync(_filterPlantId);
+    }
+
+    private async Task OnPlantFilterChanged(ChangeEventArgs e)
+    {
+        _filterPlantId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        await LoadSchedules();
+    }
+
+    private void OnCreatePlantChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var id))
+            _createModel.PlantId = id;
+    }
+
+    private async Task CreateSchedule()
+    {
+        if (_createModel.PlantId == 0) return;
+        var dto = new InspectionScheduleCreateDto(
+            _createModel.PlantId, _createModel.Name, _createModel.Description,
+            _createModel.Frequency, _createModel.FrequencyInterval,
+            _createModel.StartDate, _createModel.EndDate, true);
+        await ScheduleService.CreateScheduleAsync(dto, "current-user");
+        await LoadSchedules();
+        _showCreate = false;
+        _createModel = new();
+    }
+
+    private static string FormatFrequency(FrequencyType freq, int interval)
+    {
+        var baseText = freq switch
+        {
+            FrequencyType.Daily => "Daily",
+            FrequencyType.Weekly => "Weekly",
+            FrequencyType.BiWeekly => "Bi-Weekly",
+            FrequencyType.Monthly => "Monthly",
+            FrequencyType.Quarterly => "Quarterly",
+            FrequencyType.SemiAnnually => "Semi-Annually",
+            FrequencyType.Annually => "Annually",
+            _ => freq.ToString()
+        };
+        return interval > 1 ? $"Every {interval} {baseText.ToLower()}" : baseText;
+    }
+
+    private class ScheduleCreateModel
+    {
+        public int PlantId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public FrequencyType Frequency { get; set; } = FrequencyType.Monthly;
+        public int FrequencyInterval { get; set; } = 1;
+        public DateOnly StartDate { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
+        public DateOnly? EndDate { get; set; }
+    }
+}

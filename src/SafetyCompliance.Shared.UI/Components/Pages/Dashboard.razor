@@ -1,7 +1,10 @@
 @page "/"
 @inject ICompanyService CompanyService
+@inject IScheduleService ScheduleService
+@inject IIssueService IssueService
+@inject NavigationManager Navigation
 
-<h1>Safety &amp; Compliance Dashboard</h1>
+<h1>Safety & Compliance Dashboard</h1>
 
 @if (_loading)
 {
@@ -9,6 +12,29 @@
 }
 else
 {
+    <div class="dashboard-stats-row">
+        <div class="mini-stat">
+            <div class="mini-stat-value">@_stats.ScheduledThisMonth</div>
+            <div class="mini-stat-label">Scheduled</div>
+        </div>
+        <div class="mini-stat completed">
+            <div class="mini-stat-value">@_stats.CompletedThisMonth</div>
+            <div class="mini-stat-label">Completed</div>
+        </div>
+        <div class="mini-stat @(_stats.OverdueInspections > 0 ? "danger" : "")">
+            <div class="mini-stat-value">@_stats.OverdueInspections</div>
+            <div class="mini-stat-label">Overdue</div>
+        </div>
+        <div class="mini-stat @(_stats.OpenIssues > 0 ? "warning" : "")">
+            <div class="mini-stat-value">@_stats.OpenIssues</div>
+            <div class="mini-stat-label">Open Issues</div>
+        </div>
+        <div class="mini-stat @(_stats.CriticalIssues > 0 ? "danger" : "")">
+            <div class="mini-stat-value">@_stats.CriticalIssues</div>
+            <div class="mini-stat-label">Critical</div>
+        </div>
+    </div>
+
     <div class="dashboard-grid">
         <div class="stat-card">
             <div class="stat-value">@_companies.Count</div>
@@ -23,6 +49,35 @@ else
             <div class="stat-label">Equipment</div>
         </div>
     </div>
+
+    @if (_recentIssues.Any())
+    {
+        <h2>Recent Open Issues</h2>
+        <div class="issue-list compact">
+            @foreach (var issue in _recentIssues.Take(5))
+            {
+                <div class="issue-card @issue.Status.ToString().ToLower()" @onclick="() => GoToIssue(issue.Id)">
+                    <div class="issue-priority-indicator priority-@issue.Priority.ToString().ToLower()"></div>
+                    <div class="issue-card-body">
+                        <div class="issue-card-header">
+                            <h3>@issue.Title</h3>
+                            <span class="priority-badge priority-@issue.Priority.ToString().ToLower()">@issue.Priority</span>
+                        </div>
+                        <div class="issue-card-meta">
+                            @if (issue.EquipmentIdentifier is not null)
+                            {
+                                <span class="issue-equipment">@issue.EquipmentIdentifier</span>
+                            }
+                            @if (issue.DueDate.HasValue)
+                            {
+                                <span class="issue-due">Due: @issue.DueDate.Value.ToString("MMM dd")</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
 
     <h2>Companies</h2>
     <div class="card-list">
@@ -41,16 +96,19 @@ else
 }
 
 @code {
-    [Inject] private NavigationManager Navigation { get; set; } = null!;
-
     private List<CompanyDto> _companies = [];
+    private List<IssueDto> _recentIssues = [];
+    private DashboardStatsDto _stats = new(0, 0, 0, 0, 0, 0);
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
     {
         _companies = await CompanyService.GetAllCompaniesAsync();
+        _stats = await ScheduleService.GetDashboardStatsAsync();
+        _recentIssues = await IssueService.GetIssuesAsync(IssueStatus.Open);
         _loading = false;
     }
 
     private void GoToCompany(int id) => Navigation.NavigateTo($"/companies/{id}");
+    private void GoToIssue(int id) => Navigation.NavigateTo($"/issues/{id}");
 }

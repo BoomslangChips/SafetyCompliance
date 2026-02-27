@@ -1,0 +1,244 @@
+@page "/issues/{IssueId:int}"
+@inject IIssueService IssueService
+@inject NavigationManager Navigation
+
+@if (_issue is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="page-header">
+        <div>
+            <button class="btn btn-link" @onclick="GoBack">&larr; Back to Issues</button>
+            <h1>@_issue.Title</h1>
+        </div>
+        <div class="header-actions">
+            @if (_issue.Status == IssueStatus.Open || _issue.Status == IssueStatus.InProgress)
+            {
+                <button class="btn btn-success" @onclick="() => _showResolve = true">Resolve</button>
+            }
+            @if (_issue.Status == IssueStatus.Resolved)
+            {
+                <button class="btn btn-warning" @onclick="ReopenIssue">Reopen</button>
+                <button class="btn btn-secondary" @onclick="CloseIssue">Close</button>
+            }
+        </div>
+    </div>
+
+    <div class="issue-detail-grid">
+        <div class="issue-main">
+            <div class="detail-card">
+                <div class="issue-status-bar">
+                    <span class="status-badge issue-@_issue.Status.ToString().ToLower()">@_issue.Status</span>
+                    <span class="priority-badge priority-@_issue.Priority.ToString().ToLower()">@_issue.Priority</span>
+                    @if (_issue.EquipmentIdentifier is not null)
+                    {
+                        <span class="issue-equipment">@_issue.EquipmentIdentifier - @_issue.EquipmentTypeName</span>
+                    }
+                </div>
+
+                @if (_issue.Description is not null)
+                {
+                    <div class="issue-description">
+                        <p>@_issue.Description</p>
+                    </div>
+                }
+
+                @if (_issue.PhotoBase64 is not null)
+                {
+                    <div class="issue-photo">
+                        <img src="@GetPhotoSrc(_issue.PhotoBase64)" alt="Issue photo" />
+                    </div>
+                }
+
+                @if (_issue.ResolvedAt.HasValue)
+                {
+                    <div class="resolution-info">
+                        <h3>Resolution</h3>
+                        <p>Resolved on @_issue.ResolvedAt.Value.ToString("MMMM dd, yyyy 'at' HH:mm")
+                            @if (_issue.ResolvedByName is not null)
+                            {
+                                <text> by @_issue.ResolvedByName</text>
+                            }
+                        </p>
+                    </div>
+                }
+            </div>
+
+            <div class="comments-section">
+                <h2>Comments (@_comments.Count)</h2>
+
+                @if (!_comments.Any())
+                {
+                    <p class="empty-state">No comments yet.</p>
+                }
+
+                @foreach (var comment in _comments)
+                {
+                    <div class="comment-card">
+                        <div class="comment-header">
+                            <span class="comment-author">@comment.CreatedByName</span>
+                            <span class="comment-date">@comment.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
+                        </div>
+                        <p class="comment-text">@comment.Text</p>
+                        @if (comment.PhotoBase64 is not null)
+                        {
+                            <div class="comment-photo">
+                                <img src="@GetPhotoSrc(comment.PhotoBase64)" alt="Comment photo" />
+                            </div>
+                        }
+                    </div>
+                }
+
+                <div class="add-comment">
+                    <h3>Add Comment</h3>
+                    <div class="form-group">
+                        <InputTextArea @bind-Value="_newCommentText" class="form-control" rows="3" placeholder="Write a comment..." />
+                    </div>
+                    <div class="form-group">
+                        <InputFile OnChange="OnCommentPhotoSelected" class="form-control" accept="image/*" />
+                        @if (_commentPhotoBase64 is not null)
+                        {
+                            <div class="photo-preview">
+                                <img src="@GetPhotoSrc(_commentPhotoBase64)" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="RemoveCommentPhoto">Remove</button>
+                            </div>
+                        }
+                    </div>
+                    <button class="btn btn-primary" @onclick="AddComment" disabled="@(string.IsNullOrWhiteSpace(_newCommentText))">Post Comment</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="issue-sidebar">
+            <div class="detail-card">
+                <h3>Details</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Status</span>
+                    <span class="status-badge issue-@_issue.Status.ToString().ToLower()">@_issue.Status</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Priority</span>
+                    <span class="priority-badge priority-@_issue.Priority.ToString().ToLower()">@_issue.Priority</span>
+                </div>
+                @if (_issue.AssignedTo is not null)
+                {
+                    <div class="detail-row">
+                        <span class="detail-label">Assigned To</span>
+                        <span>@_issue.AssignedTo</span>
+                    </div>
+                }
+                @if (_issue.DueDate.HasValue)
+                {
+                    var isOverdue = _issue.DueDate.Value < DateOnly.FromDateTime(DateTime.UtcNow) &&
+                        _issue.Status != IssueStatus.Resolved && _issue.Status != IssueStatus.Closed;
+                    <div class="detail-row">
+                        <span class="detail-label">Due Date</span>
+                        <span class="@(isOverdue ? "text-danger" : "")">@_issue.DueDate.Value.ToString("MMM dd, yyyy")</span>
+                    </div>
+                }
+                <div class="detail-row">
+                    <span class="detail-label">Created</span>
+                    <span>@_issue.CreatedAt.ToString("MMM dd, yyyy")</span>
+                </div>
+                @if (_issue.ResolvedAt.HasValue)
+                {
+                    <div class="detail-row">
+                        <span class="detail-label">Resolved</span>
+                        <span>@_issue.ResolvedAt.Value.ToString("MMM dd, yyyy")</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (_showResolve)
+    {
+        <div class="modal-overlay" @onclick="() => _showResolve = false">
+            <div class="modal" @onclick:stopPropagation>
+                <h2>Resolve Issue</h2>
+                <div class="form-group">
+                    <label>Resolution Notes</label>
+                    <InputTextArea @bind-Value="_resolveNotes" class="form-control" rows="3" placeholder="Describe how the issue was resolved..." />
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-success" @onclick="ResolveIssue">Resolve</button>
+                    <button class="btn btn-secondary" @onclick="() => _showResolve = false">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public int IssueId { get; set; }
+
+    private IssueDto? _issue;
+    private List<CommentDto> _comments = [];
+    private string _newCommentText = string.Empty;
+    private string? _commentPhotoBase64;
+    private string? _commentPhotoFileName;
+    private bool _showResolve;
+    private string? _resolveNotes;
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _issue = await IssueService.GetIssueByIdAsync(IssueId);
+        _comments = await IssueService.GetCommentsAsync(IssueId);
+    }
+
+    private async Task AddComment()
+    {
+        if (string.IsNullOrWhiteSpace(_newCommentText)) return;
+        var dto = new CommentCreateDto(null, IssueId, _newCommentText, _commentPhotoBase64, _commentPhotoFileName);
+        await IssueService.AddCommentAsync(dto, "current-user");
+        _newCommentText = string.Empty;
+        _commentPhotoBase64 = null;
+        _commentPhotoFileName = null;
+        await LoadData();
+    }
+
+    private async Task ResolveIssue()
+    {
+        await IssueService.ResolveIssueAsync(IssueId, _resolveNotes, "current-user");
+        _showResolve = false;
+        _resolveNotes = null;
+        await LoadData();
+    }
+
+    private async Task ReopenIssue()
+    {
+        await IssueService.ReopenIssueAsync(IssueId, "current-user");
+        await LoadData();
+    }
+
+    private async Task CloseIssue()
+    {
+        await IssueService.UpdateIssueAsync(
+            new IssueUpdateDto(IssueId, _issue!.Title, _issue.Description, _issue.Priority, IssueStatus.Closed, _issue.AssignedTo, _issue.DueDate),
+            "current-user");
+        await LoadData();
+    }
+
+    private async Task OnCommentPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+        _commentPhotoBase64 = Convert.ToBase64String(buffer);
+        _commentPhotoFileName = file.Name;
+    }
+
+    private void RemoveCommentPhoto()
+    {
+        _commentPhotoBase64 = null;
+        _commentPhotoFileName = null;
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/issues");
+    private static string GetPhotoSrc(string base64) => $"data:image/jpeg;base64,{base64}";
+}

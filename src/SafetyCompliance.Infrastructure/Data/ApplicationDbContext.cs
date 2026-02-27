@@ -17,10 +17,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IUnitOfW
     public DbSet<EquipmentSubType> EquipmentSubTypes => Set<EquipmentSubType>();
     public DbSet<ChecklistItemTemplate> ChecklistItemTemplates => Set<ChecklistItemTemplate>();
     public DbSet<Equipment> Equipment => Set<Equipment>();
+    public DbSet<InspectionSchedule> InspectionSchedules => Set<InspectionSchedule>();
     public DbSet<InspectionRound> InspectionRounds => Set<InspectionRound>();
     public DbSet<EquipmentInspection> EquipmentInspections => Set<EquipmentInspection>();
     public DbSet<InspectionResponse> InspectionResponses => Set<InspectionResponse>();
     public DbSet<InspectionPhoto> InspectionPhotos => Set<InspectionPhoto>();
+    public DbSet<Issue> Issues => Set<Issue>();
+    public DbSet<Comment> Comments => Set<Comment>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
