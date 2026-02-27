@@ -1,14 +1,19 @@
 @page "/inspections/{RoundId:int}"
 @inject IInspectionService InspectionService
+@inject IIssueService IssueService
 @inject NavigationManager Navigation
 
 <div class="page-header">
-    <button class="btn btn-link" @onclick='() => Navigation.NavigateTo("/inspections")'>&larr; Back</button>
-    <h1>Inspection Checklist</h1>
-    @if (_inspections.Any() && !_allComplete)
-    {
-        <button class="btn btn-primary" @onclick="CompleteRound">Complete Round</button>
-    }
+    <div>
+        <button class="btn btn-link" @onclick="GoBack">&larr; Back</button>
+        <h1>Inspection Checklist</h1>
+    </div>
+    <div class="header-actions">
+        @if (_inspections.Any() && !_allComplete)
+        {
+            <button class="btn btn-primary" @onclick="CompleteRound">Complete Round</button>
+        }
+    </div>
 </div>
 
 @if (_loading)
@@ -27,10 +32,13 @@ else
         <div class="checklist-card @(inspection.IsComplete ? "complete" : "")">
             <div class="checklist-header">
                 <h3>@inspection.EquipmentIdentifier - @inspection.EquipmentTypeName @(inspection.SubTypeName is not null ? $"({inspection.SubTypeName})" : "") @(inspection.Size is not null ? inspection.Size : "")</h3>
-                @if (inspection.IsComplete)
-                {
-                    <span class="status-badge status-completed">Complete</span>
-                }
+                <div class="checklist-header-actions">
+                    @if (inspection.IsComplete)
+                    {
+                        <span class="status-badge status-completed">Complete</span>
+                    }
+                    <button class="btn btn-sm btn-warning" @onclick="() => ShowFlagIssue(inspection)" title="Flag issue">Flag Issue</button>
+                </div>
             </div>
             <p class="checklist-desc">@inspection.EquipmentDescription</p>
 
@@ -41,35 +49,118 @@ else
                         <span class="item-name">@response.ItemName</span>
                         <div class="item-actions">
                             <button class="btn-yes @(response.Response == true ? "active" : "")"
-                                    @onclick="() => SubmitResponse(inspection.Id, response.ChecklistItemTemplateId, true)">Yes</button>
+                                    @onclick="() => SubmitResponse(inspection.Id, response.ChecklistItemTemplateId, true)">Pass</button>
                             <button class="btn-no @(response.Response == false ? "active" : "")"
-                                    @onclick="() => SubmitResponse(inspection.Id, response.ChecklistItemTemplateId, false)">No</button>
+                                    @onclick="() => SubmitResponse(inspection.Id, response.ChecklistItemTemplateId, false)">Fail</button>
                         </div>
                     </div>
                 }
             </div>
+
+            @{
+                var failedItems = inspection.Responses.Where(r => r.Response == false).ToList();
+            }
+            @if (failedItems.Any())
+            {
+                <div class="failed-items-warning">
+                    <strong>@failedItems.Count item(s) failed:</strong>
+                    @foreach (var failed in failedItems)
+                    {
+                        <span class="failed-item-name">@failed.ItemName</span>
+                    }
+                </div>
+            }
 
             <div class="photo-section">
                 <span>@inspection.PhotoCount photo(s)</span>
             </div>
         </div>
     }
+
+    <div class="inspection-comments-section">
+        <h2>Inspection Comments (@_comments.Count)</h2>
+
+        @foreach (var comment in _comments)
+        {
+            <div class="comment-card">
+                <div class="comment-header">
+                    <span class="comment-author">@comment.CreatedByName</span>
+                    <span class="comment-date">@comment.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
+                </div>
+                <p class="comment-text">@comment.Text</p>
+                @if (comment.PhotoBase64 is not null)
+                {
+                    <div class="comment-photo">
+                        <img src="@GetPhotoSrc(comment.PhotoBase64)" alt="Comment photo" />
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="add-comment">
+            <div class="form-group">
+                <InputTextArea @bind-Value="_newCommentText" class="form-control" rows="2" placeholder="Add a comment about this inspection..." />
+            </div>
+            <button class="btn btn-primary btn-sm" @onclick="AddComment" disabled="@(string.IsNullOrWhiteSpace(_newCommentText))">Post Comment</button>
+        </div>
+    </div>
+}
+
+@if (_showFlagIssue)
+{
+    <div class="modal-overlay" @onclick="() => _showFlagIssue = false">
+        <div class="modal" @onclick:stopPropagation>
+            <h2>Flag Issue - @_flagEquipmentIdentifier</h2>
+            <div class="form-group">
+                <label>Title</label>
+                <InputText @bind-Value="_flagIssueTitle" class="form-control" placeholder="Brief description of the issue" />
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <InputTextArea @bind-Value="_flagIssueDescription" class="form-control" rows="3" />
+            </div>
+            <div class="form-group">
+                <label>Priority</label>
+                <select class="form-control" @onchange="OnPriorityChanged">
+                    <option value="Low">Low</option>
+                    <option value="Medium" selected>Medium</option>
+                    <option value="High">High</option>
+                    <option value="Critical">Critical</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-warning" @onclick="CreateFlaggedIssue">Create Issue</button>
+                <button class="btn btn-secondary" @onclick="() => _showFlagIssue = false">Cancel</button>
+            </div>
+        </div>
+    </div>
 }
 
 @code {
     [Parameter] public int RoundId { get; set; }
 
     private List<EquipmentInspectionDto> _inspections = [];
+    private List<CommentDto> _comments = [];
     private bool _loading = true;
     private int _completedCount;
     private double _progress;
     private bool _allComplete;
+    private string _newCommentText = string.Empty;
+
+    private bool _showFlagIssue;
+    private int _flagEquipmentInspectionId;
+    private int _flagEquipmentId;
+    private string _flagEquipmentIdentifier = "";
+    private string _flagIssueTitle = string.Empty;
+    private string? _flagIssueDescription;
+    private IssuePriority _flagIssuePriority = IssuePriority.Medium;
 
     protected override async Task OnInitializedAsync() => await LoadData();
 
     private async Task LoadData()
     {
         _inspections = await InspectionService.GetEquipmentInspectionsAsync(RoundId);
+        _comments = await IssueService.GetInspectionCommentsAsync(RoundId);
         _completedCount = _inspections.Count(i => i.IsComplete);
         _progress = _inspections.Count > 0 ? (double)_completedCount / _inspections.Count * 100 : 0;
         _allComplete = _completedCount == _inspections.Count && _inspections.Count > 0;
@@ -88,4 +179,42 @@ else
         await InspectionService.CompleteRoundAsync(RoundId);
         Navigation.NavigateTo("/inspections");
     }
+
+    private void ShowFlagIssue(EquipmentInspectionDto inspection)
+    {
+        _flagEquipmentInspectionId = inspection.Id;
+        _flagEquipmentId = inspection.EquipmentId;
+        _flagEquipmentIdentifier = inspection.EquipmentIdentifier;
+        _flagIssueTitle = $"Issue with {inspection.EquipmentIdentifier}";
+        _flagIssueDescription = null;
+        _flagIssuePriority = IssuePriority.Medium;
+        _showFlagIssue = true;
+    }
+
+    private void OnPriorityChanged(ChangeEventArgs e)
+    {
+        if (Enum.TryParse<IssuePriority>(e.Value?.ToString(), out var priority))
+            _flagIssuePriority = priority;
+    }
+
+    private async Task CreateFlaggedIssue()
+    {
+        var dto = new IssueCreateDto(
+            _flagIssueTitle, _flagIssueDescription, _flagIssuePriority,
+            null, null, RoundId, _flagEquipmentInspectionId, _flagEquipmentId, null, null);
+        await IssueService.CreateIssueAsync(dto, "current-user");
+        _showFlagIssue = false;
+    }
+
+    private async Task AddComment()
+    {
+        if (string.IsNullOrWhiteSpace(_newCommentText)) return;
+        var dto = new CommentCreateDto(RoundId, null, _newCommentText, null, null);
+        await IssueService.AddInspectionCommentAsync(dto, "current-user");
+        _newCommentText = string.Empty;
+        await LoadData();
+    }
+
+    private void GoBack() => Navigation.NavigateTo("/inspections");
+    private static string GetPhotoSrc(string base64) => $"data:image/jpeg;base64,{base64}";
 }

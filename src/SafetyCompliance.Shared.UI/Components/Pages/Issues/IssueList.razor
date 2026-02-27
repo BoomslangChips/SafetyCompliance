@@ -1,0 +1,226 @@
+@page "/issues"
+@inject IIssueService IssueService
+@inject NavigationManager Navigation
+
+<div class="page-header">
+    <h1>Issues & Tasks</h1>
+    <button class="btn btn-primary" @onclick="() => _showCreate = true">Report Issue</button>
+</div>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="filter-bar">
+        <div class="filter-chips">
+            <button class="chip @(_filterStatus == null ? "active" : "")" @onclick="() => SetStatusFilter(null)">All (@_allIssues.Count)</button>
+            <button class="chip @(_filterStatus == IssueStatus.Open ? "active" : "")" @onclick="() => SetStatusFilter(IssueStatus.Open)">
+                Open (@_allIssues.Count(i => i.Status == IssueStatus.Open))
+            </button>
+            <button class="chip @(_filterStatus == IssueStatus.InProgress ? "active" : "")" @onclick="() => SetStatusFilter(IssueStatus.InProgress)">
+                In Progress (@_allIssues.Count(i => i.Status == IssueStatus.InProgress))
+            </button>
+            <button class="chip @(_filterStatus == IssueStatus.Resolved ? "active" : "")" @onclick="() => SetStatusFilter(IssueStatus.Resolved)">
+                Resolved (@_allIssues.Count(i => i.Status == IssueStatus.Resolved))
+            </button>
+            <button class="chip @(_filterStatus == IssueStatus.Closed ? "active" : "")" @onclick="() => SetStatusFilter(IssueStatus.Closed)">
+                Closed (@_allIssues.Count(i => i.Status == IssueStatus.Closed))
+            </button>
+        </div>
+        <div class="filter-chips">
+            <button class="chip @(_filterPriority == null ? "active" : "")" @onclick="() => SetPriorityFilter(null)">All Priorities</button>
+            <button class="chip priority-critical @(_filterPriority == IssuePriority.Critical ? "active" : "")" @onclick="() => SetPriorityFilter(IssuePriority.Critical)">Critical</button>
+            <button class="chip priority-high @(_filterPriority == IssuePriority.High ? "active" : "")" @onclick="() => SetPriorityFilter(IssuePriority.High)">High</button>
+            <button class="chip priority-medium @(_filterPriority == IssuePriority.Medium ? "active" : "")" @onclick="() => SetPriorityFilter(IssuePriority.Medium)">Medium</button>
+            <button class="chip priority-low @(_filterPriority == IssuePriority.Low ? "active" : "")" @onclick="() => SetPriorityFilter(IssuePriority.Low)">Low</button>
+        </div>
+    </div>
+
+    @if (!_filteredIssues.Any())
+    {
+        <p class="empty-state">No issues match your filters.</p>
+    }
+    else
+    {
+        <div class="issue-list">
+            @foreach (var issue in _filteredIssues)
+            {
+                <div class="issue-card @issue.Status.ToString().ToLower()" @onclick="() => GoToIssue(issue.Id)">
+                    <div class="issue-priority-indicator priority-@issue.Priority.ToString().ToLower()"></div>
+                    <div class="issue-card-body">
+                        <div class="issue-card-header">
+                            <h3>@issue.Title</h3>
+                            <span class="status-badge issue-@issue.Status.ToString().ToLower()">@issue.Status</span>
+                        </div>
+                        @if (issue.Description is not null)
+                        {
+                            <p class="issue-desc">@TruncateText(issue.Description, 100)</p>
+                        }
+                        <div class="issue-card-meta">
+                            <span class="priority-badge priority-@issue.Priority.ToString().ToLower()">@issue.Priority</span>
+                            @if (issue.EquipmentIdentifier is not null)
+                            {
+                                <span class="issue-equipment">@issue.EquipmentIdentifier - @issue.EquipmentTypeName</span>
+                            }
+                            @if (issue.DueDate.HasValue)
+                            {
+                                var isOverdue = issue.DueDate.Value < DateOnly.FromDateTime(DateTime.UtcNow) &&
+                                    issue.Status != IssueStatus.Resolved && issue.Status != IssueStatus.Closed;
+                                <span class="issue-due @(isOverdue ? "overdue" : "")">Due: @issue.DueDate.Value.ToString("MMM dd")</span>
+                            }
+                            @if (issue.AssignedTo is not null)
+                            {
+                                <span class="issue-assigned">Assigned: @issue.AssignedTo</span>
+                            }
+                            <span class="issue-comments">@issue.CommentCount comments</span>
+                            @if (issue.ResolvedAt.HasValue)
+                            {
+                                <span class="issue-resolved">Resolved: @issue.ResolvedAt.Value.ToString("MMM dd, yyyy")</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@if (_showCreate)
+{
+    <div class="modal-overlay" @onclick="() => _showCreate = false">
+        <div class="modal modal-wide" @onclick:stopPropagation>
+            <h2>Report New Issue</h2>
+            <EditForm Model="_createModel" OnValidSubmit="CreateIssue">
+                <div class="form-group">
+                    <label>Title</label>
+                    <InputText @bind-Value="_createModel.Title" class="form-control" placeholder="Brief description of the issue" />
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <InputTextArea @bind-Value="_createModel.Description" class="form-control" rows="3" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <InputSelect @bind-Value="_createModel.Priority" class="form-control">
+                            <option value="@IssuePriority.Low">Low</option>
+                            <option value="@IssuePriority.Medium">Medium</option>
+                            <option value="@IssuePriority.High">High</option>
+                            <option value="@IssuePriority.Critical">Critical</option>
+                        </InputSelect>
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <InputDate @bind-Value="_createModel.DueDate" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Assigned To</label>
+                    <InputText @bind-Value="_createModel.AssignedTo" class="form-control" placeholder="Name or email" />
+                </div>
+                <div class="form-group">
+                    <label>Photo</label>
+                    <InputFile OnChange="OnPhotoSelected" class="form-control" accept="image/*" />
+                    @if (_createModel.PhotoBase64 is not null)
+                    {
+                        <div class="photo-preview">
+                            <img src="@GetPhotoSrc(_createModel.PhotoBase64)" alt="Preview" />
+                            <button type="button" class="btn btn-sm btn-secondary" @onclick="RemovePhoto">Remove</button>
+                        </div>
+                    }
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Create Issue</button>
+                    <button type="button" class="btn btn-secondary" @onclick="() => _showCreate = false">Cancel</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    private List<IssueDto> _allIssues = [];
+    private List<IssueDto> _filteredIssues = [];
+    private IssueStatus? _filterStatus;
+    private IssuePriority? _filterPriority;
+    private bool _loading = true;
+    private bool _showCreate;
+    private IssueCreateModel _createModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadIssues();
+        _loading = false;
+    }
+
+    private async Task LoadIssues()
+    {
+        _allIssues = await IssueService.GetIssuesAsync();
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        _filteredIssues = _allIssues
+            .Where(i => !_filterStatus.HasValue || i.Status == _filterStatus.Value)
+            .Where(i => !_filterPriority.HasValue || i.Priority == _filterPriority.Value)
+            .ToList();
+    }
+
+    private void SetStatusFilter(IssueStatus? status)
+    {
+        _filterStatus = status;
+        ApplyFilters();
+    }
+
+    private void SetPriorityFilter(IssuePriority? priority)
+    {
+        _filterPriority = priority;
+        ApplyFilters();
+    }
+
+    private async Task CreateIssue()
+    {
+        var dto = new IssueCreateDto(
+            _createModel.Title, _createModel.Description, _createModel.Priority,
+            _createModel.AssignedTo, _createModel.DueDate,
+            null, null, null, _createModel.PhotoBase64, _createModel.PhotoFileName);
+        await IssueService.CreateIssueAsync(dto, "current-user");
+        await LoadIssues();
+        _showCreate = false;
+        _createModel = new();
+    }
+
+    private async Task OnPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+        _createModel.PhotoBase64 = Convert.ToBase64String(buffer);
+        _createModel.PhotoFileName = file.Name;
+    }
+
+    private void RemovePhoto()
+    {
+        _createModel.PhotoBase64 = null;
+        _createModel.PhotoFileName = null;
+    }
+
+    private void GoToIssue(int id) => Navigation.NavigateTo($"/issues/{id}");
+    private static string GetPhotoSrc(string base64) => $"data:image/jpeg;base64,{base64}";
+    private static string TruncateText(string text, int maxLen) => text.Length > maxLen ? text[..maxLen] + "..." : text;
+
+    private class IssueCreateModel
+    {
+        public string Title { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public IssuePriority Priority { get; set; } = IssuePriority.Medium;
+        public string? AssignedTo { get; set; }
+        public DateOnly? DueDate { get; set; }
+        public string? PhotoBase64 { get; set; }
+        public string? PhotoFileName { get; set; }
+    }
+}

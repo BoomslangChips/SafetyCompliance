@@ -1,0 +1,236 @@
+@page "/inspection-dashboard"
+@inject IScheduleService ScheduleService
+@inject NavigationManager Navigation
+
+<div class="page-header">
+    <h1>Inspection Dashboard</h1>
+    <div class="view-toggle">
+        <button class="btn @(_view == "calendar" ? "btn-primary" : "btn-secondary")" @onclick='() => _view = "calendar"'>Calendar</button>
+        <button class="btn @(_view == "timeline" ? "btn-primary" : "btn-secondary")" @onclick='() => _view = "timeline"'>Timeline</button>
+    </div>
+</div>
+
+@if (_loading)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="dashboard-stats-row">
+        <div class="mini-stat">
+            <div class="mini-stat-value">@_stats.ScheduledThisMonth</div>
+            <div class="mini-stat-label">Scheduled</div>
+        </div>
+        <div class="mini-stat completed">
+            <div class="mini-stat-value">@_stats.CompletedThisMonth</div>
+            <div class="mini-stat-label">Completed</div>
+        </div>
+        <div class="mini-stat @(_stats.OverdueInspections > 0 ? "danger" : "")">
+            <div class="mini-stat-value">@_stats.OverdueInspections</div>
+            <div class="mini-stat-label">Overdue</div>
+        </div>
+        <div class="mini-stat @(_stats.OpenIssues > 0 ? "warning" : "")">
+            <div class="mini-stat-value">@_stats.OpenIssues</div>
+            <div class="mini-stat-label">Open Issues</div>
+        </div>
+        <div class="mini-stat @(_stats.CriticalIssues > 0 ? "danger" : "")">
+            <div class="mini-stat-value">@_stats.CriticalIssues</div>
+            <div class="mini-stat-label">Critical</div>
+        </div>
+        <div class="mini-stat completed">
+            <div class="mini-stat-value">@_stats.ResolvedThisMonth</div>
+            <div class="mini-stat-label">Resolved</div>
+        </div>
+    </div>
+
+    @if (_view == "calendar")
+    {
+        <div class="calendar-container">
+            <div class="calendar-nav">
+                <button class="btn btn-sm btn-secondary" @onclick="PrevMonth">&larr;</button>
+                <h2>@_calendarMonth.ToString("MMMM yyyy")</h2>
+                <button class="btn btn-sm btn-secondary" @onclick="NextMonth">&rarr;</button>
+            </div>
+
+            <div class="calendar-grid">
+                <div class="calendar-header-cell">Sun</div>
+                <div class="calendar-header-cell">Mon</div>
+                <div class="calendar-header-cell">Tue</div>
+                <div class="calendar-header-cell">Wed</div>
+                <div class="calendar-header-cell">Thu</div>
+                <div class="calendar-header-cell">Fri</div>
+                <div class="calendar-header-cell">Sat</div>
+
+                @foreach (var day in _calendarDays)
+                {
+                    var dayEvents = _calendarEvents.Where(e => e.Date == day.Date).ToList();
+                    var isToday = day.Date == DateOnly.FromDateTime(DateTime.UtcNow);
+                    <div class="calendar-cell @(day.IsCurrentMonth ? "" : "other-month") @(isToday ? "today" : "")">
+                        <span class="calendar-day-number">@day.Date.Day</span>
+                        @foreach (var evt in dayEvents.Take(3))
+                        {
+                            <div class="calendar-event @evt.EventType @(evt.IsOverdue ? "overdue" : "") @(evt.InspectionStatus?.ToString().ToLower() ?? "")"
+                                 @onclick="() => OnCalendarEventClick(evt)"
+                                 title="@evt.Title">
+                                @TruncateText(evt.Title, 18)
+                            </div>
+                        }
+                        @if (dayEvents.Count > 3)
+                        {
+                            <div class="calendar-more">+@(dayEvents.Count - 3) more</div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="timeline-container">
+            @if (!_timelineItems.Any())
+            {
+                <p class="empty-state">No upcoming items. Create a schedule to get started.</p>
+            }
+            @foreach (var item in _timelineItems)
+            {
+                var isToday = item.Date == DateOnly.FromDateTime(DateTime.UtcNow);
+                <div class="timeline-item @item.EventType @(item.IsOverdue ? "overdue" : "") @(isToday ? "today" : "")">
+                    <div class="timeline-marker">
+                        @if (item.EventType == "inspection")
+                        {
+                            <span class="timeline-icon">&#128203;</span>
+                        }
+                        else if (item.EventType == "issue")
+                        {
+                            <span class="timeline-icon priority-@item.Priority?.ToString().ToLower()">&#9888;</span>
+                        }
+                        else
+                        {
+                            <span class="timeline-icon">&#128197;</span>
+                        }
+                    </div>
+                    <div class="timeline-content" @onclick="() => OnTimelineItemClick(item)">
+                        <div class="timeline-header-row">
+                            <h3>@item.Title</h3>
+                            <span class="timeline-date">@item.Date.ToString("MMM dd, yyyy")</span>
+                        </div>
+                        <div class="timeline-meta">
+                            <span class="timeline-plant">@item.PlantName</span>
+                            @if (item.EventType == "inspection" && item.TotalItems > 0)
+                            {
+                                <span class="timeline-progress">@item.CompletedItems / @item.TotalItems items</span>
+                                <div class="mini-progress">
+                                    <div class="mini-progress-bar" style="width: @(item.TotalItems > 0 ? (int)((double)item.CompletedItems / item.TotalItems * 100) : 0)%"></div>
+                                </div>
+                            }
+                            @if (item.InspectionStatus.HasValue)
+                            {
+                                <span class="status-badge status-@item.InspectionStatus.Value.ToString().ToLower()">@item.InspectionStatus</span>
+                            }
+                            @if (item.IssueStatus.HasValue)
+                            {
+                                <span class="status-badge issue-@item.IssueStatus.Value.ToString().ToLower()">@item.IssueStatus</span>
+                            }
+                            @if (item.Priority.HasValue)
+                            {
+                                <span class="priority-badge priority-@item.Priority.Value.ToString().ToLower()">@item.Priority</span>
+                            }
+                            @if (item.IsOverdue)
+                            {
+                                <span class="status-badge status-overdue">Overdue</span>
+                            }
+                        </div>
+                        @if (item.Description is not null)
+                        {
+                            <p class="timeline-desc">@TruncateText(item.Description, 120)</p>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    private string _view = "calendar";
+    private bool _loading = true;
+    private DashboardStatsDto _stats = new(0, 0, 0, 0, 0, 0);
+    private List<CalendarEventDto> _calendarEvents = [];
+    private List<TimelineItemDto> _timelineItems = [];
+    private List<CalendarDay> _calendarDays = [];
+    private DateOnly _calendarMonth;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _calendarMonth = new DateOnly(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+        await LoadAll();
+        _loading = false;
+    }
+
+    private async Task LoadAll()
+    {
+        _stats = await ScheduleService.GetDashboardStatsAsync();
+        await LoadCalendarEvents();
+        _timelineItems = await ScheduleService.GetTimelineAsync(30);
+    }
+
+    private async Task LoadCalendarEvents()
+    {
+        var from = _calendarMonth.AddDays(-(int)_calendarMonth.DayOfWeek);
+        var to = _calendarMonth.AddMonths(1).AddDays(-1);
+        var endOfGrid = to.AddDays(6 - (int)to.DayOfWeek);
+        _calendarEvents = await ScheduleService.GetCalendarEventsAsync(from, endOfGrid);
+        BuildCalendarDays();
+    }
+
+    private void BuildCalendarDays()
+    {
+        _calendarDays = [];
+        var firstOfMonth = _calendarMonth;
+        var startDate = firstOfMonth.AddDays(-(int)firstOfMonth.DayOfWeek);
+        var lastOfMonth = firstOfMonth.AddMonths(1).AddDays(-1);
+        var endDate = lastOfMonth.AddDays(6 - (int)lastOfMonth.DayOfWeek);
+
+        var current = startDate;
+        while (current <= endDate)
+        {
+            _calendarDays.Add(new CalendarDay(current, current.Month == _calendarMonth.Month));
+            current = current.AddDays(1);
+        }
+    }
+
+    private async Task PrevMonth()
+    {
+        _calendarMonth = _calendarMonth.AddMonths(-1);
+        await LoadCalendarEvents();
+    }
+
+    private async Task NextMonth()
+    {
+        _calendarMonth = _calendarMonth.AddMonths(1);
+        await LoadCalendarEvents();
+    }
+
+    private void OnCalendarEventClick(CalendarEventDto evt)
+    {
+        if (evt.EventType == "inspection")
+            Navigation.NavigateTo($"/inspections/{evt.Id}");
+        else
+            Navigation.NavigateTo("/schedules");
+    }
+
+    private void OnTimelineItemClick(TimelineItemDto item)
+    {
+        if (item.EventType == "inspection")
+            Navigation.NavigateTo($"/inspections/{item.Id}");
+        else if (item.EventType == "issue")
+            Navigation.NavigateTo($"/issues/{item.Id}");
+        else
+            Navigation.NavigateTo("/schedules");
+    }
+
+    private static string TruncateText(string text, int maxLen)
+        => text.Length > maxLen ? text[..maxLen] + "..." : text;
+
+    private record CalendarDay(DateOnly Date, bool IsCurrentMonth);
+}
