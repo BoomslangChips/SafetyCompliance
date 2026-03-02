@@ -204,4 +204,44 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
 
         return photo.Id;
     }
+
+    public async Task<List<InspectionRoundDto>> GetActiveRoundsAsync(CancellationToken ct = default)
+    {
+        return await context.InspectionRounds
+            .Where(ir => ir.Status == InspectionStatus.InProgress || ir.Status == InspectionStatus.Draft)
+            .OrderByDescending(ir => ir.InspectionDate)
+            .Select(ir => new InspectionRoundDto(
+                ir.Id, ir.PlantId, ir.Plant.Name,
+                ir.InspectionDate, ir.InspectionMonth, ir.Status,
+                ir.InspectedById,
+                ir.EquipmentInspections.Count,
+                ir.EquipmentInspections.Count(ei => ei.IsComplete),
+                ir.CompletedAt))
+            .ToListAsync(ct);
+    }
+
+    public async Task<List<FailedInspectionItemDto>> GetFailedItemsAsync(CancellationToken ct = default)
+    {
+        var failedEquipment = await context.EquipmentInspections
+            .Where(ei => ei.InspectionRound.Status == InspectionStatus.InProgress
+                      && ei.Responses.Any(r => r.Response == false))
+            .OrderByDescending(ei => ei.InspectionRound.InspectionDate)
+            .Select(ei => new FailedInspectionItemDto(
+                ei.InspectionRoundId,
+                ei.Id,
+                ei.EquipmentId,
+                ei.Equipment.Identifier,
+                ei.Equipment.EquipmentType.Name,
+                ei.InspectionRound.Plant.Name,
+                ei.Equipment.Section.Name,
+                ei.InspectionRound.InspectionDate,
+                ei.InspectionRound.InspectionMonth,
+                ei.Responses
+                    .Where(r => r.Response == false)
+                    .Select(r => r.ChecklistItemTemplate.ItemName)
+                    .ToList()))
+            .ToListAsync(ct);
+
+        return failedEquipment;
+    }
 }

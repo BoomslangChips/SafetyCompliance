@@ -19,3 +19,10 @@ public record InspectionResponseDto(
     bool? Response, string? Comment);
 
 public record SubmitResponseDto(int EquipmentInspectionId, int ChecklistItemTemplateId, bool Response, string? Comment);
+
+public record FailedInspectionItemDto(
+    int InspectionRoundId, int EquipmentInspectionId, int EquipmentId,
+    string EquipmentIdentifier, string EquipmentTypeName,
+    string PlantName, string SectionName,
+    DateOnly InspectionDate, string InspectionMonth,
+    List<string> FailedChecklistItems);

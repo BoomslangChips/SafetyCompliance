@@ -68,4 +68,20 @@ public class ServiceBookingService(ApplicationDbContext context) : IServiceBooki
                 sb.Notes, sb.CreatedById, sb.CreatedAt))
             .ToListAsync(ct);
     }
+
+    public async Task<List<ServiceBookingOverviewDto>> GetActiveBookingsAsync(CancellationToken ct = default)
+    {
+        return await context.ServiceBookings
+            .Where(sb => sb.Status == ServiceBookingStatus.Sent || sb.Status == ServiceBookingStatus.InService)
+            .OrderByDescending(sb => sb.SentDate)
+            .Select(sb => new ServiceBookingOverviewDto(
+                sb.Id, sb.EquipmentId,
+                sb.Equipment.Identifier,
+                sb.Equipment.EquipmentType.Name,
+                sb.Equipment.Section.Plant.Name,
+                sb.Equipment.Section.Name,
+                sb.ServiceProvider, sb.Reason, sb.Status,
+                sb.SentDate, sb.ExpectedReturnDate))
+            .ToListAsync(ct);
+    }
 }
