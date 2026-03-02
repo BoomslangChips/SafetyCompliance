@@ -1,16 +1,28 @@
 @inherits LayoutComponentBase
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
+@implements IDisposable
 
-<div class="app-layout">
-    <aside class="sidebar">
+<div class="app-layout @(_sidebarCollapsed ? "sidebar-collapsed" : "")">
+    @if (_sidebarOpen)
+    {
+        <div class="sidebar-backdrop" @onclick="CloseSidebar"></div>
+    }
+    <aside class="sidebar @(_sidebarOpen ? "sidebar-open" : "")">
         <div class="sidebar-brand">
             <i class="fa-light fa-shield-check brand-icon"></i>
             <span class="brand-text">SafeCheck</span>
         </div>
         <NavMenu />
+        <button class="sidebar-collapse-btn" @onclick="ToggleCollapsed" title="@(_sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar")">
+            <i class="fa-light @(_sidebarCollapsed ? "fa-angles-right" : "fa-angles-left")"></i>
+        </button>
     </aside>
     <main class="main-content">
         <header class="top-bar">
+            <button class="sidebar-toggle-btn" @onclick="ToggleSidebar" title="Open menu">
+                <i class="fa-light fa-bars"></i>
+            </button>
             <button class="theme-toggle-btn" @onclick="ToggleTheme" title="Toggle dark/light mode">
                 <i class="fa-light @_themeIconClass"></i>
             </button>
@@ -28,6 +40,13 @@
 
 @code {
     private string _themeIconClass = "fa-sun-bright";
+    private bool _sidebarOpen;
+    private bool _sidebarCollapsed;
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -35,6 +54,9 @@
         {
             var theme = await JS.InvokeAsync<string>("getTheme");
             _themeIconClass = theme == "dark" ? "fa-moon" : "fa-sun-bright";
+
+            _sidebarCollapsed = await JS.InvokeAsync<bool>("getSidebarCollapsed");
+
             StateHasChanged();
         }
     }
@@ -43,5 +65,35 @@
     {
         var newTheme = await JS.InvokeAsync<string>("toggleTheme");
         _themeIconClass = newTheme == "dark" ? "fa-moon" : "fa-sun-bright";
+    }
+
+    private void ToggleSidebar()
+    {
+        _sidebarOpen = !_sidebarOpen;
+    }
+
+    private void CloseSidebar()
+    {
+        _sidebarOpen = false;
+    }
+
+    private async Task ToggleCollapsed()
+    {
+        _sidebarCollapsed = !_sidebarCollapsed;
+        await JS.InvokeVoidAsync("setSidebarCollapsed", _sidebarCollapsed);
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        if (_sidebarOpen)
+        {
+            _sidebarOpen = false;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 }

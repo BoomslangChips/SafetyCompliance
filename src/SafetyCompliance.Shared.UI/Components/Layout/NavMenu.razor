@@ -1,37 +1,37 @@
 @inject NavigationManager Nav
 
 <nav class="nav-menu">
-    <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
-        <i class="fa-light fa-house nav-icon"></i> Dashboard
+    <NavLink class="nav-link" href="/" Match="NavLinkMatch.All" title="Dashboard">
+        <i class="fa-light fa-house nav-icon"></i> <span class="nav-label">Dashboard</span>
     </NavLink>
-    <NavLink class="nav-link" href="/inspection-dashboard">
-        <i class="fa-light fa-calendar nav-icon"></i> Calendar
+    <NavLink class="nav-link" href="/inspection-dashboard" title="Calendar">
+        <i class="fa-light fa-calendar nav-icon"></i> <span class="nav-label">Calendar</span>
     </NavLink>
-    <NavLink class="nav-link" href="/schedules">
-        <i class="fa-light fa-clock nav-icon"></i> Schedules
+    <NavLink class="nav-link" href="/schedules" title="Schedules">
+        <i class="fa-light fa-clock nav-icon"></i> <span class="nav-label">Schedules</span>
     </NavLink>
-    <NavLink class="nav-link" href="/inspections">
-        <i class="fa-light fa-clipboard-list nav-icon"></i> Inspections
+    <NavLink class="nav-link" href="/inspections" title="Inspections">
+        <i class="fa-light fa-clipboard-list nav-icon"></i> <span class="nav-label">Inspections</span>
     </NavLink>
-    <NavLink class="nav-link" href="/issues">
-        <i class="fa-light fa-triangle-exclamation nav-icon"></i> Issues
-    </NavLink>
-
-    <div class="nav-divider"></div>
-
-    <NavLink class="nav-link" href="/companies">
-        <i class="fa-light fa-building nav-icon"></i> Companies
-    </NavLink>
-    <NavLink class="nav-link" href="/overview">
-        <i class="fa-light fa-sitemap nav-icon"></i> Overview
-    </NavLink>
-    <NavLink class="nav-link" href="/equipment-types">
-        <i class="fa-light fa-gear nav-icon"></i> Equipment Types
+    <NavLink class="nav-link" href="/issues" title="Issues">
+        <i class="fa-light fa-triangle-exclamation nav-icon"></i> <span class="nav-label">Issues</span>
     </NavLink>
 
     <div class="nav-divider"></div>
 
-    <NavLink class="nav-link" href="/setup">
-        <i class="fa-light fa-wrench nav-icon"></i> Setup Wizard
+    <NavLink class="nav-link" href="/companies" title="Companies">
+        <i class="fa-light fa-building nav-icon"></i> <span class="nav-label">Companies</span>
+    </NavLink>
+    <NavLink class="nav-link" href="/overview" title="Overview">
+        <i class="fa-light fa-sitemap nav-icon"></i> <span class="nav-label">Overview</span>
+    </NavLink>
+    <NavLink class="nav-link" href="/equipment-types" title="Equipment Types">
+        <i class="fa-light fa-gear nav-icon"></i> <span class="nav-label">Equipment Types</span>
+    </NavLink>
+
+    <div class="nav-divider"></div>
+
+    <NavLink class="nav-link" href="/setup" title="Setup Wizard">
+        <i class="fa-light fa-wrench nav-icon"></i> <span class="nav-label">Setup Wizard</span>
     </NavLink>
 </nav>
