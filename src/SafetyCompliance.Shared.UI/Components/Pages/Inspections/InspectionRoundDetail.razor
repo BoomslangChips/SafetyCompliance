@@ -2,6 +2,10 @@
 @inject IInspectionService InspectionService
 @inject IIssueService IssueService
 @inject IServiceBookingService ServiceBookingService
+@inject ICompanyService CompanyService
+@inject IPlantService PlantService
+@inject ISectionService SectionService
+@inject IEquipmentService EquipmentService
 @inject NavigationManager Navigation
 
 <div class="chk-page">
@@ -546,6 +550,44 @@
                         }
                     </div>
                 </div>
+                <div class="form-group picker-section">
+                    <label>Link to Equipment <span class="form-hint">(optional)</span></label>
+                    <div class="picker-grid">
+                        <select @onchange="OnIncPickerCompanyChanged">
+                            <option value="">— Company —</option>
+                            @foreach (var c in _incCompanies)
+                            {
+                                <option value="@c.Id">@c.Name</option>
+                            }
+                        </select>
+                        <select @onchange="OnIncPickerPlantChanged" disabled="@(_incPickerCompanyId == null)">
+                            <option value="">— Plant —</option>
+                            @foreach (var p in _incPickerPlants)
+                            {
+                                <option value="@p.Id">@p.Name</option>
+                            }
+                        </select>
+                        <select @onchange="OnIncPickerSectionChanged" disabled="@(_incPickerPlantId == null)">
+                            <option value="">— Section —</option>
+                            @foreach (var s in _incPickerSections)
+                            {
+                                <option value="@s.Id">@s.Name</option>
+                            }
+                        </select>
+                        <select @onchange="e => _incEquipmentId = ParseIncId(e)" disabled="@(_incPickerSectionId == null)">
+                            <option value="">— Equipment —</option>
+                            @foreach (var eq in _incPickerEquipment)
+                            {
+                                <option value="@eq.Id">@eq.Identifier — @eq.EquipmentTypeName</option>
+                            }
+                        </select>
+                    </div>
+                    @if (_incEquipmentId.HasValue)
+                    {
+                        var sel = _incPickerEquipment.FirstOrDefault(e => e.Id == _incEquipmentId);
+                        <div class="picker-summary"><i class="fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName</div>
+                    }
+                </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Assigned To</label>
@@ -650,6 +692,14 @@
     private IssuePriority _incPriority = IssuePriority.Medium;
     private string? _incAssignedTo;
     private DateOnly? _incDueDate;
+    private int? _incEquipmentId;
+
+    // Cascading picker for log incident modal
+    private List<CompanyDto>   _incCompanies = [];
+    private List<PlantDto>     _incPickerPlants = [];
+    private List<SectionDto>   _incPickerSections = [];
+    private List<EquipmentDto> _incPickerEquipment = [];
+    private int? _incPickerCompanyId, _incPickerPlantId, _incPickerSectionId;
 
     // Quick resolve issue
     private bool _showQuickResolve;
@@ -658,7 +708,11 @@
 
     private record SectionGroup(int SectionId, string SectionName, List<EquipmentInspectionDto> Items);
 
-    protected override async Task OnInitializedAsync() => await LoadData();
+    protected override async Task OnInitializedAsync()
+    {
+        _incCompanies = await CompanyService.GetAllCompaniesAsync();
+        await LoadData();
+    }
 
     private async Task LoadData()
     {
@@ -787,6 +841,13 @@
         _incPriority = IssuePriority.Medium;
         _incAssignedTo = null;
         _incDueDate = null;
+        _incEquipmentId = null;
+        _incPickerCompanyId = null;
+        _incPickerPlantId = null;
+        _incPickerSectionId = null;
+        _incPickerPlants = [];
+        _incPickerSections = [];
+        _incPickerEquipment = [];
         _showLogIncident = true;
     }
 
@@ -794,11 +855,41 @@
     {
         if (string.IsNullOrWhiteSpace(_incTitle)) return;
         var dto = new IssueCreateDto(_incTitle, _incDescription, _incPriority,
-            _incAssignedTo, _incDueDate, RoundId, null, null, null, null);
+            _incAssignedTo, _incDueDate, RoundId, null, _incEquipmentId, null, null);
         await IssueService.CreateIssueAsync(dto, "current-user");
         _showLogIncident = false;
         await LoadData();
     }
+
+    // Cascading picker for incident modal
+    private async Task OnIncPickerCompanyChanged(ChangeEventArgs e)
+    {
+        _incPickerCompanyId = ParseIncId(e);
+        _incPickerPlantId = null; _incPickerSectionId = null;
+        _incPickerPlants = []; _incPickerSections = []; _incPickerEquipment = [];
+        _incEquipmentId = null;
+        if (_incPickerCompanyId.HasValue)
+            _incPickerPlants = await PlantService.GetPlantsByCompanyAsync(_incPickerCompanyId.Value);
+    }
+    private async Task OnIncPickerPlantChanged(ChangeEventArgs e)
+    {
+        _incPickerPlantId = ParseIncId(e);
+        _incPickerSectionId = null;
+        _incPickerSections = []; _incPickerEquipment = [];
+        _incEquipmentId = null;
+        if (_incPickerPlantId.HasValue)
+            _incPickerSections = await SectionService.GetSectionsByPlantAsync(_incPickerPlantId.Value);
+    }
+    private async Task OnIncPickerSectionChanged(ChangeEventArgs e)
+    {
+        _incPickerSectionId = ParseIncId(e);
+        _incPickerEquipment = [];
+        _incEquipmentId = null;
+        if (_incPickerSectionId.HasValue)
+            _incPickerEquipment = await EquipmentService.GetEquipmentBySectionAsync(_incPickerSectionId.Value);
+    }
+    private static int? ParseIncId(ChangeEventArgs e) =>
+        int.TryParse(e.Value?.ToString(), out var v) && v > 0 ? v : null;
 
     private void QuickResolveIssue(int id) { _resolveIssueId = id; _resolveNotes = null; _showQuickResolve = true; }
 

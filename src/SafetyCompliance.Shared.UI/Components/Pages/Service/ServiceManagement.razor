@@ -1,5 +1,9 @@
 @page "/service"
 @inject IServiceBookingService ServiceBookingService
+@inject ICompanyService CompanyService
+@inject IPlantService PlantService
+@inject ISectionService SectionService
+@inject IEquipmentService EquipmentService
 @inject NavigationManager Navigation
 
 <div class="svc-page">
@@ -198,15 +202,47 @@
                 <button class="chk-modal-close" @onclick="() => _showCreate = false"><i class="fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Equipment ID <span class="form-required">*</span></label>
-                        <input @bind="_createEquipmentId" type="number" class="form-control" placeholder="Equipment ID" />
+                <div class="form-group picker-section">
+                    <label>Select Equipment <span class="form-required">*</span></label>
+                    <div class="picker-grid">
+                        <select @onchange="OnPickerCompanyChanged">
+                            <option value="">— Company —</option>
+                            @foreach (var c in _companies)
+                            {
+                                <option value="@c.Id">@c.Name</option>
+                            }
+                        </select>
+                        <select @onchange="OnPickerPlantChanged" disabled="@(_pickerCompanyId == null)">
+                            <option value="">— Plant —</option>
+                            @foreach (var p in _pickerPlants)
+                            {
+                                <option value="@p.Id">@p.Name</option>
+                            }
+                        </select>
+                        <select @onchange="OnPickerSectionChanged" disabled="@(_pickerPlantId == null)">
+                            <option value="">— Section —</option>
+                            @foreach (var s in _pickerSections)
+                            {
+                                <option value="@s.Id">@s.Name</option>
+                            }
+                        </select>
+                        <select @onchange="e => _createEquipmentId = ParseId(e)" disabled="@(_pickerSectionId == null)">
+                            <option value="">— Equipment —</option>
+                            @foreach (var eq in _pickerEquipment)
+                            {
+                                <option value="@eq.Id">@eq.Identifier — @eq.EquipmentTypeName</option>
+                            }
+                        </select>
                     </div>
-                    <div class="form-group">
-                        <label>Service Provider <span class="form-required">*</span></label>
-                        <input @bind="_createProvider" class="form-control" placeholder="Service company name" />
-                    </div>
+                    @if (_createEquipmentId > 0)
+                    {
+                        var sel = _pickerEquipment.FirstOrDefault(e => e.Id == _createEquipmentId);
+                        <div class="picker-summary"><i class="fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName</div>
+                    }
+                </div>
+                <div class="form-group">
+                    <label>Service Provider <span class="form-required">*</span></label>
+                    <input @bind="_createProvider" class="form-control" placeholder="Service company name" />
                 </div>
                 <div class="form-group">
                     <label>Reason <span class="form-required">*</span></label>
@@ -228,7 +264,7 @@
             <div class="chk-modal-footer">
                 <button class="btn btn-ghost" @onclick="() => _showCreate = false">Cancel</button>
                 <button class="btn btn-primary" @onclick="CreateBooking"
-                        disabled="@(_createEquipmentId <= 0 || string.IsNullOrWhiteSpace(_createProvider) || string.IsNullOrWhiteSpace(_createReason))">
+                        disabled="@(!(_createEquipmentId > 0) || string.IsNullOrWhiteSpace(_createProvider) || string.IsNullOrWhiteSpace(_createReason))">
                     <i class="fa-light fa-truck"></i> Create Booking
                 </button>
             </div>
@@ -308,11 +344,18 @@
 
     // Create modal
     private bool _showCreate;
-    private int _createEquipmentId;
+    private int? _createEquipmentId;
     private string _createProvider = string.Empty;
     private string _createReason = string.Empty;
     private DateOnly? _createExpectedReturn;
     private string? _createNotes;
+
+    // Cascading equipment picker
+    private List<CompanyDto>   _companies = [];
+    private List<PlantDto>     _pickerPlants = [];
+    private List<SectionDto>   _pickerSections = [];
+    private List<EquipmentDto> _pickerEquipment = [];
+    private int? _pickerCompanyId, _pickerPlantId, _pickerSectionId;
 
     // Return modal
     private bool _showReturn;
@@ -328,6 +371,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _companies = await CompanyService.GetAllCompaniesAsync();
         await LoadData();
         _loading = false;
     }
@@ -364,23 +408,59 @@
 
     private void OpenCreateModal()
     {
-        _createEquipmentId = 0;
+        _createEquipmentId = null;
         _createProvider = string.Empty;
         _createReason = string.Empty;
         _createExpectedReturn = null;
         _createNotes = null;
+        _pickerCompanyId = null;
+        _pickerPlantId = null;
+        _pickerSectionId = null;
+        _pickerPlants = [];
+        _pickerSections = [];
+        _pickerEquipment = [];
         _showCreate = true;
     }
 
     private async Task CreateBooking()
     {
-        if (_createEquipmentId <= 0 || string.IsNullOrWhiteSpace(_createProvider) || string.IsNullOrWhiteSpace(_createReason))
+        if (!(_createEquipmentId > 0) || string.IsNullOrWhiteSpace(_createProvider) || string.IsNullOrWhiteSpace(_createReason))
             return;
-        var dto = new ServiceBookingCreateDto(_createEquipmentId, null, _createProvider, _createReason, _createExpectedReturn, _createNotes);
+        var dto = new ServiceBookingCreateDto(_createEquipmentId!.Value, null, _createProvider, _createReason, _createExpectedReturn, _createNotes);
         await ServiceBookingService.CreateBookingAsync(dto, "current-user");
         _showCreate = false;
         await LoadData();
     }
+
+    // Cascading equipment picker
+    private async Task OnPickerCompanyChanged(ChangeEventArgs e)
+    {
+        _pickerCompanyId = ParseId(e);
+        _pickerPlantId = null; _pickerSectionId = null;
+        _pickerPlants = []; _pickerSections = []; _pickerEquipment = [];
+        _createEquipmentId = null;
+        if (_pickerCompanyId.HasValue)
+            _pickerPlants = await PlantService.GetPlantsByCompanyAsync(_pickerCompanyId.Value);
+    }
+    private async Task OnPickerPlantChanged(ChangeEventArgs e)
+    {
+        _pickerPlantId = ParseId(e);
+        _pickerSectionId = null;
+        _pickerSections = []; _pickerEquipment = [];
+        _createEquipmentId = null;
+        if (_pickerPlantId.HasValue)
+            _pickerSections = await SectionService.GetSectionsByPlantAsync(_pickerPlantId.Value);
+    }
+    private async Task OnPickerSectionChanged(ChangeEventArgs e)
+    {
+        _pickerSectionId = ParseId(e);
+        _pickerEquipment = [];
+        _createEquipmentId = null;
+        if (_pickerSectionId.HasValue)
+            _pickerEquipment = await EquipmentService.GetEquipmentBySectionAsync(_pickerSectionId.Value);
+    }
+    private static int? ParseId(ChangeEventArgs e) =>
+        int.TryParse(e.Value?.ToString(), out var v) && v > 0 ? v : null;
 
     private async Task MarkInService(int id)
     {
