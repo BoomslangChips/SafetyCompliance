@@ -1,114 +1,461 @@
 @page "/"
+@using SafetyCompliance.Domain.Entities
 @inject ICompanyService CompanyService
 @inject IScheduleService ScheduleService
 @inject IIssueService IssueService
+@inject IServiceBookingService ServiceBookingService
+@inject IInspectionService InspectionService
 @inject NavigationManager Navigation
 
-<h1>Safety & Compliance Dashboard</h1>
+<div class="db-page ov-fadeIn">
 
-@if (_loading)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <div class="dashboard-stats-row">
-        <div class="mini-stat">
-            <div class="mini-stat-value">@_stats.ScheduledThisMonth</div>
-            <div class="mini-stat-label">Scheduled</div>
-        </div>
-        <div class="mini-stat completed">
-            <div class="mini-stat-value">@_stats.CompletedThisMonth</div>
-            <div class="mini-stat-label">Completed</div>
-        </div>
-        <div class="mini-stat @(_stats.OverdueInspections > 0 ? "danger" : "")">
-            <div class="mini-stat-value">@_stats.OverdueInspections</div>
-            <div class="mini-stat-label">Overdue</div>
-        </div>
-        <div class="mini-stat @(_stats.OpenIssues > 0 ? "warning" : "")">
-            <div class="mini-stat-value">@_stats.OpenIssues</div>
-            <div class="mini-stat-label">Open Issues</div>
-        </div>
-        <div class="mini-stat @(_stats.CriticalIssues > 0 ? "danger" : "")">
-            <div class="mini-stat-value">@_stats.CriticalIssues</div>
-            <div class="mini-stat-label">Critical</div>
-        </div>
-    </div>
-
-    <div class="dashboard-grid">
-        <div class="stat-card">
-            <div class="stat-value">@_companies.Count</div>
-            <div class="stat-label">Companies</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">@_companies.Sum(c => c.PlantCount)</div>
-            <div class="stat-label">Plants</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">@_companies.Sum(c => c.TotalEquipment)</div>
-            <div class="stat-label">Equipment</div>
-        </div>
-    </div>
-
-    @if (_recentIssues.Any())
+    @if (_loading)
     {
-        <h2>Recent Open Issues</h2>
-        <div class="issue-list compact">
-            @foreach (var issue in _recentIssues.Take(5))
-            {
-                <div class="issue-card @issue.Status.ToString().ToLower()" @onclick="() => GoToIssue(issue.Id)">
-                    <div class="issue-priority-indicator priority-@issue.Priority.ToString().ToLower()"></div>
-                    <div class="issue-card-body">
-                        <div class="issue-card-header">
-                            <h3>@issue.Title</h3>
-                            <span class="priority-badge priority-@issue.Priority.ToString().ToLower()">@issue.Priority</span>
-                        </div>
-                        <div class="issue-card-meta">
-                            @if (issue.EquipmentIdentifier is not null)
-                            {
-                                <span class="issue-equipment">@issue.EquipmentIdentifier</span>
-                            }
-                            @if (issue.DueDate.HasValue)
-                            {
-                                <span class="issue-due">Due: @issue.DueDate.Value.ToString("MMM dd")</span>
-                            }
-                        </div>
-                    </div>
-                </div>
-            }
+        <div class="db-loading">
+            <i class="fa-light fa-spinner-third fa-spin"></i>
+            <span>Loading dashboard…</span>
         </div>
     }
+    @if (!_loading)
+    {
+        <div class="db-header">
+            <div class="db-header-left">
+                <h1 class="db-greeting-title">@_greeting</h1>
+                <p class="db-greeting-sub">@_dateString &nbsp;·&nbsp; Safety &amp; Compliance</p>
+            </div>
+            <div class="db-header-right">
+                <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/inspections")'><i class="fa-light fa-play"></i> Start Inspection</button>
+            </div>
+        </div>
 
-    <h2>Companies</h2>
-    <div class="card-list">
-        @foreach (var company in _companies)
+        @if (CriticalIssues.Any() || _stats.OverdueInspections > 0 || OverdueServices.Any())
         {
-            <div class="card clickable" @onclick="() => GoToCompany(company.Id)">
-                <h3>@company.Name</h3>
-                <p class="card-subtitle">@(company.Code ?? "")</p>
-                <div class="card-stats">
-                    <span>@company.PlantCount plants</span>
-                    <span>@company.TotalEquipment equipment</span>
+            <div class="db-alerts">
+                @if (CriticalIssues.Any())
+                {
+                    <div class="db-alert db-alert-danger" @onclick='() => Navigation.NavigateTo("/incidents")'>
+                        <i class="fa-light fa-fire"></i>
+                        <span><strong>@CriticalIssues.Count() critical incident@(CriticalIssues.Count() != 1 ? "s" : "")</strong> require immediate attention</span>
+                        <i class="fa-light fa-arrow-right db-alert-arrow"></i>
+                    </div>
+                }
+                @if (_stats.OverdueInspections > 0)
+                {
+                    <div class="db-alert db-alert-warning" @onclick='() => Navigation.NavigateTo("/inspection-dashboard")'>
+                        <i class="fa-light fa-calendar-exclamation"></i>
+                        <span><strong>@_stats.OverdueInspections inspection@(_stats.OverdueInspections != 1 ? "s" : "")</strong> are overdue</span>
+                        <i class="fa-light fa-arrow-right db-alert-arrow"></i>
+                    </div>
+                }
+                @if (OverdueServices.Any())
+                {
+                    <div class="db-alert db-alert-warning" @onclick='() => Navigation.NavigateTo("/service")'>
+                        <i class="fa-light fa-toolbox"></i>
+                        <span><strong>@OverdueServices.Count() service booking@(OverdueServices.Count() != 1 ? "s" : "")</strong> past expected return date</span>
+                        <i class="fa-light fa-arrow-right db-alert-arrow"></i>
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="db-kpi-row">
+            <div class="db-kpi db-kpi-primary">
+                <div class="db-kpi-icon"><i class="fa-light fa-calendar-days"></i></div>
+                <div class="db-kpi-body">
+                    <div class="db-kpi-value">@_stats.ScheduledThisMonth</div>
+                    <div class="db-kpi-label">Scheduled <span>this month</span></div>
+                </div>
+            </div>
+            <div class="db-kpi db-kpi-success">
+                <div class="db-kpi-icon"><i class="fa-light fa-circle-check"></i></div>
+                <div class="db-kpi-body">
+                    <div class="db-kpi-value">@_stats.CompletedThisMonth</div>
+                    <div class="db-kpi-label">Completed <span>this month</span></div>
+                </div>
+            </div>
+            <div class="db-kpi @(_stats.ResolvedThisMonth > 0 ? "db-kpi-teal" : "db-kpi-neutral")">
+                <div class="db-kpi-icon"><i class="fa-light fa-badge-check"></i></div>
+                <div class="db-kpi-body">
+                    <div class="db-kpi-value">@_stats.ResolvedThisMonth</div>
+                    <div class="db-kpi-label">Resolved <span>this month</span></div>
+                </div>
+            </div>
+            <div class="db-kpi @(_stats.OverdueInspections > 0 ? "db-kpi-danger" : "db-kpi-neutral")">
+                <div class="db-kpi-icon"><i class="fa-light fa-clock-exclamation"></i></div>
+                <div class="db-kpi-body">
+                    <div class="db-kpi-value">@_stats.OverdueInspections</div>
+                    <div class="db-kpi-label">Overdue <span>inspections</span></div>
+                </div>
+            </div>
+            <div class="db-kpi @(_stats.OpenIssues > 0 ? "db-kpi-warning" : "db-kpi-neutral")">
+                <div class="db-kpi-icon"><i class="fa-light fa-triangle-exclamation"></i></div>
+                <div class="db-kpi-body">
+                    <div class="db-kpi-value">@_stats.OpenIssues</div>
+                    <div class="db-kpi-label">Open <span>incidents</span></div>
+                </div>
+            </div>
+            <div class="db-kpi @(_stats.CriticalIssues > 0 ? "db-kpi-danger" : "db-kpi-neutral") db-kpi-clickable" @onclick='() => Navigation.NavigateTo("/incidents")'>
+                <div class="db-kpi-icon"><i class="fa-light fa-fire"></i></div>
+                <div class="db-kpi-body">
+                    <div class="db-kpi-value">@_stats.CriticalIssues</div>
+                    <div class="db-kpi-label">Critical <span>incidents</span></div>
+                </div>
+            </div>
+            <div class="db-kpi db-kpi-indigo db-kpi-clickable" @onclick='() => Navigation.NavigateTo("/service")'>
+                <div class="db-kpi-icon"><i class="fa-light fa-toolbox"></i></div>
+                <div class="db-kpi-body">
+                    <div class="db-kpi-value">@_activeServices.Count</div>
+                    <div class="db-kpi-label">In <span>service</span></div>
+                </div>
+            </div>
+        </div>
+
+        @if (_activeRounds.Any())
+        {
+            <div class="db-section">
+                <div class="db-section-header">
+                    <h2 class="db-section-title"><i class="fa-light fa-clipboard-list"></i> Active Inspection Rounds</h2>
+                    <a class="db-section-link" href="/inspections">View all</a>
+                </div>
+                <div class="db-rounds-grid">
+                    @foreach (var round in _activeRounds)
+                    {
+                        var pct = round.TotalEquipment > 0 ? (int)((double)round.CompletedEquipment / round.TotalEquipment * 100) : 0;
+                        <div class="db-round-card" @onclick='() => Navigation.NavigateTo($"/inspection/{round.Id}")'>
+                            <div class="db-round-top">
+                                <span class="db-round-plant">@round.PlantName</span>
+                                <span class="db-round-badge">In Progress</span>
+                            </div>
+                            <div class="db-round-meta">
+                                <span><i class="fa-light fa-user"></i> @round.InspectorName</span>
+                                <span><i class="fa-light fa-calendar"></i> @round.InspectionDate.ToString("MMM d")</span>
+                            </div>
+                            <div class="db-round-progress">
+                                <div class="db-round-progress-bar">
+                                    <div class="db-round-progress-fill" style="width:@(pct)%"></div>
+                                </div>
+                                <span class="db-round-progress-text">@round.CompletedEquipment / @round.TotalEquipment equipment &nbsp;·&nbsp; @pct%</span>
+                            </div>
+                        </div>
+                    }
                 </div>
             </div>
         }
-    </div>
-}
+
+        <div class="db-main-grid">
+
+            <div class="db-panel">
+                <div class="db-panel-header">
+                    <h2 class="db-panel-title"><i class="fa-light fa-calendar-days"></i> Schedule</h2>
+                    <a class="db-section-link" href="/schedules">View all</a>
+                </div>
+                <div class="db-panel-body">
+                    @if (!OverdueEvents.Any() && !TodayEvents.Any() && !FutureEvents.Any())
+                    {
+                        <div class="db-empty">
+                            <i class="fa-light fa-calendar-check"></i>
+                            <span>Nothing scheduled in the next 14 days</span>
+                        </div>
+                    }
+                    @if (OverdueEvents.Any())
+                    {
+                        <div class="db-sched-group">
+                            <div class="db-sched-group-label db-sched-overdue-label">Overdue</div>
+                            @foreach (var ev in OverdueEvents.Take(4))
+                            {
+                                <div class="db-sched-item db-sched-overdue" @onclick='() => Navigation.NavigateTo("/inspection-dashboard")'>
+                                    <div class="db-sched-date db-sched-date-overdue">
+                                        <span class="db-sched-day">@ev.Date.Day</span>
+                                        <span class="db-sched-mon">@ev.Date.ToString("MMM")</span>
+                                    </div>
+                                    <div class="db-sched-body">
+                                        <div class="db-sched-name">@ev.PlantName</div>
+                                        <div class="db-sched-meta">@ev.Title</div>
+                                    </div>
+                                    <i class="fa-light fa-circle-exclamation" style="color:var(--color-danger);font-size:0.85rem;flex-shrink:0"></i>
+                                </div>
+                            }
+                        </div>
+                    }
+                    @if (TodayEvents.Any())
+                    {
+                        <div class="db-sched-group">
+                            <div class="db-sched-group-label db-sched-today-label">Today</div>
+                            @foreach (var ev in TodayEvents)
+                            {
+                                <div class="db-sched-item db-sched-today" @onclick='() => Navigation.NavigateTo("/inspection-dashboard")'>
+                                    <div class="db-sched-date db-sched-date-today">
+                                        <span class="db-sched-day">@ev.Date.Day</span>
+                                        <span class="db-sched-mon">@ev.Date.ToString("MMM")</span>
+                                    </div>
+                                    <div class="db-sched-body">
+                                        <div class="db-sched-name">@ev.PlantName</div>
+                                        <div class="db-sched-meta">@ev.Title</div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    @if (FutureEvents.Any())
+                    {
+                        <div class="db-sched-group">
+                            <div class="db-sched-group-label">Upcoming</div>
+                            @foreach (var ev in FutureEvents)
+                            {
+                                var daysOut = ev.Date.DayNumber - _today.DayNumber;
+                                <div class="db-sched-item" @onclick='() => Navigation.NavigateTo("/inspection-dashboard")'>
+                                    <div class="db-sched-date">
+                                        <span class="db-sched-day">@ev.Date.Day</span>
+                                        <span class="db-sched-mon">@ev.Date.ToString("MMM")</span>
+                                    </div>
+                                    <div class="db-sched-body">
+                                        <div class="db-sched-name">@ev.PlantName</div>
+                                        <div class="db-sched-meta">@ev.Title</div>
+                                    </div>
+                                    <span class="db-sched-days-out">@daysOut d</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="db-panel">
+                <div class="db-panel-header">
+                    <h2 class="db-panel-title"><i class="fa-light fa-triangle-exclamation"></i> Incidents</h2>
+                    <a class="db-section-link" href="/incidents">View all</a>
+                </div>
+                <div class="db-panel-body">
+                    @if (!_openIssues.Any())
+                    {
+                        <div class="db-empty db-empty-success">
+                            <i class="fa-light fa-shield-check"></i>
+                            <span>No open incidents — all clear!</span>
+                        </div>
+                    }
+                    @foreach (var issue in _openIssues.Take(7))
+                    {
+                        var pc    = issue.Priority.ToString().ToLower();
+                        var odInc = issue.DueDate.HasValue && issue.DueDate.Value < _today;
+                        <div class="db-incident-row" @onclick='() => Navigation.NavigateTo("/incidents")'>
+                            <div class="db-incident-strip priority-@pc"></div>
+                            <div class="db-incident-body">
+                                <div class="db-incident-title">@issue.Title</div>
+                                <div class="db-incident-meta">
+                                    @if (issue.EquipmentIdentifier is not null)
+                                    {
+                                        <span class="db-incident-equip"><i class="fa-light fa-gear"></i> @issue.EquipmentIdentifier</span>
+                                    }
+                                    @if (issue.DueDate.HasValue)
+                                    {
+                                        <span class="db-incident-due @(odInc ? "overdue" : "")"><i class="fa-light fa-calendar@(odInc ? "-exclamation" : "")"></i> @(odInc ? "Overdue · " : "")@issue.DueDate.Value.ToString("MMM d")</span>
+                                    }
+                                </div>
+                            </div>
+                            <span class="db-priority-chip priority-@pc">@issue.Priority</span>
+                        </div>
+                    }
+                    @if (_openIssues.Count > 7)
+                    {
+                        <div class="db-more-hint" @onclick='() => Navigation.NavigateTo("/incidents")'>+@(_openIssues.Count - 7) more → View all</div>
+                    }
+                </div>
+            </div>
+
+            <div class="db-panel">
+                <div class="db-panel-header">
+                    <h2 class="db-panel-title"><i class="fa-light fa-toolbox"></i> In Service</h2>
+                    <a class="db-section-link" href="/service">View all</a>
+                </div>
+                <div class="db-panel-body">
+                    @if (!_activeServices.Any())
+                    {
+                        <div class="db-empty">
+                            <i class="fa-light fa-toolbox"></i>
+                            <span>No equipment currently in service</span>
+                        </div>
+                    }
+                    @foreach (var svc in _activeServices.Take(6))
+                    {
+                        var svcOd    = svc.ExpectedReturnDate.HasValue && svc.ExpectedReturnDate.Value < _today;
+                        var daysSent = _today.DayNumber - svc.SentDate.DayNumber;
+                        var daysLeft = svc.ExpectedReturnDate.HasValue ? svc.ExpectedReturnDate.Value.DayNumber - _today.DayNumber : (int?)null;
+                        <div class="db-service-row @(svcOd ? "db-service-overdue" : "")" @onclick='() => Navigation.NavigateTo("/service")'>
+                            <div class="db-service-left">
+                                <div class="db-service-equip">@svc.EquipmentIdentifier</div>
+                                <div class="db-service-type">@svc.EquipmentTypeName</div>
+                                <div class="db-service-loc"><i class="fa-light fa-building"></i> @svc.PlantName · @svc.SectionName</div>
+                                <div class="db-service-prov"><i class="fa-light fa-wrench"></i> @svc.ServiceProvider</div>
+                            </div>
+                            <div class="db-service-right">
+                                @if (svcOd)
+                                {
+                                    <span class="db-svc-badge db-svc-overdue"><i class="fa-light fa-clock-exclamation"></i> Overdue</span>
+                                }
+                                else if (daysLeft.HasValue)
+                                {
+                                    <span class="db-svc-badge @(daysLeft.Value <= 3 ? "db-svc-soon" : "db-svc-ok")">
+                                        @if (daysLeft.Value == 0)     { <text>Due today</text>     }
+                                        else if (daysLeft.Value == 1) { <text>Due tomorrow</text>  }
+                                        else                          { <text>@daysLeft.Value d left</text> }
+                                    </span>
+                                }
+                                <span class="db-svc-sent">@daysSent d ago</span>
+                            </div>
+                        </div>
+                    }
+                    @if (_activeServices.Count > 6)
+                    {
+                        <div class="db-more-hint" @onclick='() => Navigation.NavigateTo("/service")'>+@(_activeServices.Count - 6) more → View all</div>
+                    }
+                </div>
+            </div>
+
+        </div>
+
+        <div class="db-bottom-grid">
+
+            <div class="db-panel">
+                <div class="db-panel-header">
+                    <h2 class="db-panel-title"><i class="fa-light fa-clock-rotate-left"></i> Recent Activity</h2>
+                </div>
+                <div class="db-panel-body">
+                    @if (!_timeline.Any())
+                    {
+                        <div class="db-empty">
+                            <i class="fa-light fa-clock-rotate-left"></i>
+                            <span>No recent activity recorded</span>
+                        </div>
+                    }
+                    <div class="db-timeline">
+                        @foreach (var item in _timeline)
+                        {
+                            var tlIcon = item.EventType switch {
+                                "inspection_completed" => "fa-circle-check",
+                                "inspection_started"   => "fa-play-circle",
+                                "inspection_scheduled" => "fa-calendar-plus",
+                                "issue_created"        => "fa-triangle-exclamation",
+                                "issue_resolved"       => "fa-badge-check",
+                                "issue_closed"         => "fa-circle-xmark",
+                                _                      => "fa-circle-dot"
+                            };
+                            var tlDot = item.EventType switch {
+                                "inspection_completed"                                        => "success",
+                                "issue_resolved"                                              => "success",
+                                "issue_closed"                                                => "neutral",
+                                "issue_created" when item.Priority == IssuePriority.Critical  => "danger",
+                                "issue_created" when item.Priority == IssuePriority.High      => "warning",
+                                _                                                             => "primary"
+                            };
+                            <div class="db-tl-item">
+                                <div class="db-tl-dot db-tl-dot-@tlDot"><i class="fa-light @tlIcon"></i></div>
+                                <div class="db-tl-body">
+                                    <div class="db-tl-title">@item.Title</div>
+                                    <div class="db-tl-meta">
+                                        @item.PlantName
+                                        @if (item.EquipmentIdentifier is not null)
+                                        {
+                                            <text> · @item.EquipmentIdentifier</text>
+                                        }
+                                    </div>
+                                </div>
+                                <span class="db-tl-date">@item.Date.ToString("MMM d")</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="db-panel">
+                <div class="db-panel-header">
+                    <h2 class="db-panel-title"><i class="fa-light fa-building"></i> Assets</h2>
+                    <a class="db-section-link" href="/companies">Manage</a>
+                </div>
+                <div class="db-panel-body">
+                    <div class="db-asset-totals">
+                        <div class="db-asset-total">
+                            <div class="db-asset-total-value">@_companies.Count</div>
+                            <div class="db-asset-total-label">Companies</div>
+                        </div>
+                        <div class="db-asset-total">
+                            <div class="db-asset-total-value">@_companies.Sum(c => c.PlantCount)</div>
+                            <div class="db-asset-total-label">Plants</div>
+                        </div>
+                        <div class="db-asset-total">
+                            <div class="db-asset-total-value">@_companies.Sum(c => c.TotalEquipment)</div>
+                            <div class="db-asset-total-label">Equipment</div>
+                        </div>
+                    </div>
+                    @if (_companies.Any())
+                    {
+                        <div class="db-co-list">
+                            @foreach (var co in _companies.OrderByDescending(c => c.TotalEquipment).Take(6))
+                            {
+                                <div class="db-co-row" @onclick='() => Navigation.NavigateTo($"/companies/{co.Id}")'>
+                                    <div class="db-co-avatar">@(co.Name.Length > 0 ? co.Name[0..1].ToUpper() : "?")</div>
+                                    <div class="db-co-info">
+                                        <div class="db-co-name">@co.Name</div>
+                                        <div class="db-co-meta">@co.PlantCount plant@(co.PlantCount != 1 ? "s" : "") · @co.TotalEquipment equip</div>
+                                    </div>
+                                    <i class="fa-light fa-chevron-right db-co-arrow"></i>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+        </div>
+    }
+
+</div>
 
 @code {
-    private List<CompanyDto> _companies = [];
-    private List<IssueDto> _recentIssues = [];
-    private DashboardStatsDto _stats = new(0, 0, 0, 0, 0, 0);
-    private bool _loading = true;
+    private bool                            _loading        = true;
+    private DashboardStatsDto               _stats          = new(0, 0, 0, 0, 0, 0);
+    private List<CompanyDto>                _companies      = [];
+    private List<CalendarEventDto>          _upcoming       = [];
+    private List<IssueDto>                  _openIssues     = [];
+    private List<ServiceBookingOverviewDto> _activeServices = [];
+    private List<InspectionRoundDto>        _activeRounds   = [];
+    private List<TimelineItemDto>           _timeline       = [];
+
+    private DateOnly _today;
+    private string   _greeting   = "Good morning";
+    private string   _dateString = "";
+
+    // Computed helpers used in template
+    private IEnumerable<IssueDto>                  CriticalIssues  => _openIssues.Where(i => i.Priority == IssuePriority.Critical);
+    private IEnumerable<ServiceBookingOverviewDto> OverdueServices => _activeServices.Where(s => s.ExpectedReturnDate.HasValue && s.ExpectedReturnDate.Value < _today);
+    private IEnumerable<CalendarEventDto>          OverdueEvents   => _upcoming.Where(e => e.IsOverdue).OrderBy(e => e.Date);
+    private IEnumerable<CalendarEventDto>          TodayEvents     => _upcoming.Where(e => e.Date == _today && !e.IsOverdue);
+    private IEnumerable<CalendarEventDto>          FutureEvents    => _upcoming.Where(e => e.Date > _today).Take(6);
 
     protected override async Task OnInitializedAsync()
     {
-        _companies = await CompanyService.GetAllCompaniesAsync();
-        _stats = await ScheduleService.GetDashboardStatsAsync();
-        _recentIssues = await IssueService.GetIssuesAsync(IssueStatus.Open);
+        var now     = DateTime.Now;
+        _today      = DateOnly.FromDateTime(now);
+        _greeting   = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
+        _dateString = now.ToString("dddd, d MMMM yyyy");
+
+        var statsTask  = ScheduleService.GetDashboardStatsAsync();
+        var compTask   = CompanyService.GetAllCompaniesAsync();
+        var calTask    = ScheduleService.GetCalendarEventsAsync(_today, _today.AddDays(14));
+        var issTask    = IssueService.GetIssuesAsync(IssueStatus.Open);
+        var svcTask    = ServiceBookingService.GetActiveBookingsAsync();
+        var roundsTask = InspectionService.GetActiveRoundsAsync();
+        var tlTask     = ScheduleService.GetTimelineAsync(10);
+
+        await Task.WhenAll(statsTask, compTask, calTask, issTask, svcTask, roundsTask, tlTask);
+
+        _stats          = statsTask.Result;
+        _companies      = compTask.Result;
+        _upcoming       = calTask.Result.OrderBy(e => e.Date).ToList();
+        _openIssues     = issTask.Result.OrderByDescending(i => (int)i.Priority).ToList();
+        _activeServices = svcTask.Result;
+        _activeRounds   = roundsTask.Result;
+        _timeline       = tlTask.Result;
+
         _loading = false;
     }
-
-    private void GoToCompany(int id) => Navigation.NavigateTo($"/companies/{id}");
-    private void GoToIssue(int id) => Navigation.NavigateTo($"/issues/{id}");
 }
