@@ -17,7 +17,16 @@
         <div class="wizard-step @(stepIndex == _currentStep ? "active" : "") @(stepIndex < _currentStep ? "completed" : "")"
              style="cursor: @(stepIndex < _currentStep ? "pointer" : "default")"
              @onclick="() => GoToStep(stepIndex)">
-            <div class="step-number">@(stepIndex < _currentStep ? "\u2713" : (stepIndex + 1).ToString())</div>
+            <div class="step-number">
+                @if (stepIndex < _currentStep)
+                {
+                    <i class="fa-light fa-check"></i>
+                }
+                else
+                {
+                    @((stepIndex + 1).ToString())
+                }
+            </div>
             <div class="step-label">@_stepNames[stepIndex]</div>
         </div>
         @if (i < _stepNames.Length - 1)
@@ -114,7 +123,7 @@
                     </div>
                     @if (company.Id == _selectedCompanyId)
                     {
-                        <span class="active-badge" style="margin-top: var(--spacing-xs);">&#10003; Selected</span>
+                        <span class="active-badge" style="margin-top: var(--spacing-xs);"><i class="fa-light fa-check"></i> Selected</span>
                     }
                 </div>
             }
@@ -256,7 +265,7 @@
                         </div>
                     </div>
                     <p class="card-subtitle">@(plant.Description ?? "No description")</p>
-                    <p class="card-subtitle">&#128100; @(plant.ContactName ?? "No contact")</p>
+                    <p class="card-subtitle"><i class="fa-light fa-user"></i> @(plant.ContactName ?? "No contact")</p>
                     <div class="card-stats">
                         <span>@plant.SectionCount sections</span>
                         <span>@plant.EquipmentCount equipment</span>
@@ -443,7 +452,7 @@
             {
                 <div class="setup-section-group">
                     <div class="setup-item-header">
-                        <h4>&#128193; @sec.Name</h4>
+                        <h4><i class="fa-light fa-folder"></i> @sec.Name</h4>
                         <button class="btn btn-sm btn-primary" @onclick="() => StartCreateEquipment(sec.Id)">+ Add Equipment</button>
                     </div>
 
@@ -654,7 +663,7 @@
             <div class="review-tree">
                 <div class="tree-node tree-company">
                     <div class="tree-node-header">
-                        <span class="tree-icon">&#127970;</span>
+                        <i class="fa-light fa-building tree-icon"></i>
                         <strong>@_reviewData.Company.Name</strong>
                         @if (_reviewData.Company.Code is not null)
                         {
@@ -666,7 +675,7 @@
                     {
                         <div class="tree-node tree-plant">
                             <div class="tree-node-header">
-                                <span class="tree-icon">&#127981;</span>
+                                <i class="fa-light fa-industry tree-icon"></i>
                                 <strong>@rp.Plant.Name</strong>
                                 <span class="card-subtitle">(@rp.Sections.Count sections, @rp.Sections.Sum(s => s.Equipment.Count) equipment)</span>
                             </div>
@@ -675,7 +684,7 @@
                             {
                                 <div class="tree-node tree-section">
                                     <div class="tree-node-header">
-                                        <span class="tree-icon">&#128193;</span>
+                                        <i class="fa-light fa-folder tree-icon"></i>
                                         <strong>@rs.Section.Name</strong>
                                         <span class="card-subtitle">(@rs.Equipment.Count equipment)</span>
                                     </div>
@@ -683,7 +692,7 @@
                                     @foreach (var eq in rs.Equipment)
                                     {
                                         <div class="tree-node tree-equipment">
-                                            <span class="tree-icon">&#9881;</span>
+                                            <i class="fa-light fa-gear tree-icon"></i>
                                             <span>@eq.Identifier</span>
                                             <span class="card-subtitle">@eq.EquipmentTypeName</span>
                                             @if (eq.SubTypeName is not null)
@@ -722,7 +731,7 @@
     }
     else
     {
-        <button class="btn btn-primary btn-lg" @onclick="Finish">&#10003; Done &mdash; Go to Overview</button>
+        <button class="btn btn-primary btn-lg" @onclick="Finish"><i class="fa-light fa-check"></i> Done &mdash; Go to Overview</button>
     }
 </div>
 

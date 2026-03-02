@@ -52,7 +52,7 @@ else
                     }
                     else
                     {
-                        <span class="hierarchy-icon">&#127970;</span>
+                        <i class="fa-light fa-building hierarchy-icon"></i>
                     }
                     <div>
                         <h2>@company.Name</h2>
@@ -81,7 +81,7 @@ else
                                 }
                                 else
                                 {
-                                    <span class="hierarchy-icon">&#127981;</span>
+                                    <i class="fa-light fa-industry hierarchy-icon"></i>
                                 }
                                 <div>
                                     <h3>@plant.Name</h3>
@@ -109,7 +109,7 @@ else
                                             }
                                             else
                                             {
-                                                <span class="hierarchy-icon-sm">&#128193;</span>
+                                                <i class="fa-light fa-folder hierarchy-icon-sm"></i>
                                             }
                                             <div>
                                                 <h4>@sect.Name</h4>
@@ -128,7 +128,7 @@ else
                                             @foreach (var eq in sect.Equipment)
                                             {
                                                 <div class="hierarchy-equipment-item">
-                                                    <span class="eq-icon">&#9881;</span>
+                                                    <i class="fa-light fa-gear eq-icon"></i>
                                                     <strong>@eq.Identifier</strong>
                                                     <span class="eq-type">@eq.EquipmentTypeName</span>
                                                     @if (eq.SubTypeName is not null)
