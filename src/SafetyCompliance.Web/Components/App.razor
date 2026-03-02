@@ -1,15 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SafeCheck - Safety &amp; Compliance</title>
     <base href="/" />
+    <script>
+        (function() {
+            var theme = localStorage.getItem('safecheck-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <link rel="stylesheet" href="_content/SafetyCompliance.Shared.UI/css/app.css" />
     <HeadOutlet @rendermode="Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer" />
 </head>
 <body>
     <Routes @rendermode="Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer" />
+    <script>
+        function toggleTheme() {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('safecheck-theme', next);
+            return next;
+        }
+        function getTheme() {
+            return document.documentElement.getAttribute('data-theme') || 'light';
+        }
+    </script>
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>

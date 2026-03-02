@@ -33,6 +33,7 @@ else
         </div>
     }
 
+    @* Create Section Modal *@
     @if (_showCreateSection)
     {
         <div class="modal-overlay" @onclick="() => _showCreateSection = false">
@@ -49,7 +50,7 @@ else
                     </div>
                     <div class="form-group">
                         <label>Photo</label>
-                        <InputFile OnChange="OnSectionPhotoSelected" class="form-control" accept="image/*" />
+                        <InputFile OnChange="OnCreateSectionPhotoSelected" class="form-control" accept="image/*" />
                         @if (_sectionCreate.PhotoBase64 is not null)
                         {
                             <div class="photo-preview">
@@ -67,9 +68,45 @@ else
         </div>
     }
 
+    @* Edit Section Modal *@
+    @if (_showEditSection)
+    {
+        <div class="modal-overlay" @onclick="() => _showEditSection = false">
+            <div class="modal" @onclick:stopPropagation>
+                <h2>Edit Section</h2>
+                <EditForm Model="_sectionEdit" OnValidSubmit="UpdateSection">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <InputText @bind-Value="_sectionEdit.Name" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <InputText @bind-Value="_sectionEdit.Description" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Photo</label>
+                        <InputFile OnChange="OnEditSectionPhotoSelected" class="form-control" accept="image/*" />
+                        @if (_sectionEdit.PhotoBase64 is not null)
+                        {
+                            <div class="photo-preview">
+                                <img src="@($"data:image/jpeg;base64,{_sectionEdit.PhotoBase64}")" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionEdit.PhotoBase64 = null; _sectionEdit.PhotoFileName = null; }">Remove</button>
+                            </div>
+                        }
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Update</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showEditSection = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @* Add Equipment Modal *@
     @if (_showAddEquipment)
     {
-        <div class="modal-overlay" @onclick="CloseEquipmentModal">
+        <div class="modal-overlay" @onclick="CloseAddEquipmentModal">
             <div class="modal modal-wide" @onclick:stopPropagation>
                 <h2>Add Equipment to @(_addEquipmentSectionName)</h2>
                 <EditForm Model="_equipmentCreate" OnValidSubmit="CreateEquipment">
@@ -80,7 +117,7 @@ else
                         </div>
                         <div class="form-group">
                             <label>Equipment Type</label>
-                            <select class="form-control" @onchange="OnEquipmentTypeChanged">
+                            <select class="form-control" @onchange="OnCreateEquipmentTypeChanged">
                                 <option value="">-- Select Type --</option>
                                 @foreach (var eqType in _equipmentTypes)
                                 {
@@ -89,13 +126,13 @@ else
                             </select>
                         </div>
                     </div>
-                    @if (_availableSubTypes.Any())
+                    @if (_createSubTypes.Any())
                     {
                         <div class="form-group">
                             <label>Sub-Type</label>
-                            <select class="form-control" @onchange="OnSubTypeChanged">
+                            <select class="form-control" @onchange="OnCreateSubTypeChanged">
                                 <option value="">-- Select Sub-Type (optional) --</option>
-                                @foreach (var st in _availableSubTypes)
+                                @foreach (var st in _createSubTypes)
                                 {
                                     <option value="@st.Id">@st.Name</option>
                                 }
@@ -118,7 +155,66 @@ else
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Save Equipment</button>
-                        <button type="button" class="btn btn-secondary" @onclick="CloseEquipmentModal">Cancel</button>
+                        <button type="button" class="btn btn-secondary" @onclick="CloseAddEquipmentModal">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @* Edit Equipment Modal *@
+    @if (_showEditEquipment)
+    {
+        <div class="modal-overlay" @onclick="() => _showEditEquipment = false">
+            <div class="modal modal-wide" @onclick:stopPropagation>
+                <h2>Edit Equipment</h2>
+                <EditForm Model="_equipmentEdit" OnValidSubmit="UpdateEquipment">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Identifier</label>
+                            <InputText @bind-Value="_equipmentEdit.Identifier" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Equipment Type</label>
+                            <select class="form-control" value="@_equipmentEdit.EquipmentTypeId" @onchange="OnEditEquipmentTypeChanged">
+                                <option value="">-- Select Type --</option>
+                                @foreach (var eqType in _equipmentTypes)
+                                {
+                                    <option value="@eqType.Id" selected="@(eqType.Id == _equipmentEdit.EquipmentTypeId)">@eqType.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    @if (_editSubTypes.Any())
+                    {
+                        <div class="form-group">
+                            <label>Sub-Type</label>
+                            <select class="form-control" value="@_equipmentEdit.EquipmentSubTypeId" @onchange="OnEditSubTypeChanged">
+                                <option value="">-- None --</option>
+                                @foreach (var st in _editSubTypes)
+                                {
+                                    <option value="@st.Id" selected="@(st.Id == _equipmentEdit.EquipmentSubTypeId)">@st.Name</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    <div class="form-group">
+                        <label>Description</label>
+                        <InputText @bind-Value="_equipmentEdit.Description" class="form-control" />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Size</label>
+                            <InputText @bind-Value="_equipmentEdit.Size" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Serial Number</label>
+                            <InputText @bind-Value="_equipmentEdit.SerialNumber" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Update</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showEditEquipment = false">Cancel</button>
                     </div>
                 </EditForm>
             </div>
@@ -141,7 +237,10 @@ else
                         <p class="section-desc">@sect.Description</p>
                     }
                 </div>
-                <button class="btn btn-sm btn-primary" @onclick="() => ShowAddEquipment(sect.Id, sect.Name)">Add Equipment</button>
+                <div class="header-actions">
+                    <button class="btn btn-sm btn-secondary" @onclick="() => StartEditSection(sect)">Edit</button>
+                    <button class="btn btn-sm btn-primary" @onclick="() => ShowAddEquipment(sect.Id, sect.Name)">Add Equipment</button>
+                </div>
             </div>
 
             @if (sect.PhotoBase64 is not null)
@@ -163,12 +262,14 @@ else
                             <th>Size</th>
                             <th>Serial</th>
                             <th>Next Service</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var eq in equipment)
                         {
-                            <tr>
+                            <tr class="@(!eq.IsActive ? "row-inactive" : "")">
                                 <td><strong>@eq.Identifier</strong></td>
                                 <td>@eq.EquipmentTypeName</td>
                                 <td>@(eq.SubTypeName ?? "-")</td>
@@ -176,6 +277,29 @@ else
                                 <td>@(eq.Size ?? "-")</td>
                                 <td>@(eq.SerialNumber ?? "-")</td>
                                 <td>@(eq.NextServiceDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                                <td>
+                                    @if (eq.IsActive)
+                                    {
+                                        <span class="active-badge">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inactive-badge">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-xs btn-secondary" @onclick="() => StartEditEquipment(eq)">Edit</button>
+                                        @if (eq.IsActive)
+                                        {
+                                            <button class="btn btn-xs btn-warning" @onclick="() => ToggleEquipmentActive(eq)">Deactivate</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn btn-xs btn-success" @onclick="() => ToggleEquipmentActive(eq)">Activate</button>
+                                        }
+                                    </div>
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -196,13 +320,30 @@ else
     private List<SectionDto> _sections = [];
     private Dictionary<int, List<EquipmentDto>> _equipmentBySection = [];
     private List<EquipmentTypeDto> _equipmentTypes = [];
-    private List<EquipmentSubTypeDto> _availableSubTypes = [];
+    private List<EquipmentSubTypeDto> _createSubTypes = [];
+    private List<EquipmentSubTypeDto> _editSubTypes = [];
+
+    // Create Section
     private bool _showCreateSection;
+    private SectionCreateModel _sectionCreate = new();
+
+    // Edit Section
+    private bool _showEditSection;
+    private int _editSectionId;
+    private int _editSectionSortOrder;
+    private SectionEditModel _sectionEdit = new();
+
+    // Add Equipment
     private bool _showAddEquipment;
     private int _addEquipmentSectionId;
     private string _addEquipmentSectionName = "";
-    private SectionCreateModel _sectionCreate = new();
     private EquipmentCreateModel _equipmentCreate = new();
+
+    // Edit Equipment
+    private bool _showEditEquipment;
+    private int _editEquipmentId;
+    private int _editEquipmentSortOrder;
+    private EquipmentEditModel _equipmentEdit = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -218,10 +359,11 @@ else
         _equipmentBySection.Clear();
         foreach (var sect in _sections)
         {
-            _equipmentBySection[sect.Id] = await EquipmentService.GetEquipmentBySectionAsync(sect.Id);
+            _equipmentBySection[sect.Id] = await EquipmentService.GetEquipmentBySectionAsync(sect.Id, includeInactive: true);
         }
     }
 
+    // ===== Section CRUD =====
     private async Task CreateSection()
     {
         var maxOrder = _sections.Any() ? _sections.Max(s => s.SortOrder) + 1 : 1;
@@ -232,7 +374,31 @@ else
         _sectionCreate = new();
     }
 
-    private async Task OnSectionPhotoSelected(InputFileChangeEventArgs e)
+    private void StartEditSection(SectionDto sect)
+    {
+        _editSectionId = sect.Id;
+        _editSectionSortOrder = sect.SortOrder;
+        _sectionEdit = new SectionEditModel
+        {
+            Name = sect.Name,
+            Description = sect.Description,
+            IsActive = sect.IsActive,
+            PhotoBase64 = sect.PhotoBase64,
+            PhotoFileName = sect.PhotoFileName
+        };
+        _showEditSection = true;
+    }
+
+    private async Task UpdateSection()
+    {
+        var dto = new SectionUpdateDto(_editSectionId, _sectionEdit.Name, _sectionEdit.Description, _editSectionSortOrder, _sectionEdit.IsActive, _sectionEdit.PhotoBase64, _sectionEdit.PhotoFileName);
+        await SectionService.UpdateSectionAsync(dto, "current-user");
+        await LoadData();
+        _showEditSection = false;
+        _sectionEdit = new();
+    }
+
+    private async Task OnCreateSectionPhotoSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
         if (file is null) return;
@@ -242,33 +408,44 @@ else
         _sectionCreate.PhotoFileName = file.Name;
     }
 
+    private async Task OnEditSectionPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+        _sectionEdit.PhotoBase64 = Convert.ToBase64String(buffer);
+        _sectionEdit.PhotoFileName = file.Name;
+    }
+
+    // ===== Equipment CRUD =====
     private void ShowAddEquipment(int sectionId, string sectionName)
     {
         _addEquipmentSectionId = sectionId;
         _addEquipmentSectionName = sectionName;
         _equipmentCreate = new();
-        _availableSubTypes = [];
+        _createSubTypes = [];
         _showAddEquipment = true;
     }
 
-    private void CloseEquipmentModal()
+    private void CloseAddEquipmentModal()
     {
         _showAddEquipment = false;
         _equipmentCreate = new();
-        _availableSubTypes = [];
+        _createSubTypes = [];
     }
 
-    private async Task OnEquipmentTypeChanged(ChangeEventArgs e)
+    private async Task OnCreateEquipmentTypeChanged(ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out var typeId))
         {
             _equipmentCreate.EquipmentTypeId = typeId;
-            _availableSubTypes = await EquipmentService.GetSubTypesByTypeAsync(typeId);
+            _createSubTypes = await EquipmentService.GetSubTypesByTypeAsync(typeId);
             _equipmentCreate.EquipmentSubTypeId = null;
         }
     }
 
-    private void OnSubTypeChanged(ChangeEventArgs e)
+    private void OnCreateSubTypeChanged(ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out var subTypeId))
             _equipmentCreate.EquipmentSubTypeId = subTypeId;
@@ -289,21 +466,86 @@ else
             _equipmentCreate.Description,
             _equipmentCreate.Size,
             _equipmentCreate.SerialNumber,
-            null,
-            null,
-            maxOrder);
+            null, null, maxOrder);
 
         await EquipmentService.CreateEquipmentAsync(dto, "current-user");
         await LoadData();
-        CloseEquipmentModal();
+        CloseAddEquipmentModal();
+    }
+
+    private async Task StartEditEquipment(EquipmentDto eq)
+    {
+        _editEquipmentId = eq.Id;
+        _editEquipmentSortOrder = eq.SortOrder;
+        _equipmentEdit = new EquipmentEditModel
+        {
+            Identifier = eq.Identifier,
+            EquipmentTypeId = eq.EquipmentTypeId,
+            EquipmentSubTypeId = eq.EquipmentSubTypeId,
+            Description = eq.Description,
+            Size = eq.Size,
+            SerialNumber = eq.SerialNumber,
+            IsActive = eq.IsActive
+        };
+        _editSubTypes = await EquipmentService.GetSubTypesByTypeAsync(eq.EquipmentTypeId);
+        _showEditEquipment = true;
+    }
+
+    private async Task OnEditEquipmentTypeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var typeId))
+        {
+            _equipmentEdit.EquipmentTypeId = typeId;
+            _editSubTypes = await EquipmentService.GetSubTypesByTypeAsync(typeId);
+            _equipmentEdit.EquipmentSubTypeId = null;
+        }
+    }
+
+    private void OnEditSubTypeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var subTypeId))
+            _equipmentEdit.EquipmentSubTypeId = subTypeId;
+        else
+            _equipmentEdit.EquipmentSubTypeId = null;
+    }
+
+    private async Task UpdateEquipment()
+    {
+        var dto = new EquipmentUpdateDto(
+            _editEquipmentId, _equipmentEdit.EquipmentTypeId, _equipmentEdit.EquipmentSubTypeId,
+            _equipmentEdit.Identifier, _equipmentEdit.Description, _equipmentEdit.Size,
+            _equipmentEdit.SerialNumber, null, _editEquipmentSortOrder, _equipmentEdit.IsActive);
+        await EquipmentService.UpdateEquipmentAsync(dto, "current-user");
+        await LoadData();
+        _showEditEquipment = false;
+    }
+
+    private async Task ToggleEquipmentActive(EquipmentDto eq)
+    {
+        var dto = new EquipmentUpdateDto(
+            eq.Id, eq.EquipmentTypeId, eq.EquipmentSubTypeId,
+            eq.Identifier, eq.Description, eq.Size,
+            eq.SerialNumber, eq.NextServiceDate, eq.SortOrder, !eq.IsActive);
+        await EquipmentService.UpdateEquipmentAsync(dto, "current-user");
+        await LoadData();
     }
 
     private void GoBack() => Navigation.NavigateTo($"/companies/{_plant?.CompanyId}");
 
+    // ===== Models =====
     private class SectionCreateModel
     {
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
+        public string? PhotoBase64 { get; set; }
+        public string? PhotoFileName { get; set; }
+    }
+
+    private class SectionEditModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public bool IsActive { get; set; } = true;
         public string? PhotoBase64 { get; set; }
         public string? PhotoFileName { get; set; }
     }
@@ -316,5 +558,16 @@ else
         public string? Description { get; set; }
         public string? Size { get; set; }
         public string? SerialNumber { get; set; }
+    }
+
+    private class EquipmentEditModel
+    {
+        public string Identifier { get; set; } = string.Empty;
+        public int EquipmentTypeId { get; set; }
+        public int? EquipmentSubTypeId { get; set; }
+        public string? Description { get; set; }
+        public string? Size { get; set; }
+        public string? SerialNumber { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 }
