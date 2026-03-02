@@ -4,305 +4,423 @@
 @inject IServiceBookingService ServiceBookingService
 @inject NavigationManager Navigation
 
-<div class="page-header">
-    <div>
-        <button class="btn btn-link" @onclick="GoBack">&larr; Back to Inspections</button>
-        <h1>Inspection Checklist</h1>
-    </div>
-</div>
-
-@if (_loading)
-{
-    <p>Loading...</p>
-}
-else if (!_inspections.Any())
-{
-    <div class="empty-state">
-        <p>No equipment found for this inspection round. Make sure the plant has active equipment with checklist templates configured.</p>
-    </div>
-}
-else
-{
-    <div class="progress-bar-container">
-        <div class="progress-bar" style="width: @(_progress)%"></div>
-        <span class="progress-text">@_completedCount / @_inspections.Count equipment complete (@((int)_progress)%)</span>
-    </div>
-
-    @foreach (var sectionGroup in _inspections.GroupBy(i => new { i.SectionId, i.SectionName }))
-    {
-        <div class="section-inspection-block">
-            <div class="section-header-bar">
-                <h2>@sectionGroup.Key.SectionName</h2>
-                <span class="section-progress">
-                    @sectionGroup.Count(i => i.IsComplete) / @sectionGroup.Count()
-                </span>
-            </div>
-
-            @foreach (var typeGroup in sectionGroup.GroupBy(i => new { i.EquipmentTypeId, i.EquipmentTypeName }))
-            {
-                var typeInspections = typeGroup.ToList();
-                var checklistHeaders = typeInspections
-                    .Where(i => i.Responses.Any())
-                    .SelectMany(i => i.Responses)
-                    .Select(r => new { r.ChecklistItemTemplateId, r.ItemName, r.SortOrder })
-                    .DistinctBy(r => r.ChecklistItemTemplateId)
-                    .OrderBy(r => r.SortOrder)
-                    .ToList();
-
-                <div class="equipment-type-group">
-                    <div class="type-header-bar">
-                        <h3>@typeGroup.Key.EquipmentTypeName</h3>
-                        <span class="type-count">@typeInspections.Count items</span>
-                    </div>
-
-                    @if (checklistHeaders.Any())
-                    {
-                        <div class="checklist-table-wrapper">
-                            <table class="checklist-table">
-                                <thead>
-                                    <tr>
-                                        <th class="col-num">#</th>
-                                        <th class="col-equip">Equipment</th>
-                                        @foreach (var header in checklistHeaders)
-                                        {
-                                            <th class="col-check">@header.ItemName</th>
-                                        }
-                                        <th class="col-status">Status</th>
-                                        <th class="col-action">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @{ var rowNum = 0; }
-                                    @foreach (var inspection in typeInspections)
-                                    {
-                                        rowNum++;
-                                        var isOutForService = inspection.ActiveServiceBooking is not null;
-                                        <tr class="@(inspection.IsComplete ? "row-complete" : "") @(isOutForService ? "row-out-for-service" : "")">
-                                            <td class="col-num">@rowNum</td>
-                                            <td class="col-equip">
-                                                <strong>@inspection.EquipmentIdentifier</strong>
-                                                @if (isOutForService)
-                                                {
-                                                    <span class="service-badge">
-                                                        Out for Service (@inspection.ActiveServiceBooking!.ServiceProvider)
-                                                    </span>
-                                                }
-                                                @if (inspection.Size is not null)
-                                                {
-                                                    <span class="equip-detail">@inspection.Size</span>
-                                                }
-                                                @if (inspection.SubTypeName is not null)
-                                                {
-                                                    <span class="equip-detail">@inspection.SubTypeName</span>
-                                                }
-                                            </td>
-                                            @foreach (var header in checklistHeaders)
-                                            {
-                                                var response = inspection.Responses
-                                                    .FirstOrDefault(r => r.ChecklistItemTemplateId == header.ChecklistItemTemplateId);
-                                                <td class="col-check @(response?.Response == true ? "cell-pass" : response?.Response == false ? "cell-fail" : "")">
-                                                    @if (response is not null)
-                                                    {
-                                                        <div class="check-toggle">
-                                                            <button class="toggle-yes @(response.Response == true ? "active" : "")"
-                                                                    @onclick="() => SubmitResponse(inspection.Id, header.ChecklistItemTemplateId, true)"><i class="fa-light fa-check"></i></button>
-                                                            <button class="toggle-no @(response.Response == false ? "active" : "")"
-                                                                    @onclick="() => SubmitResponse(inspection.Id, header.ChecklistItemTemplateId, false)"><i class="fa-light fa-xmark"></i></button>
-                                                        </div>
-                                                    }
-                                                </td>
-                                            }
-                                            <td class="col-status">
-                                                @if (inspection.IsComplete)
-                                                {
-                                                    <span class="badge-done">Done</span>
-                                                }
-                                                else
-                                                {
-                                                    var answered = inspection.Responses.Count(r => r.Response.HasValue);
-                                                    <span class="badge-partial">@answered/@inspection.Responses.Count</span>
-                                                }
-                                            </td>
-                                            <td class="col-action">
-                                                <div class="action-buttons">
-                                                    <button class="btn btn-xs btn-warning" @onclick="() => ShowFlagIssue(inspection)">Flag</button>
-                                                    <button class="btn btn-xs btn-service" @onclick="() => ShowServiceModal(inspection)">Service</button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        @if (inspection.Responses.Any(r => r.Response == false))
-                                        {
-                                            <tr class="failed-row">
-                                                <td colspan="@(3 + checklistHeaders.Count + 2)">
-                                                    <span class="failed-label">Failed:</span>
-                                                    @foreach (var failed in inspection.Responses.Where(r => r.Response == false))
-                                                    {
-                                                        <span class="failed-tag">@failed.ItemName</span>
-                                                    }
-                                                </td>
-                                            </tr>
-                                        }
-                                        <tr class="comment-row">
-                                            <td></td>
-                                            <td colspan="@(checklistHeaders.Count + 2)">
-                                                <div class="equipment-comment">
-                                                    <textarea rows="1" placeholder="Comment for @inspection.EquipmentIdentifier..."
-                                                              value="@(_equipmentComments.GetValueOrDefault(inspection.Id))"
-                                                              @onchange="(e) => OnCommentChanged(inspection.Id, e)" />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <p class="no-checklist-msg">No checklist items configured for this equipment type.</p>
-                    }
-                </div>
-            }
+<div class="chk-page">
+    @* ── Header ── *@
+    <div class="chk-header ov-fadeIn">
+        <button class="chk-back" @onclick="GoBack">
+            <i class="fa-light fa-arrow-left"></i>
+        </button>
+        <div class="chk-header-info">
+            <h1>Inspection Checklist</h1>
+            <span class="chk-header-sub">Round #@RoundId</span>
         </div>
-    }
-
-    <div class="inspection-comments-section">
-        <h2>Inspection Comments (@_comments.Count)</h2>
-
-        @foreach (var comment in _comments)
+        @if (!_loading && _inspections.Any())
         {
-            <div class="comment-card">
-                <div class="comment-header">
-                    <span class="comment-author">@comment.CreatedByName</span>
-                    <span class="comment-date">@comment.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
-                </div>
-                <p class="comment-text">@comment.Text</p>
+            <div class="chk-header-ring">
+                <svg class="insp-ring" viewBox="0 0 52 52">
+                    <circle class="insp-ring-bg" cx="26" cy="26" r="22" />
+                    <circle class="insp-ring-fill status-ring-inprogress" cx="26" cy="26" r="22"
+                            stroke-dasharray="@(138.2)" stroke-dashoffset="@(138.2 - 138.2 * _progress / 100)" />
+                </svg>
+                <span class="chk-ring-pct">@((int)_progress)%</span>
             </div>
-        }
-
-        <div class="add-comment">
-            <div class="form-group">
-                <InputTextArea @bind-Value="_newCommentText" class="form-control" rows="2" placeholder="Add a comment about this inspection..." />
-            </div>
-            <button class="btn btn-primary btn-sm" @onclick="AddComment" disabled="@(string.IsNullOrWhiteSpace(_newCommentText))">Post Comment</button>
-        </div>
-    </div>
-
-    <div class="complete-round-footer">
-        <div class="footer-content">
-            <div class="footer-status">
-                <span>@_completedCount / @_inspections.Count inspected</span>
+            <div class="chk-header-stats">
+                <span class="chk-stat done"><i class="fa-light fa-circle-check"></i> @_completedCount done</span>
                 @if (_incompleteCount > 0)
                 {
-                    <span class="footer-warning">@_incompleteCount incomplete</span>
+                    <span class="chk-stat pending"><i class="fa-light fa-circle-half-stroke"></i> @_incompleteCount remaining</span>
                 }
                 @if (_outForServiceCount > 0)
                 {
-                    <span class="footer-service-info">@_outForServiceCount out for service</span>
+                    <span class="chk-stat service"><i class="fa-light fa-wrench"></i> @_outForServiceCount service</span>
                 }
             </div>
-            <button class="btn btn-success btn-lg" @onclick="ShowCompleteConfirmation">
-                Complete Inspection Round
-            </button>
-        </div>
+        }
     </div>
-}
 
-@if (_showFlagIssue)
-{
-    <div class="modal-overlay" @onclick="() => _showFlagIssue = false">
-        <div class="modal" @onclick:stopPropagation>
-            <h2>Flag Issue - @_flagEquipmentIdentifier</h2>
-            <div class="form-group">
-                <label>Title</label>
-                <InputText @bind-Value="_flagIssueTitle" class="form-control" placeholder="Brief description of the issue" />
-            </div>
-            <div class="form-group">
-                <label>Description</label>
-                <InputTextArea @bind-Value="_flagIssueDescription" class="form-control" rows="3" />
-            </div>
-            <div class="form-group">
-                <label>Priority</label>
-                <select class="form-control" @onchange="OnPriorityChanged">
-                    <option value="Low">Low</option>
-                    <option value="Medium" selected>Medium</option>
-                    <option value="High">High</option>
-                    <option value="Critical">Critical</option>
-                </select>
-            </div>
-            <div class="form-actions">
-                <button class="btn btn-warning" @onclick="CreateFlaggedIssue">Create Issue</button>
-                <button class="btn btn-secondary" @onclick="() => _showFlagIssue = false">Cancel</button>
-            </div>
+    @if (_loading)
+    {
+        <div class="ov-loading"><div class="ov-spinner"></div><p>Loading checklist&hellip;</p></div>
+    }
+    else if (!_inspections.Any())
+    {
+        <div class="ov-empty ov-fadeIn">
+            <div class="ov-empty-icon"><i class="fa-light fa-clipboard-list"></i></div>
+            <h2>No equipment found</h2>
+            <p>Make sure the plant has active equipment with checklist templates configured.</p>
+            <button class="btn btn-primary" @onclick="GoBack"><i class="fa-light fa-arrow-left"></i> Back to Inspections</button>
         </div>
-    </div>
-}
-
-@if (_showServiceModal)
-{
-    <div class="modal-overlay" @onclick="() => _showServiceModal = false">
-        <div class="modal" @onclick:stopPropagation>
-            <h2>Send for Service - @_serviceEquipmentIdentifier</h2>
-            <div class="form-group">
-                <label>Service Provider</label>
-                <InputText @bind-Value="_serviceProvider" class="form-control" placeholder="Service company name" />
-            </div>
-            <div class="form-group">
-                <label>Reason</label>
-                <InputTextArea @bind-Value="_serviceReason" class="form-control" rows="2" placeholder="Why is this equipment being sent for service?" />
-            </div>
-            <div class="form-group">
-                <label>Expected Return Date</label>
-                <InputDate @bind-Value="_serviceExpectedReturn" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label>Notes (optional)</label>
-                <InputTextArea @bind-Value="_serviceNotes" class="form-control" rows="2" />
-            </div>
-            <div class="form-actions">
-                <button class="btn btn-primary" @onclick="CreateServiceBooking"
-                        disabled="@(string.IsNullOrWhiteSpace(_serviceProvider) || string.IsNullOrWhiteSpace(_serviceReason))">
-                    Send for Service
-                </button>
-                <button class="btn btn-secondary" @onclick="() => _showServiceModal = false">Cancel</button>
-            </div>
-        </div>
-    </div>
-}
-
-@if (_showCompleteConfirmation)
-{
-    <div class="modal-overlay" @onclick="() => _showCompleteConfirmation = false">
-        <div class="modal" @onclick:stopPropagation>
-            <h2>Complete Inspection Round</h2>
-
-            @if (_incompleteCount > 0 || _failedItemCount > 0 || _outForServiceCount > 0)
+    }
+    else
+    {
+        @* ── Section navigation pills ── *@
+        <div class="chk-section-nav ov-fadeIn">
+            @foreach (var sg in _sectionGroups)
             {
-                <div class="completion-warning">
-                    <h3>Warning: Outstanding Items</h3>
+                var s = sg;
+                var sectionDone = sg.Items.Count(i => i.IsComplete);
+                var sectionTotal = sg.Items.Count;
+                <button class="chk-section-pill @(_activeSectionId == sg.SectionId ? "active" : "") @(sectionDone == sectionTotal ? "complete" : "")"
+                        @onclick="() => SetActiveSection(sg.SectionId)">
+                    <span class="chk-pill-name">@sg.SectionName</span>
+                    <span class="chk-pill-count">@sectionDone/@sectionTotal</span>
+                </button>
+            }
+        </div>
+
+        @* ── Active section content ── *@
+        @if (ActiveSection is not null)
+        {
+            <div class="chk-section ov-fadeIn" @key="_activeSectionId">
+                @foreach (var typeGroup in ActiveSection.Items.GroupBy(i => new { i.EquipmentTypeId, i.EquipmentTypeName }))
+                {
+                    var typeInspections = typeGroup.ToList();
+                    var checklistHeaders = typeInspections
+                        .Where(i => i.Responses.Any())
+                        .SelectMany(i => i.Responses)
+                        .Select(r => new { r.ChecklistItemTemplateId, r.ItemName, r.SortOrder })
+                        .DistinctBy(r => r.ChecklistItemTemplateId)
+                        .OrderBy(r => r.SortOrder)
+                        .ToList();
+
+                    <div class="chk-type-group ov-staggerUp">
+                        <div class="chk-type-header">
+                            <div class="chk-type-icon">
+                                <i class="fa-light fa-gear"></i>
+                            </div>
+                            <h3>@typeGroup.Key.EquipmentTypeName</h3>
+                            <span class="chk-type-count">@typeInspections.Count items</span>
+                            <span class="chk-type-progress">
+                                @typeInspections.Count(i => i.IsComplete)/@typeInspections.Count complete
+                            </span>
+                        </div>
+
+                        @if (checklistHeaders.Any())
+                        {
+                            @foreach (var inspection in typeInspections)
+                            {
+                                var insp = inspection;
+                                var isOutForService = insp.ActiveServiceBooking is not null;
+                                var isExpanded = _expandedEquipment.Contains(insp.Id);
+                                var failedItems = insp.Responses.Where(r => r.Response == false).ToList();
+                                var answeredCount = insp.Responses.Count(r => r.Response.HasValue);
+
+                                <div class="chk-equip-card @(insp.IsComplete ? "complete" : "") @(isOutForService ? "out-for-service" : "") @(failedItems.Any() ? "has-failures" : "")">
+                                    @* Equipment header row *@
+                                    <div class="chk-equip-header" @onclick="() => ToggleExpand(insp.Id)">
+                                        <div class="chk-equip-status-dot @(insp.IsComplete ? "done" : answeredCount > 0 ? "partial" : "")"></div>
+                                        <div class="chk-equip-name">
+                                            <strong>@insp.EquipmentIdentifier</strong>
+                                            @if (insp.SubTypeName is not null || insp.Size is not null)
+                                            {
+                                                <span class="chk-equip-detail">
+                                                    @if (insp.SubTypeName is not null) { @insp.SubTypeName }
+                                                    @if (insp.Size is not null) { <text> &middot; @insp.Size</text> }
+                                                </span>
+                                            }
+                                            @if (isOutForService)
+                                            {
+                                                <span class="chk-service-tag">
+                                                    <i class="fa-light fa-wrench"></i> @insp.ActiveServiceBooking!.ServiceProvider
+                                                </span>
+                                            }
+                                        </div>
+                                        <div class="chk-equip-right">
+                                            @if (failedItems.Any())
+                                            {
+                                                <span class="chk-fail-count"><i class="fa-light fa-circle-exclamation"></i> @failedItems.Count</span>
+                                            }
+                                            <span class="chk-equip-progress-pill @(insp.IsComplete ? "done" : "")">
+                                                @if (insp.IsComplete)
+                                                {
+                                                    <i class="fa-light fa-check"></i> <text>Done</text>
+                                                }
+                                                else
+                                                {
+                                                    @answeredCount<text>/</text>@insp.Responses.Count
+                                                }
+                                            </span>
+                                            <div class="chk-equip-actions" @onclick:stopPropagation="true">
+                                                <button class="chk-action-btn flag" @onclick="() => ShowFlagIssue(insp)" title="Flag Issue">
+                                                    <i class="fa-light fa-flag"></i>
+                                                </button>
+                                                <button class="chk-action-btn service" @onclick="() => ShowServiceModal(insp)" title="Send for Service">
+                                                    <i class="fa-light fa-truck"></i>
+                                                </button>
+                                            </div>
+                                            <i class="fa-light @(isExpanded ? "fa-chevron-up" : "fa-chevron-down") chk-expand-icon"></i>
+                                        </div>
+                                    </div>
+
+                                    @* Checklist items *@
+                                    <div class="chk-items">
+                                        @foreach (var header in checklistHeaders)
+                                        {
+                                            var response = insp.Responses
+                                                .FirstOrDefault(r => r.ChecklistItemTemplateId == header.ChecklistItemTemplateId);
+                                            @if (response is not null)
+                                            {
+                                                <div class="chk-item @(response.Response == true ? "pass" : response.Response == false ? "fail" : "")">
+                                                    <span class="chk-item-name">@header.ItemName</span>
+                                                    <div class="chk-toggle" @onclick:stopPropagation="true">
+                                                        <button class="chk-toggle-pass @(response.Response == true ? "active" : "")"
+                                                                @onclick="() => SubmitResponse(insp.Id, header.ChecklistItemTemplateId, true)">
+                                                            <i class="fa-light fa-check"></i> Pass
+                                                        </button>
+                                                        <button class="chk-toggle-fail @(response.Response == false ? "active" : "")"
+                                                                @onclick="() => SubmitResponse(insp.Id, header.ChecklistItemTemplateId, false)">
+                                                            <i class="fa-light fa-xmark"></i> Fail
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+
+                                    @* Failed items summary *@
+                                    @if (failedItems.Any())
+                                    {
+                                        <div class="chk-failed-bar">
+                                            <i class="fa-light fa-triangle-exclamation"></i>
+                                            <span>Failed:</span>
+                                            @foreach (var f in failedItems)
+                                            {
+                                                <span class="chk-failed-tag">@f.ItemName</span>
+                                            }
+                                        </div>
+                                    }
+
+                                    @* Expandable comment area *@
+                                    @if (isExpanded)
+                                    {
+                                        <div class="chk-equip-expand ov-fadeIn">
+                                            <div class="chk-comment-input">
+                                                <i class="fa-light fa-message"></i>
+                                                <textarea rows="1"
+                                                          placeholder="Add a note for @insp.EquipmentIdentifier..."
+                                                          value="@(_equipmentComments.GetValueOrDefault(insp.Id))"
+                                                          @onchange="(e) => OnCommentChanged(insp.Id, e)" />
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="chk-no-items">
+                                <i class="fa-light fa-clipboard-question"></i>
+                                <span>No checklist items configured for this equipment type.</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @* ── Comments section ── *@
+        <div class="chk-comments-section ov-fadeIn">
+            <h2><i class="fa-light fa-messages"></i> Comments (@_comments.Count)</h2>
+
+            @if (_comments.Any())
+            {
+                <div class="chk-comments-list">
+                    @foreach (var comment in _comments)
+                    {
+                        <div class="chk-comment">
+                            <div class="chk-comment-avatar">
+                                <i class="fa-light fa-user"></i>
+                            </div>
+                            <div class="chk-comment-body">
+                                <div class="chk-comment-header">
+                                    <strong>@comment.CreatedByName</strong>
+                                    <span>@comment.CreatedAt.ToString("MMM dd, yyyy HH:mm")</span>
+                                </div>
+                                <p>@comment.Text</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="chk-add-comment">
+                <InputTextArea @bind-Value="_newCommentText" class="form-control" rows="2"
+                               placeholder="Add a comment about this inspection..." />
+                <button class="btn btn-primary btn-sm" @onclick="AddComment"
+                        disabled="@(string.IsNullOrWhiteSpace(_newCommentText))">
+                    <i class="fa-light fa-paper-plane"></i> Post
+                </button>
+            </div>
+        </div>
+
+        @* ── Sticky footer ── *@
+        <div class="chk-footer">
+            <div class="chk-footer-inner">
+                <div class="chk-footer-stats">
+                    <span class="chk-footer-stat done"><i class="fa-light fa-circle-check"></i> @_completedCount inspected</span>
                     @if (_incompleteCount > 0)
                     {
-                        <p>@_incompleteCount equipment item(s) have not been fully inspected.</p>
+                        <span class="chk-footer-stat warn"><i class="fa-light fa-circle-half-stroke"></i> @_incompleteCount incomplete</span>
                     }
                     @if (_failedItemCount > 0)
                     {
-                        <p>@_failedItemCount checklist item(s) marked as failed.</p>
+                        <span class="chk-footer-stat fail"><i class="fa-light fa-circle-exclamation"></i> @_failedItemCount failed</span>
                     }
                     @if (_outForServiceCount > 0)
                     {
-                        <p>@_outForServiceCount equipment item(s) currently out for service.</p>
+                        <span class="chk-footer-stat svc"><i class="fa-light fa-wrench"></i> @_outForServiceCount service</span>
                     }
-                    <p>You can still complete the round. These items will be recorded as-is.</p>
                 </div>
-            }
-            else
-            {
-                <p>All equipment has been inspected. Ready to complete.</p>
-            }
+                <button class="btn btn-success btn-lg" @onclick="ShowCompleteConfirmation">
+                    <i class="fa-light fa-badge-check"></i> Complete Round
+                </button>
+            </div>
+        </div>
+    }
+</div>
 
-            <div class="form-actions">
-                <button class="btn btn-success" @onclick="ConfirmCompleteRound">Confirm Complete</button>
-                <button class="btn btn-secondary" @onclick="() => _showCompleteConfirmation = false">Cancel</button>
+@* ── Flag Issue Modal ── *@
+@if (_showFlagIssue)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showFlagIssue = false">
+        <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon warning"><i class="fa-light fa-flag"></i></div>
+                <div>
+                    <h2>Flag Issue</h2>
+                    <span class="chk-modal-sub">@_flagEquipmentIdentifier</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showFlagIssue = false"><i class="fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                <div class="form-group">
+                    <label>Title</label>
+                    <InputText @bind-Value="_flagIssueTitle" class="form-control" placeholder="Brief description of the issue" />
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <InputTextArea @bind-Value="_flagIssueDescription" class="form-control" rows="3" placeholder="Provide details about the issue..." />
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <div class="chk-priority-select">
+                        @foreach (var p in new[] { IssuePriority.Low, IssuePriority.Medium, IssuePriority.High, IssuePriority.Critical })
+                        {
+                            var pv = p;
+                            <button class="chk-priority-btn priority-@p.ToString().ToLower() @(_flagIssuePriority == p ? "active" : "")"
+                                    @onclick="() => _flagIssuePriority = pv">
+                                @p
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showFlagIssue = false">Cancel</button>
+                <button class="btn btn-warning" @onclick="CreateFlaggedIssue">
+                    <i class="fa-light fa-flag"></i> Create Issue
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Service Modal ── *@
+@if (_showServiceModal)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showServiceModal = false">
+        <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon info"><i class="fa-light fa-truck"></i></div>
+                <div>
+                    <h2>Send for Service</h2>
+                    <span class="chk-modal-sub">@_serviceEquipmentIdentifier</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showServiceModal = false"><i class="fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                <div class="form-group">
+                    <label>Service Provider</label>
+                    <InputText @bind-Value="_serviceProvider" class="form-control" placeholder="Service company name" />
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <InputTextArea @bind-Value="_serviceReason" class="form-control" rows="2" placeholder="Why is this equipment being sent?" />
+                </div>
+                <div class="form-group">
+                    <label>Expected Return Date</label>
+                    <InputDate @bind-Value="_serviceExpectedReturn" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Notes <span class="form-hint">(optional)</span></label>
+                    <InputTextArea @bind-Value="_serviceNotes" class="form-control" rows="2" />
+                </div>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showServiceModal = false">Cancel</button>
+                <button class="btn btn-primary" @onclick="CreateServiceBooking"
+                        disabled="@(string.IsNullOrWhiteSpace(_serviceProvider) || string.IsNullOrWhiteSpace(_serviceReason))">
+                    <i class="fa-light fa-truck"></i> Send for Service
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Complete Confirmation Modal ── *@
+@if (_showCompleteConfirmation)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showCompleteConfirmation = false">
+        <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon success"><i class="fa-light fa-badge-check"></i></div>
+                <div>
+                    <h2>Complete Inspection</h2>
+                    <span class="chk-modal-sub">Round #@RoundId</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showCompleteConfirmation = false"><i class="fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                @if (_incompleteCount > 0 || _failedItemCount > 0 || _outForServiceCount > 0)
+                {
+                    <div class="chk-complete-warnings">
+                        @if (_incompleteCount > 0)
+                        {
+                            <div class="chk-warn-item orange">
+                                <i class="fa-light fa-circle-half-stroke"></i>
+                                <span>@_incompleteCount equipment not fully inspected</span>
+                            </div>
+                        }
+                        @if (_failedItemCount > 0)
+                        {
+                            <div class="chk-warn-item red">
+                                <i class="fa-light fa-circle-exclamation"></i>
+                                <span>@_failedItemCount checklist items marked as failed</span>
+                            </div>
+                        }
+                        @if (_outForServiceCount > 0)
+                        {
+                            <div class="chk-warn-item blue">
+                                <i class="fa-light fa-wrench"></i>
+                                <span>@_outForServiceCount equipment out for service</span>
+                            </div>
+                        }
+                        <p class="chk-warn-note">You can still complete. Items will be recorded as-is.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="chk-complete-ready">
+                        <i class="fa-light fa-circle-check"></i>
+                        <p>All equipment has been inspected. Ready to complete!</p>
+                    </div>
+                }
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showCompleteConfirmation = false">Cancel</button>
+                <button class="btn btn-success" @onclick="ConfirmCompleteRound">
+                    <i class="fa-light fa-badge-check"></i> Confirm Complete
+                </button>
             </div>
         </div>
     </div>
@@ -321,6 +439,14 @@ else
     private int _failedItemCount;
     private int _outForServiceCount;
     private string _newCommentText = string.Empty;
+
+    // Section navigation
+    private List<SectionGroup> _sectionGroups = [];
+    private int _activeSectionId;
+    private SectionGroup? ActiveSection => _sectionGroups.FirstOrDefault(s => s.SectionId == _activeSectionId);
+
+    // Expanded equipment (for comments)
+    private HashSet<int> _expandedEquipment = new();
 
     // Flag issue modal
     private bool _showFlagIssue;
@@ -341,8 +467,10 @@ else
     private DateOnly? _serviceExpectedReturn;
     private string? _serviceNotes;
 
-    // Complete confirmation modal
+    // Complete confirmation
     private bool _showCompleteConfirmation;
+
+    private record SectionGroup(int SectionId, string SectionName, List<EquipmentInspectionDto> Items);
 
     protected override async Task OnInitializedAsync() => await LoadData();
 
@@ -360,7 +488,24 @@ else
         _incompleteCount = _inspections.Count(i => !i.IsComplete);
         _failedItemCount = _inspections.Sum(i => i.Responses.Count(r => r.Response == false));
         _outForServiceCount = _inspections.Count(i => i.ActiveServiceBooking is not null);
+
+        // Build section groups
+        _sectionGroups = _inspections
+            .GroupBy(i => new { i.SectionId, i.SectionName })
+            .Select(g => new SectionGroup(g.Key.SectionId, g.Key.SectionName, g.ToList()))
+            .ToList();
+
+        if (_activeSectionId == 0 && _sectionGroups.Any())
+            _activeSectionId = _sectionGroups.First().SectionId;
+
         _loading = false;
+    }
+
+    private void SetActiveSection(int sectionId) => _activeSectionId = sectionId;
+    private void ToggleExpand(int id)
+    {
+        if (!_expandedEquipment.Remove(id))
+            _expandedEquipment.Add(id);
     }
 
     private async Task SubmitResponse(int equipmentInspectionId, int checklistItemTemplateId, bool response)
@@ -386,12 +531,6 @@ else
         _flagIssueDescription = null;
         _flagIssuePriority = IssuePriority.Medium;
         _showFlagIssue = true;
-    }
-
-    private void OnPriorityChanged(ChangeEventArgs e)
-    {
-        if (Enum.TryParse<IssuePriority>(e.Value?.ToString(), out var priority))
-            _flagIssuePriority = priority;
     }
 
     private async Task CreateFlaggedIssue()
