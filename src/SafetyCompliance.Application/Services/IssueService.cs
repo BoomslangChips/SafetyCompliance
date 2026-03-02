@@ -8,7 +8,7 @@ namespace SafetyCompliance.Application.Services;
 
 public class IssueService(ApplicationDbContext context) : IIssueService
 {
-    public async Task<List<IssueDto>> GetIssuesAsync(IssueStatus? status = null, IssuePriority? priority = null, int? equipmentId = null, CancellationToken ct = default)
+    public async Task<List<IssueDto>> GetIssuesAsync(IssueStatus? status = null, IssuePriority? priority = null, int? equipmentId = null, int? roundId = null, CancellationToken ct = default)
     {
         var query = context.Issues.AsQueryable();
 
@@ -18,6 +18,8 @@ public class IssueService(ApplicationDbContext context) : IIssueService
             query = query.Where(i => i.Priority == priority.Value);
         if (equipmentId.HasValue)
             query = query.Where(i => i.EquipmentId == equipmentId.Value);
+        if (roundId.HasValue)
+            query = query.Where(i => i.InspectionRoundId == roundId.Value);
 
         return await query
             .OrderByDescending(i => i.Priority)
@@ -32,7 +34,9 @@ public class IssueService(ApplicationDbContext context) : IIssueService
                 i.PhotoBase64, i.PhotoFileName,
                 i.CreatedById,
                 i.CreatedAt,
-                i.Comments.Count))
+                i.Comments.Count,
+                i.Equipment != null ? i.Equipment.Section.Plant.Name : (i.InspectionRound != null ? i.InspectionRound.Plant.Name : null),
+                i.Equipment != null ? i.Equipment.Section.Name : null))
             .ToListAsync(ct);
     }
 

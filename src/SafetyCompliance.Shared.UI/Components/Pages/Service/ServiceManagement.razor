@@ -1,0 +1,432 @@
+@page "/service"
+@inject IServiceBookingService ServiceBookingService
+@inject NavigationManager Navigation
+
+<div class="svc-page">
+    @* ── Tab bar ── *@
+    <div class="insp-tab-bar ov-fadeIn">
+        <div class="insp-tabs">
+            <button class="insp-tab @(_tab == SvcTab.Active ? "active" : "")" @onclick="() => SetTab(SvcTab.Active)">
+                <i class="fa-light fa-truck"></i> Active
+            </button>
+            <button class="insp-tab @(_tab == SvcTab.History ? "active" : "")" @onclick="() => SetTab(SvcTab.History)">
+                <i class="fa-light fa-clock-rotate-left"></i> History
+            </button>
+        </div>
+        <button class="inc-log-btn" @onclick="OpenCreateModal">
+            <i class="fa-light fa-plus"></i> New Booking
+        </button>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="ov-loading"><div class="ov-spinner"></div><p>Loading service bookings&hellip;</p></div>
+    }
+    else
+    {
+        @* ── Stats row ── *@
+        <div class="inc-stats ov-fadeIn">
+            <div class="inc-stat @(_sentCount > 0 ? "alert" : "")">
+                <div class="inc-stat-icon @(_sentCount > 0 ? "amber" : "gray")"><i class="fa-light fa-paper-plane"></i></div>
+                <div class="inc-stat-info">
+                    <span class="inc-stat-value">@_sentCount</span>
+                    <span class="inc-stat-label">Sent</span>
+                </div>
+            </div>
+            <div class="inc-stat">
+                <div class="inc-stat-icon blue"><i class="fa-light fa-toolbox"></i></div>
+                <div class="inc-stat-info">
+                    <span class="inc-stat-value">@_inServiceCount</span>
+                    <span class="inc-stat-label">In Service</span>
+                </div>
+            </div>
+            <div class="inc-stat @(_overdueCount > 0 ? "alert" : "")">
+                <div class="inc-stat-icon @(_overdueCount > 0 ? "red" : "gray")"><i class="fa-light fa-clock"></i></div>
+                <div class="inc-stat-info">
+                    <span class="inc-stat-value">@_overdueCount</span>
+                    <span class="inc-stat-label">Overdue</span>
+                </div>
+            </div>
+            <div class="inc-stat">
+                <div class="inc-stat-icon green"><i class="fa-light fa-circle-check"></i></div>
+                <div class="inc-stat-info">
+                    <span class="inc-stat-value">@_returnedThisMonth</span>
+                    <span class="inc-stat-label">Returned This Month</span>
+                </div>
+            </div>
+            <div class="inc-stat">
+                <div class="inc-stat-icon gray"><i class="fa-light fa-ban"></i></div>
+                <div class="inc-stat-info">
+                    <span class="inc-stat-value">@_cancelledCount</span>
+                    <span class="inc-stat-label">Cancelled</span>
+                </div>
+            </div>
+        </div>
+
+        @* ── Booking cards ── *@
+        @if (!_display.Any())
+        {
+            <div class="ov-empty ov-fadeIn">
+                <div class="ov-empty-icon"><i class="fa-light fa-toolbox"></i></div>
+                <h2>No @(_tab == SvcTab.Active ? "active" : "historical") service bookings</h2>
+                <p>@(_tab == SvcTab.Active ? "All equipment is currently on-site." : "No past service records found.")</p>
+                @if (_tab == SvcTab.Active)
+                {
+                    <button class="btn btn-primary btn-lg" @onclick="OpenCreateModal">
+                        <i class="fa-light fa-plus"></i> Create First Booking
+                    </button>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="svc-list">
+                @{ var idx = 0; }
+                @foreach (var booking in _display)
+                {
+                    var b = booking;
+                    var bi = idx;
+                    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                    var isOverdue = b.ExpectedReturnDate.HasValue
+                        && b.ExpectedReturnDate.Value < today
+                        && b.Status is ServiceBookingStatus.Sent or ServiceBookingStatus.InService;
+                    var daysOut = (today.ToDateTime(TimeOnly.MinValue) - b.SentDate.ToDateTime(TimeOnly.MinValue)).Days;
+
+                    <div class="svc-card ov-staggerUp" style="animation-delay: @(bi * 0.04)s">
+                        <div class="svc-card-status-strip svc-strip-@b.Status.ToString().ToLower()"></div>
+                        <div class="svc-card-body">
+                            @* Top row — equipment identity + status pill *@
+                            <div class="svc-card-top">
+                                <div class="svc-card-equip">
+                                    <div class="svc-card-equip-icon">
+                                        <i class="fa-light fa-gear"></i>
+                                    </div>
+                                    <div>
+                                        <div class="svc-card-equip-id">@b.EquipmentIdentifier</div>
+                                        <div class="svc-card-equip-type">@b.EquipmentTypeName</div>
+                                    </div>
+                                </div>
+                                <div class="svc-card-badges">
+                                    @if (isOverdue)
+                                    {
+                                        <span class="svc-badge svc-badge-overdue"><i class="fa-light fa-clock"></i> Overdue</span>
+                                    }
+                                    <span class="svc-status-pill svc-status-@b.Status.ToString().ToLower()">
+                                        @StatusLabel(b.Status)
+                                    </span>
+                                </div>
+                            </div>
+
+                            @* Provider + reason *@
+                            <div class="svc-card-provider">
+                                <i class="fa-light fa-building-wrench"></i>
+                                <strong>@b.ServiceProvider</strong>
+                                <span class="svc-card-reason">— @b.Reason</span>
+                            </div>
+
+                            @* Meta tags *@
+                            <div class="svc-card-meta">
+                                <span class="svc-meta-tag"><i class="fa-light fa-industry"></i> @b.PlantName</span>
+                                <span class="svc-meta-tag"><i class="fa-light fa-layer-group"></i> @b.SectionName</span>
+                                <span class="svc-meta-tag"><i class="fa-light fa-calendar-arrow-up"></i> Sent @b.SentDate.ToString("MMM dd, yyyy")</span>
+                                @if (b.ExpectedReturnDate.HasValue)
+                                {
+                                    <span class="svc-meta-tag @(isOverdue ? "overdue" : "")">
+                                        <i class="fa-light fa-calendar-arrow-down"></i>
+                                        Expected @b.ExpectedReturnDate.Value.ToString("MMM dd, yyyy")
+                                    </span>
+                                }
+                                @if (b.ActualReturnDate.HasValue)
+                                {
+                                    <span class="svc-meta-tag green">
+                                        <i class="fa-light fa-circle-check"></i>
+                                        Returned @b.ActualReturnDate.Value.ToString("MMM dd, yyyy")
+                                    </span>
+                                }
+                                @if (b.Status is ServiceBookingStatus.Sent or ServiceBookingStatus.InService)
+                                {
+                                    <span class="svc-meta-tag muted">
+                                        <i class="fa-light fa-hourglass"></i> @daysOut day@(daysOut != 1 ? "s" : "") out
+                                    </span>
+                                }
+                            </div>
+
+                            @* Notes *@
+                            @if (!string.IsNullOrWhiteSpace(b.Notes))
+                            {
+                                <p class="svc-card-notes"><i class="fa-light fa-note"></i> @b.Notes</p>
+                            }
+
+                            @* Action buttons *@
+                            <div class="svc-card-actions">
+                                @if (b.Status == ServiceBookingStatus.Sent)
+                                {
+                                    <button class="svc-action-btn inservice" @onclick="() => MarkInService(b.Id)">
+                                        <i class="fa-light fa-toolbox"></i> Mark In Service
+                                    </button>
+                                    <button class="svc-action-btn cancel" @onclick="() => ConfirmCancel(b.Id, b.EquipmentIdentifier)">
+                                        <i class="fa-light fa-ban"></i> Cancel
+                                    </button>
+                                }
+                                else if (b.Status == ServiceBookingStatus.InService)
+                                {
+                                    <button class="svc-action-btn return" @onclick="() => OpenReturnModal(b)">
+                                        <i class="fa-light fa-truck-arrow-right"></i> Mark Returned
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    idx++;
+                }
+            </div>
+        }
+    }
+</div>
+
+@* ── Create Booking Modal ── *@
+@if (_showCreate)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showCreate = false">
+        <div class="chk-modal chk-modal-wide ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon info"><i class="fa-light fa-truck"></i></div>
+                <div>
+                    <h2>New Service Booking</h2>
+                    <span class="chk-modal-sub">Send equipment for maintenance or repair</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showCreate = false"><i class="fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Equipment ID <span class="form-required">*</span></label>
+                        <input @bind="_createEquipmentId" type="number" class="form-control" placeholder="Equipment ID" />
+                    </div>
+                    <div class="form-group">
+                        <label>Service Provider <span class="form-required">*</span></label>
+                        <input @bind="_createProvider" class="form-control" placeholder="Service company name" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Reason <span class="form-required">*</span></label>
+                    <textarea @bind="_createReason" class="form-control" rows="2"
+                              placeholder="Why is this equipment being sent for service?"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Expected Return Date</label>
+                        <InputDate @bind-Value="_createExpectedReturn" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Notes <span class="form-hint">(optional)</span></label>
+                    <textarea @bind="_createNotes" class="form-control" rows="2"
+                              placeholder="Additional notes or special instructions..."></textarea>
+                </div>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showCreate = false">Cancel</button>
+                <button class="btn btn-primary" @onclick="CreateBooking"
+                        disabled="@(_createEquipmentId <= 0 || string.IsNullOrWhiteSpace(_createProvider) || string.IsNullOrWhiteSpace(_createReason))">
+                    <i class="fa-light fa-truck"></i> Create Booking
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Mark Returned Modal ── *@
+@if (_showReturn)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showReturn = false">
+        <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon success"><i class="fa-light fa-truck-arrow-right"></i></div>
+                <div>
+                    <h2>Mark Returned</h2>
+                    <span class="chk-modal-sub">@_returnEquipmentIdentifier</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showReturn = false"><i class="fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                <div class="form-group">
+                    <label>Actual Return Date</label>
+                    <InputDate @bind-Value="_returnDate" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Service Notes <span class="form-hint">(optional)</span></label>
+                    <textarea @bind="_returnNotes" class="form-control" rows="3"
+                              placeholder="What was done? Any remaining issues or follow-ups?"></textarea>
+                </div>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showReturn = false">Cancel</button>
+                <button class="btn btn-success" @onclick="ConfirmReturn">
+                    <i class="fa-light fa-circle-check"></i> Confirm Returned
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Cancel Confirm Modal ── *@
+@if (_showCancelConfirm)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showCancelConfirm = false">
+        <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon warning"><i class="fa-light fa-ban"></i></div>
+                <div>
+                    <h2>Cancel Booking</h2>
+                    <span class="chk-modal-sub">@_cancelEquipmentIdentifier</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showCancelConfirm = false"><i class="fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                <p>Are you sure you want to cancel this service booking? This will mark the equipment as available again.</p>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showCancelConfirm = false">Keep Booking</button>
+                <button class="btn btn-danger" @onclick="ConfirmCancelBooking">
+                    <i class="fa-light fa-ban"></i> Cancel Booking
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private enum SvcTab { Active, History }
+
+    private List<ServiceBookingFullDto> _all = [];
+    private List<ServiceBookingFullDto> _display = [];
+    private SvcTab _tab = SvcTab.Active;
+    private bool _loading = true;
+
+    private int _sentCount, _inServiceCount, _overdueCount, _returnedThisMonth, _cancelledCount;
+
+    // Create modal
+    private bool _showCreate;
+    private int _createEquipmentId;
+    private string _createProvider = string.Empty;
+    private string _createReason = string.Empty;
+    private DateOnly? _createExpectedReturn;
+    private string? _createNotes;
+
+    // Return modal
+    private bool _showReturn;
+    private int _returnId;
+    private string _returnEquipmentIdentifier = string.Empty;
+    private DateOnly _returnDate = DateOnly.FromDateTime(DateTime.UtcNow);
+    private string? _returnNotes;
+
+    // Cancel modal
+    private bool _showCancelConfirm;
+    private int _cancelId;
+    private string _cancelEquipmentIdentifier = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+        _loading = false;
+    }
+
+    private async Task LoadData()
+    {
+        _all = await ServiceBookingService.GetAllBookingsAsync();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var thisMonth = new DateOnly(today.Year, today.Month, 1);
+
+        _sentCount = _all.Count(b => b.Status == ServiceBookingStatus.Sent);
+        _inServiceCount = _all.Count(b => b.Status == ServiceBookingStatus.InService);
+        _overdueCount = _all.Count(b =>
+            b.ExpectedReturnDate.HasValue
+            && b.ExpectedReturnDate.Value < today
+            && b.Status is ServiceBookingStatus.Sent or ServiceBookingStatus.InService);
+        _returnedThisMonth = _all.Count(b =>
+            b.Status == ServiceBookingStatus.Returned
+            && b.ActualReturnDate.HasValue
+            && b.ActualReturnDate.Value >= thisMonth);
+        _cancelledCount = _all.Count(b => b.Status == ServiceBookingStatus.Cancelled);
+
+        ApplyTab();
+    }
+
+    private void SetTab(SvcTab tab) { _tab = tab; ApplyTab(); }
+
+    private void ApplyTab()
+    {
+        _display = _tab == SvcTab.Active
+            ? _all.Where(b => b.Status is ServiceBookingStatus.Sent or ServiceBookingStatus.InService).ToList()
+            : _all.Where(b => b.Status is ServiceBookingStatus.Returned or ServiceBookingStatus.Cancelled).ToList();
+    }
+
+    private void OpenCreateModal()
+    {
+        _createEquipmentId = 0;
+        _createProvider = string.Empty;
+        _createReason = string.Empty;
+        _createExpectedReturn = null;
+        _createNotes = null;
+        _showCreate = true;
+    }
+
+    private async Task CreateBooking()
+    {
+        if (_createEquipmentId <= 0 || string.IsNullOrWhiteSpace(_createProvider) || string.IsNullOrWhiteSpace(_createReason))
+            return;
+        var dto = new ServiceBookingCreateDto(_createEquipmentId, null, _createProvider, _createReason, _createExpectedReturn, _createNotes);
+        await ServiceBookingService.CreateBookingAsync(dto, "current-user");
+        _showCreate = false;
+        await LoadData();
+    }
+
+    private async Task MarkInService(int id)
+    {
+        var dto = new ServiceBookingUpdateStatusDto(id, ServiceBookingStatus.InService, null, null);
+        await ServiceBookingService.UpdateBookingStatusAsync(dto, "current-user");
+        await LoadData();
+    }
+
+    private void OpenReturnModal(ServiceBookingFullDto booking)
+    {
+        _returnId = booking.Id;
+        _returnEquipmentIdentifier = booking.EquipmentIdentifier;
+        _returnDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        _returnNotes = null;
+        _showReturn = true;
+    }
+
+    private async Task ConfirmReturn()
+    {
+        var dto = new ServiceBookingUpdateStatusDto(_returnId, ServiceBookingStatus.Returned, _returnDate, _returnNotes);
+        await ServiceBookingService.UpdateBookingStatusAsync(dto, "current-user");
+        _showReturn = false;
+        await LoadData();
+    }
+
+    private void ConfirmCancel(int id, string identifier)
+    {
+        _cancelId = id;
+        _cancelEquipmentIdentifier = identifier;
+        _showCancelConfirm = true;
+    }
+
+    private async Task ConfirmCancelBooking()
+    {
+        var dto = new ServiceBookingUpdateStatusDto(_cancelId, ServiceBookingStatus.Cancelled, null, null);
+        await ServiceBookingService.UpdateBookingStatusAsync(dto, "current-user");
+        _showCancelConfirm = false;
+        await LoadData();
+    }
+
+    private static string StatusLabel(ServiceBookingStatus s) => s switch
+    {
+        ServiceBookingStatus.Sent => "Sent",
+        ServiceBookingStatus.InService => "In Service",
+        ServiceBookingStatus.Returned => "Returned",
+        ServiceBookingStatus.Cancelled => "Cancelled",
+        _ => s.ToString()
+    };
+}

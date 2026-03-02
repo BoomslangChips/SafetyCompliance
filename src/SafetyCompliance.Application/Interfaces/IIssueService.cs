@@ -5,7 +5,7 @@ namespace SafetyCompliance.Application.Interfaces;
 
 public interface IIssueService
 {
-    Task<List<IssueDto>> GetIssuesAsync(IssueStatus? status = null, IssuePriority? priority = null, int? equipmentId = null, CancellationToken ct = default);
+    Task<List<IssueDto>> GetIssuesAsync(IssueStatus? status = null, IssuePriority? priority = null, int? equipmentId = null, int? roundId = null, CancellationToken ct = default);
     Task<IssueDto?> GetIssueByIdAsync(int id, CancellationToken ct = default);
     Task<IssueDto> CreateIssueAsync(IssueCreateDto dto, string userId, CancellationToken ct = default);
     Task UpdateIssueAsync(IssueUpdateDto dto, string userId, CancellationToken ct = default);

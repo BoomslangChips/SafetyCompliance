@@ -1,153 +1,307 @@
 @page "/issues"
+@page "/incidents"
 @inject IIssueService IssueService
 @inject NavigationManager Navigation
 
-<div class="page-header">
-    <h1>Issues & Tasks</h1>
-    <button class="btn btn-primary" @onclick="() => _showCreate = true">Report Issue</button>
-</div>
-
-@if (_loading)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <div class="filter-bar">
-        <div class="filter-chips">
-            <button class="chip @(_filterStatus == null ? "active" : "")" @onclick="() => SetStatusFilter(null)">All (@_allIssues.Count)</button>
-            <button class="chip @(_filterStatus == IssueStatus.Open ? "active" : "")" @onclick="() => SetStatusFilter(IssueStatus.Open)">
-                Open (@_allIssues.Count(i => i.Status == IssueStatus.Open))
+<div class="inc-page">
+    @* ── Tab bar ── *@
+    <div class="insp-tab-bar ov-fadeIn">
+        <div class="insp-tabs">
+            <button class="insp-tab @(_tab == IncTab.All ? "active" : "")" @onclick="() => SetTab(IncTab.All)">
+                <i class="fa-light fa-list-ul"></i> All
             </button>
-            <button class="chip @(_filterStatus == IssueStatus.InProgress ? "active" : "")" @onclick="() => SetStatusFilter(IssueStatus.InProgress)">
-                In Progress (@_allIssues.Count(i => i.Status == IssueStatus.InProgress))
+            <button class="insp-tab @(_tab == IncTab.Open ? "active" : "")" @onclick="() => SetTab(IncTab.Open)">
+                <i class="fa-light fa-circle-dot"></i> Open
             </button>
-            <button class="chip @(_filterStatus == IssueStatus.Resolved ? "active" : "")" @onclick="() => SetStatusFilter(IssueStatus.Resolved)">
-                Resolved (@_allIssues.Count(i => i.Status == IssueStatus.Resolved))
+            <button class="insp-tab @(_tab == IncTab.InProgress ? "active" : "")" @onclick="() => SetTab(IncTab.InProgress)">
+                <i class="fa-light fa-circle-half-stroke"></i> In Progress
             </button>
-            <button class="chip @(_filterStatus == IssueStatus.Closed ? "active" : "")" @onclick="() => SetStatusFilter(IssueStatus.Closed)">
-                Closed (@_allIssues.Count(i => i.Status == IssueStatus.Closed))
+            <button class="insp-tab @(_tab == IncTab.Resolved ? "active" : "")" @onclick="() => SetTab(IncTab.Resolved)">
+                <i class="fa-light fa-circle-check"></i> Resolved
             </button>
         </div>
-        <div class="filter-chips">
-            <button class="chip @(_filterPriority == null ? "active" : "")" @onclick="() => SetPriorityFilter(null)">All Priorities</button>
-            <button class="chip priority-critical @(_filterPriority == IssuePriority.Critical ? "active" : "")" @onclick="() => SetPriorityFilter(IssuePriority.Critical)">Critical</button>
-            <button class="chip priority-high @(_filterPriority == IssuePriority.High ? "active" : "")" @onclick="() => SetPriorityFilter(IssuePriority.High)">High</button>
-            <button class="chip priority-medium @(_filterPriority == IssuePriority.Medium ? "active" : "")" @onclick="() => SetPriorityFilter(IssuePriority.Medium)">Medium</button>
-            <button class="chip priority-low @(_filterPriority == IssuePriority.Low ? "active" : "")" @onclick="() => SetPriorityFilter(IssuePriority.Low)">Low</button>
-        </div>
+        <button class="inc-log-btn" @onclick="OpenCreateModal">
+            <i class="fa-light fa-plus"></i> Log Incident
+        </button>
     </div>
 
-    @if (!_filteredIssues.Any())
+    @if (_loading)
     {
-        <p class="empty-state">No issues match your filters.</p>
+        <div class="ov-loading"><div class="ov-spinner"></div><p>Loading incidents&hellip;</p></div>
     }
     else
     {
-        <div class="issue-list">
-            @foreach (var issue in _filteredIssues)
-            {
-                <div class="issue-card @issue.Status.ToString().ToLower()" @onclick="() => GoToIssue(issue.Id)">
-                    <div class="issue-priority-indicator priority-@issue.Priority.ToString().ToLower()"></div>
-                    <div class="issue-card-body">
-                        <div class="issue-card-header">
-                            <h3>@issue.Title</h3>
-                            <span class="status-badge issue-@issue.Status.ToString().ToLower()">@issue.Status</span>
-                        </div>
-                        @if (issue.Description is not null)
-                        {
-                            <p class="issue-desc">@TruncateText(issue.Description, 100)</p>
-                        }
-                        <div class="issue-card-meta">
-                            <span class="priority-badge priority-@issue.Priority.ToString().ToLower()">@issue.Priority</span>
-                            @if (issue.EquipmentIdentifier is not null)
-                            {
-                                <span class="issue-equipment">@issue.EquipmentIdentifier - @issue.EquipmentTypeName</span>
-                            }
-                            @if (issue.DueDate.HasValue)
-                            {
-                                var isOverdue = issue.DueDate.Value < DateOnly.FromDateTime(DateTime.UtcNow) &&
-                                    issue.Status != IssueStatus.Resolved && issue.Status != IssueStatus.Closed;
-                                <span class="issue-due @(isOverdue ? "overdue" : "")">Due: @issue.DueDate.Value.ToString("MMM dd")</span>
-                            }
-                            @if (issue.AssignedTo is not null)
-                            {
-                                <span class="issue-assigned">Assigned: @issue.AssignedTo</span>
-                            }
-                            <span class="issue-comments">@issue.CommentCount comments</span>
-                            @if (issue.ResolvedAt.HasValue)
-                            {
-                                <span class="issue-resolved">Resolved: @issue.ResolvedAt.Value.ToString("MMM dd, yyyy")</span>
-                            }
-                        </div>
-                    </div>
+        @* ── Stats row ── *@
+        <div class="inc-stats ov-fadeIn">
+            <div class="inc-stat @(_openCount > 0 ? "alert" : "")">
+                <div class="inc-stat-icon @(_openCount > 0 ? "red" : "gray")"><i class="fa-light fa-circle-dot"></i></div>
+                <div class="inc-stat-info">
+                    <span class="inc-stat-value">@_openCount</span>
+                    <span class="inc-stat-label">Open</span>
                 </div>
+            </div>
+            <div class="inc-stat @(_criticalCount > 0 ? "alert" : "")">
+                <div class="inc-stat-icon @(_criticalCount > 0 ? "red" : "gray")"><i class="fa-light fa-siren-on"></i></div>
+                <div class="inc-stat-info">
+                    <span class="inc-stat-value">@_criticalCount</span>
+                    <span class="inc-stat-label">Critical</span>
+                </div>
+            </div>
+            <div class="inc-stat @(_overdueCount > 0 ? "alert" : "")">
+                <div class="inc-stat-icon @(_overdueCount > 0 ? "amber" : "gray")"><i class="fa-light fa-clock"></i></div>
+                <div class="inc-stat-info">
+                    <span class="inc-stat-value">@_overdueCount</span>
+                    <span class="inc-stat-label">Overdue</span>
+                </div>
+            </div>
+            <div class="inc-stat">
+                <div class="inc-stat-icon blue"><i class="fa-light fa-circle-half-stroke"></i></div>
+                <div class="inc-stat-info">
+                    <span class="inc-stat-value">@_inProgressCount</span>
+                    <span class="inc-stat-label">In Progress</span>
+                </div>
+            </div>
+            <div class="inc-stat">
+                <div class="inc-stat-icon green"><i class="fa-light fa-circle-check"></i></div>
+                <div class="inc-stat-info">
+                    <span class="inc-stat-value">@_resolvedCount</span>
+                    <span class="inc-stat-label">Resolved</span>
+                </div>
+            </div>
+        </div>
+
+        @* ── Priority filter chips ── *@
+        <div class="inc-filters ov-fadeIn">
+            <button class="inc-chip @(_priorityFilter == null ? "active" : "")" @onclick="() => SetPriorityFilter(null)">
+                All Priorities <span class="inc-chip-count">@_filtered.Count</span>
+            </button>
+            @foreach (var p in new[] { IssuePriority.Critical, IssuePriority.High, IssuePriority.Medium, IssuePriority.Low })
+            {
+                var pv = p;
+                var cnt = _filtered.Count(i => i.Priority == pv);
+                @if (cnt > 0)
+                {
+                    <button class="inc-chip inc-chip-priority priority-@p.ToString().ToLower() @(_priorityFilter == p ? "active" : "")"
+                            @onclick="() => SetPriorityFilter(pv)">
+                        <i class="fa-light @PriorityIcon(pv)"></i> @p <span class="inc-chip-count">@cnt</span>
+                    </button>
+                }
             }
         </div>
-    }
-}
 
+        @* ── Incident cards ── *@
+        @if (!_display.Any())
+        {
+            <div class="ov-empty ov-fadeIn">
+                <div class="ov-empty-icon"><i class="fa-light fa-shield-check"></i></div>
+                <h2>No incidents found</h2>
+                <p>@(_tab == IncTab.All ? "No incidents have been logged yet." : $"No {_tab.ToString().ToLower()} incidents.")</p>
+                @if (_tab == IncTab.All)
+                {
+                    <button class="btn btn-primary btn-lg" @onclick="OpenCreateModal">
+                        <i class="fa-light fa-plus"></i> Log First Incident
+                    </button>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="inc-list">
+                @{ var idx = 0; }
+                @foreach (var issue in _display)
+                {
+                    var iss = issue;
+                    var ii = idx;
+                    var isOverdue = iss.DueDate.HasValue
+                        && iss.DueDate.Value < DateOnly.FromDateTime(DateTime.UtcNow)
+                        && iss.Status is IssueStatus.Open or IssueStatus.InProgress;
+                    <div class="inc-card ov-staggerUp" style="animation-delay: @(ii * 0.04)s">
+                        <div class="inc-card-strip priority-@iss.Priority.ToString().ToLower()"></div>
+                        <div class="inc-card-main" @onclick="() => GoToIssue(iss.Id)">
+                            <div class="inc-card-top">
+                                <div class="inc-card-title-row">
+                                    <span class="inc-priority-badge priority-@iss.Priority.ToString().ToLower()">
+                                        <i class="fa-light @PriorityIcon(iss.Priority)"></i> @iss.Priority
+                                    </span>
+                                    <h3>@iss.Title</h3>
+                                </div>
+                                <span class="inc-status-pill inc-status-@iss.Status.ToString().ToLower()">@iss.Status</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(iss.Description))
+                            {
+                                <p class="inc-card-desc">@TruncateText(iss.Description, 130)</p>
+                            }
+                            <div class="inc-card-meta">
+                                @if (iss.PlantName is not null)
+                                {
+                                    <span class="inc-meta-tag"><i class="fa-light fa-industry"></i> @iss.PlantName</span>
+                                }
+                                @if (iss.EquipmentIdentifier is not null)
+                                {
+                                    <span class="inc-meta-tag equip"><i class="fa-light fa-gear"></i> @iss.EquipmentIdentifier — @iss.EquipmentTypeName</span>
+                                }
+                                @if (iss.AssignedTo is not null)
+                                {
+                                    <span class="inc-meta-tag"><i class="fa-light fa-user"></i> @iss.AssignedTo</span>
+                                }
+                                @if (iss.DueDate.HasValue)
+                                {
+                                    <span class="inc-meta-tag @(isOverdue ? "overdue" : "")">
+                                        <i class="fa-light fa-calendar-@(isOverdue ? "exclamation" : "days")"></i>
+                                        @(isOverdue ? "Overdue · " : "Due · ")@iss.DueDate.Value.ToString("MMM dd, yyyy")
+                                    </span>
+                                }
+                                @if (iss.CommentCount > 0)
+                                {
+                                    <span class="inc-meta-tag"><i class="fa-light fa-message"></i> @iss.CommentCount comment@(iss.CommentCount != 1 ? "s" : "")</span>
+                                }
+                                <span class="inc-meta-tag muted">@iss.CreatedAt.ToString("MMM dd, yyyy")</span>
+                            </div>
+                            @if (iss.ResolvedAt.HasValue)
+                            {
+                                <div class="inc-resolved-bar">
+                                    <i class="fa-light fa-circle-check"></i>
+                                    Resolved on @iss.ResolvedAt.Value.ToString("MMM dd, yyyy")
+                                </div>
+                            }
+                        </div>
+                        <div class="inc-card-actions" @onclick:stopPropagation="true">
+                            @if (iss.Status is IssueStatus.Open or IssueStatus.InProgress)
+                            {
+                                <button class="inc-action-btn resolve" @onclick="() => QuickResolve(iss.Id)" title="Mark Resolved">
+                                    <i class="fa-light fa-check"></i>
+                                    <span>Resolve</span>
+                                </button>
+                            }
+                            else if (iss.Status == IssueStatus.Resolved)
+                            {
+                                <button class="inc-action-btn reopen" @onclick="() => QuickReopen(iss.Id)" title="Reopen">
+                                    <i class="fa-light fa-rotate-left"></i>
+                                    <span>Reopen</span>
+                                </button>
+                            }
+                            <button class="inc-action-btn view" @onclick="() => GoToIssue(iss.Id)" title="View Details">
+                                <i class="fa-light fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    idx++;
+                }
+            </div>
+        }
+    }
+</div>
+
+@* ── Create Incident Modal ── *@
 @if (_showCreate)
 {
-    <div class="modal-overlay" @onclick="() => _showCreate = false">
-        <div class="modal modal-wide" @onclick:stopPropagation>
-            <h2>Report New Issue</h2>
-            <EditForm Model="_createModel" OnValidSubmit="CreateIssue">
+    <div class="chk-modal-overlay" @onclick="() => _showCreate = false">
+        <div class="chk-modal chk-modal-wide ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon warning"><i class="fa-light fa-triangle-exclamation"></i></div>
+                <div>
+                    <h2>Log New Incident</h2>
+                    <span class="chk-modal-sub">Document a safety or operational incident</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showCreate = false"><i class="fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
                 <div class="form-group">
-                    <label>Title</label>
-                    <InputText @bind-Value="_createModel.Title" class="form-control" placeholder="Brief description of the issue" />
+                    <label>Incident Title <span class="form-required">*</span></label>
+                    <input @bind="_createTitle" class="form-control" placeholder="Brief description of the incident" />
                 </div>
                 <div class="form-group">
-                    <label>Description</label>
-                    <InputTextArea @bind-Value="_createModel.Description" class="form-control" rows="3" />
+                    <label>Details</label>
+                    <textarea @bind="_createDescription" class="form-control" rows="3"
+                              placeholder="Describe what happened, where, and the impact..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <div class="chk-priority-select">
+                        @foreach (var p in new[] { IssuePriority.Low, IssuePriority.Medium, IssuePriority.High, IssuePriority.Critical })
+                        {
+                            var pv = p;
+                            <button type="button" class="chk-priority-btn priority-@p.ToString().ToLower() @(_createPriority == p ? "active" : "")"
+                                    @onclick="() => _createPriority = pv">
+                                <i class="fa-light @PriorityIcon(pv)"></i> @p
+                            </button>
+                        }
+                    </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Priority</label>
-                        <InputSelect @bind-Value="_createModel.Priority" class="form-control">
-                            <option value="@IssuePriority.Low">Low</option>
-                            <option value="@IssuePriority.Medium">Medium</option>
-                            <option value="@IssuePriority.High">High</option>
-                            <option value="@IssuePriority.Critical">Critical</option>
-                        </InputSelect>
+                        <label>Assigned To</label>
+                        <input @bind="_createAssignedTo" class="form-control" placeholder="Name or email" />
                     </div>
                     <div class="form-group">
                         <label>Due Date</label>
-                        <InputDate @bind-Value="_createModel.DueDate" class="form-control" />
+                        <InputDate @bind-Value="_createDueDate" class="form-control" />
                     </div>
                 </div>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showCreate = false">Cancel</button>
+                <button class="btn btn-warning" @onclick="CreateIncident"
+                        disabled="@(string.IsNullOrWhiteSpace(_createTitle))">
+                    <i class="fa-light fa-triangle-exclamation"></i> Log Incident
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Quick Resolve Modal ── *@
+@if (_showResolve)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showResolve = false">
+        <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon success"><i class="fa-light fa-circle-check"></i></div>
+                <div>
+                    <h2>Resolve Incident</h2>
+                    <span class="chk-modal-sub">Add resolution notes (optional)</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showResolve = false"><i class="fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
                 <div class="form-group">
-                    <label>Assigned To</label>
-                    <InputText @bind-Value="_createModel.AssignedTo" class="form-control" placeholder="Name or email" />
+                    <label>How was this resolved?</label>
+                    <textarea @bind="_resolveNotes" class="form-control" rows="3"
+                              placeholder="Describe the actions taken to resolve this incident..."></textarea>
                 </div>
-                <div class="form-group">
-                    <label>Photo</label>
-                    <InputFile OnChange="OnPhotoSelected" class="form-control" accept="image/*" />
-                    @if (_createModel.PhotoBase64 is not null)
-                    {
-                        <div class="photo-preview">
-                            <img src="@GetPhotoSrc(_createModel.PhotoBase64)" alt="Preview" />
-                            <button type="button" class="btn btn-sm btn-secondary" @onclick="RemovePhoto">Remove</button>
-                        </div>
-                    }
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Create Issue</button>
-                    <button type="button" class="btn btn-secondary" @onclick="() => _showCreate = false">Cancel</button>
-                </div>
-            </EditForm>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showResolve = false">Cancel</button>
+                <button class="btn btn-success" @onclick="ConfirmResolve">
+                    <i class="fa-light fa-check"></i> Mark Resolved
+                </button>
+            </div>
         </div>
     </div>
 }
 
 @code {
-    private List<IssueDto> _allIssues = [];
-    private List<IssueDto> _filteredIssues = [];
-    private IssueStatus? _filterStatus;
-    private IssuePriority? _filterPriority;
+    private enum IncTab { All, Open, InProgress, Resolved }
+
+    private List<IssueDto> _all = [];
+    private List<IssueDto> _filtered = [];
+    private List<IssueDto> _display = [];
+    private IncTab _tab = IncTab.All;
+    private IssuePriority? _priorityFilter;
     private bool _loading = true;
+
+    private int _openCount, _criticalCount, _overdueCount, _inProgressCount, _resolvedCount;
+
     private bool _showCreate;
-    private IssueCreateModel _createModel = new();
+    private string _createTitle = string.Empty;
+    private string? _createDescription;
+    private IssuePriority _createPriority = IssuePriority.Medium;
+    private string? _createAssignedTo;
+    private DateOnly? _createDueDate;
+
+    private bool _showResolve;
+    private int _resolveId;
+    private string? _resolveNotes;
 
     protected override async Task OnInitializedAsync()
     {
@@ -157,70 +311,78 @@ else
 
     private async Task LoadIssues()
     {
-        _allIssues = await IssueService.GetIssuesAsync();
+        _all = await IssueService.GetIssuesAsync();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        _openCount = _all.Count(i => i.Status == IssueStatus.Open);
+        _criticalCount = _all.Count(i => i.Priority == IssuePriority.Critical && i.Status is IssueStatus.Open or IssueStatus.InProgress);
+        _overdueCount = _all.Count(i => i.DueDate.HasValue && i.DueDate.Value < today && i.Status is IssueStatus.Open or IssueStatus.InProgress);
+        _inProgressCount = _all.Count(i => i.Status == IssueStatus.InProgress);
+        _resolvedCount = _all.Count(i => i.Status is IssueStatus.Resolved or IssueStatus.Closed);
         ApplyFilters();
     }
+
+    private void SetTab(IncTab tab) { _tab = tab; _priorityFilter = null; ApplyFilters(); }
+    private void SetPriorityFilter(IssuePriority? p) { _priorityFilter = p; ApplyFilters(); }
 
     private void ApplyFilters()
     {
-        _filteredIssues = _allIssues
-            .Where(i => !_filterStatus.HasValue || i.Status == _filterStatus.Value)
-            .Where(i => !_filterPriority.HasValue || i.Priority == _filterPriority.Value)
-            .ToList();
+        _filtered = _tab switch
+        {
+            IncTab.Open => _all.Where(i => i.Status == IssueStatus.Open).ToList(),
+            IncTab.InProgress => _all.Where(i => i.Status == IssueStatus.InProgress).ToList(),
+            IncTab.Resolved => _all.Where(i => i.Status is IssueStatus.Resolved or IssueStatus.Closed).ToList(),
+            _ => _all.ToList()
+        };
+        _display = _priorityFilter.HasValue
+            ? _filtered.Where(i => i.Priority == _priorityFilter.Value).ToList()
+            : _filtered.ToList();
     }
 
-    private void SetStatusFilter(IssueStatus? status)
+    private void OpenCreateModal()
     {
-        _filterStatus = status;
-        ApplyFilters();
+        _createTitle = string.Empty;
+        _createDescription = null;
+        _createPriority = IssuePriority.Medium;
+        _createAssignedTo = null;
+        _createDueDate = null;
+        _showCreate = true;
     }
 
-    private void SetPriorityFilter(IssuePriority? priority)
+    private async Task CreateIncident()
     {
-        _filterPriority = priority;
-        ApplyFilters();
-    }
-
-    private async Task CreateIssue()
-    {
-        var dto = new IssueCreateDto(
-            _createModel.Title, _createModel.Description, _createModel.Priority,
-            _createModel.AssignedTo, _createModel.DueDate,
-            null, null, null, _createModel.PhotoBase64, _createModel.PhotoFileName);
+        if (string.IsNullOrWhiteSpace(_createTitle)) return;
+        var dto = new IssueCreateDto(_createTitle, _createDescription, _createPriority,
+            _createAssignedTo, _createDueDate, null, null, null, null, null);
         await IssueService.CreateIssueAsync(dto, "current-user");
-        await LoadIssues();
         _showCreate = false;
-        _createModel = new();
+        await LoadIssues();
     }
 
-    private async Task OnPhotoSelected(InputFileChangeEventArgs e)
+    private void QuickResolve(int id) { _resolveId = id; _resolveNotes = null; _showResolve = true; }
+
+    private async Task ConfirmResolve()
     {
-        var file = e.File;
-        if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _createModel.PhotoBase64 = Convert.ToBase64String(buffer);
-        _createModel.PhotoFileName = file.Name;
+        await IssueService.ResolveIssueAsync(_resolveId, _resolveNotes, "current-user");
+        _showResolve = false;
+        await LoadIssues();
     }
 
-    private void RemovePhoto()
+    private async Task QuickReopen(int id)
     {
-        _createModel.PhotoBase64 = null;
-        _createModel.PhotoFileName = null;
+        await IssueService.ReopenIssueAsync(id, "current-user");
+        await LoadIssues();
     }
 
     private void GoToIssue(int id) => Navigation.NavigateTo($"/issues/{id}");
-    private static string GetPhotoSrc(string base64) => $"data:image/jpeg;base64,{base64}";
-    private static string TruncateText(string text, int maxLen) => text.Length > maxLen ? text[..maxLen] + "..." : text;
 
-    private class IssueCreateModel
+    private static string PriorityIcon(IssuePriority p) => p switch
     {
-        public string Title { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public IssuePriority Priority { get; set; } = IssuePriority.Medium;
-        public string? AssignedTo { get; set; }
-        public DateOnly? DueDate { get; set; }
-        public string? PhotoBase64 { get; set; }
-        public string? PhotoFileName { get; set; }
-    }
+        IssuePriority.Critical => "fa-siren-on",
+        IssuePriority.High => "fa-arrow-up",
+        IssuePriority.Medium => "fa-minus",
+        _ => "fa-arrow-down"
+    };
+
+    private static string TruncateText(string text, int maxLen)
+        => text.Length > maxLen ? text[..maxLen] + "…" : text;
 }

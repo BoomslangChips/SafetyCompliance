@@ -218,6 +218,80 @@
             </div>
         }
 
+        @* ── Incidents section ── *@
+        <div class="chk-incidents-section ov-fadeIn">
+            <div class="chk-section-heading">
+                <h2><i class="fa-light fa-triangle-exclamation"></i> Incidents (@_roundIssues.Count)</h2>
+                <button class="svc-action-btn inservice" style="font-size:0.82rem;padding:0.4rem 1rem;" @onclick="OpenLogIncident">
+                    <i class="fa-light fa-plus"></i> Log Incident
+                </button>
+            </div>
+
+            @if (_roundIssues.Any())
+            {
+                <div class="chk-incidents-list">
+                    @foreach (var issue in _roundIssues)
+                    {
+                        var iss = issue;
+                        var isOverdue = iss.DueDate.HasValue
+                            && iss.DueDate.Value < DateOnly.FromDateTime(DateTime.UtcNow)
+                            && iss.Status is IssueStatus.Open or IssueStatus.InProgress;
+                        <div class="inc-card" style="margin-bottom:0.6rem;">
+                            <div class="inc-card-strip priority-@iss.Priority.ToString().ToLower()"></div>
+                            <div class="inc-card-main" @onclick="() => GoToIncident(iss.Id)" style="cursor:pointer;">
+                                <div class="inc-card-top">
+                                    <div class="inc-card-title-row">
+                                        <span class="inc-priority-badge priority-@iss.Priority.ToString().ToLower()">
+                                            <i class="fa-light @PriorityIcon(iss.Priority)"></i> @iss.Priority
+                                        </span>
+                                        <h3>@iss.Title</h3>
+                                    </div>
+                                    <span class="inc-status-pill inc-status-@iss.Status.ToString().ToLower()">@iss.Status</span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(iss.Description))
+                                {
+                                    <p class="inc-card-desc">@(iss.Description.Length > 100 ? iss.Description[..100] + "…" : iss.Description)</p>
+                                }
+                                <div class="inc-card-meta">
+                                    @if (iss.EquipmentIdentifier is not null)
+                                    {
+                                        <span class="inc-meta-tag equip"><i class="fa-light fa-gear"></i> @iss.EquipmentIdentifier</span>
+                                    }
+                                    @if (iss.AssignedTo is not null)
+                                    {
+                                        <span class="inc-meta-tag"><i class="fa-light fa-user"></i> @iss.AssignedTo</span>
+                                    }
+                                    @if (isOverdue)
+                                    {
+                                        <span class="inc-meta-tag overdue"><i class="fa-light fa-calendar-exclamation"></i> Overdue</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="inc-card-actions" @onclick:stopPropagation="true">
+                                @if (iss.Status is IssueStatus.Open or IssueStatus.InProgress)
+                                {
+                                    <button class="inc-action-btn resolve" @onclick="() => QuickResolveIssue(iss.Id)" title="Resolve">
+                                        <i class="fa-light fa-check"></i>
+                                        <span>Resolve</span>
+                                    </button>
+                                }
+                                <button class="inc-action-btn view" @onclick="() => GoToIncident(iss.Id)" title="View">
+                                    <i class="fa-light fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="chk-incidents-empty">
+                    <i class="fa-light fa-shield-check"></i>
+                    <span>No incidents logged for this inspection round.</span>
+                </div>
+            }
+        </div>
+
         @* ── Comments section ── *@
         <div class="chk-comments-section ov-fadeIn">
             <h2><i class="fa-light fa-messages"></i> Comments (@_comments.Count)</h2>
@@ -436,11 +510,100 @@
     </div>
 }
 
+@* ── Log Incident Modal (from inspection) ── *@
+@if (_showLogIncident)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showLogIncident = false">
+        <div class="chk-modal chk-modal-wide ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon warning"><i class="fa-light fa-triangle-exclamation"></i></div>
+                <div>
+                    <h2>Log Incident</h2>
+                    <span class="chk-modal-sub">Round #@RoundId</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showLogIncident = false"><i class="fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                <div class="form-group">
+                    <label>Incident Title <span class="form-required">*</span></label>
+                    <input @bind="_incTitle" class="form-control" placeholder="Brief description of the incident" />
+                </div>
+                <div class="form-group">
+                    <label>Details</label>
+                    <textarea @bind="_incDescription" class="form-control" rows="3"
+                              placeholder="Describe what happened, where, and the impact..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <div class="chk-priority-select">
+                        @foreach (var p in new[] { IssuePriority.Low, IssuePriority.Medium, IssuePriority.High, IssuePriority.Critical })
+                        {
+                            var pv = p;
+                            <button type="button" class="chk-priority-btn priority-@p.ToString().ToLower() @(_incPriority == p ? "active" : "")"
+                                    @onclick="() => _incPriority = pv">
+                                <i class="fa-light @PriorityIconStatic(pv)"></i> @p
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Assigned To</label>
+                        <input @bind="_incAssignedTo" class="form-control" placeholder="Name or email" />
+                    </div>
+                    <div class="form-group">
+                        <label>Due Date</label>
+                        <InputDate @bind-Value="_incDueDate" class="form-control" />
+                    </div>
+                </div>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showLogIncident = false">Cancel</button>
+                <button class="btn btn-warning" @onclick="SubmitLogIncident"
+                        disabled="@(string.IsNullOrWhiteSpace(_incTitle))">
+                    <i class="fa-light fa-triangle-exclamation"></i> Log Incident
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Quick Resolve Incident Modal ── *@
+@if (_showQuickResolve)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showQuickResolve = false">
+        <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon success"><i class="fa-light fa-circle-check"></i></div>
+                <div>
+                    <h2>Resolve Incident</h2>
+                    <span class="chk-modal-sub">Add resolution notes (optional)</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showQuickResolve = false"><i class="fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                <div class="form-group">
+                    <label>How was this resolved?</label>
+                    <textarea @bind="_resolveNotes" class="form-control" rows="3"
+                              placeholder="Describe the actions taken..."></textarea>
+                </div>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showQuickResolve = false">Cancel</button>
+                <button class="btn btn-success" @onclick="DoResolveIssue">
+                    <i class="fa-light fa-check"></i> Mark Resolved
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public int RoundId { get; set; }
 
     private List<EquipmentInspectionDto> _inspections = [];
     private List<CommentDto> _comments = [];
+    private List<IssueDto> _roundIssues = [];
     private Dictionary<int, string?> _equipmentComments = new();
     private bool _loading = true;
     private int _completedCount;
@@ -480,6 +643,19 @@
     // Complete confirmation
     private bool _showCompleteConfirmation;
 
+    // Log incident (from round)
+    private bool _showLogIncident;
+    private string _incTitle = string.Empty;
+    private string? _incDescription;
+    private IssuePriority _incPriority = IssuePriority.Medium;
+    private string? _incAssignedTo;
+    private DateOnly? _incDueDate;
+
+    // Quick resolve issue
+    private bool _showQuickResolve;
+    private int _resolveIssueId;
+    private string? _resolveNotes;
+
     private record SectionGroup(int SectionId, string SectionName, List<EquipmentInspectionDto> Items);
 
     protected override async Task OnInitializedAsync() => await LoadData();
@@ -488,6 +664,7 @@
     {
         _inspections = await InspectionService.GetEquipmentInspectionsAsync(RoundId);
         _comments = await IssueService.GetInspectionCommentsAsync(RoundId);
+        _roundIssues = await IssueService.GetIssuesAsync(roundId: RoundId);
 
         _equipmentComments.Clear();
         foreach (var insp in _inspections)
@@ -601,6 +778,49 @@
         _newCommentText = string.Empty;
         await LoadData();
     }
+
+    // Incident management
+    private void OpenLogIncident()
+    {
+        _incTitle = string.Empty;
+        _incDescription = null;
+        _incPriority = IssuePriority.Medium;
+        _incAssignedTo = null;
+        _incDueDate = null;
+        _showLogIncident = true;
+    }
+
+    private async Task SubmitLogIncident()
+    {
+        if (string.IsNullOrWhiteSpace(_incTitle)) return;
+        var dto = new IssueCreateDto(_incTitle, _incDescription, _incPriority,
+            _incAssignedTo, _incDueDate, RoundId, null, null, null, null);
+        await IssueService.CreateIssueAsync(dto, "current-user");
+        _showLogIncident = false;
+        await LoadData();
+    }
+
+    private void QuickResolveIssue(int id) { _resolveIssueId = id; _resolveNotes = null; _showQuickResolve = true; }
+
+    private async Task DoResolveIssue()
+    {
+        await IssueService.ResolveIssueAsync(_resolveIssueId, _resolveNotes, "current-user");
+        _showQuickResolve = false;
+        await LoadData();
+    }
+
+    private void GoToIncident(int id) => Navigation.NavigateTo($"/issues/{id}");
+
+    private static string PriorityIcon(IssuePriority p) => p switch
+    {
+        IssuePriority.Critical => "fa-siren-on",
+        IssuePriority.High => "fa-arrow-up",
+        IssuePriority.Medium => "fa-minus",
+        _ => "fa-arrow-down"
+    };
+
+    // Alias for use in modal lambda context
+    private static string PriorityIconStatic(IssuePriority p) => PriorityIcon(p);
 
     private void GoBack() => Navigation.NavigateTo("/inspections");
 }
