@@ -287,8 +287,22 @@
 
     private async Task StartInspection(InspectionScheduleDto sched)
     {
-        var round = await InspectionService.StartInspectionRoundAsync(sched.PlantId, "current-user");
-        Navigation.NavigateTo($"/inspections/{round.Id}");
+        try
+        {
+            var round = await InspectionService.StartInspectionRoundAsync(sched.PlantId, "current-user");
+            Navigation.NavigateTo($"/inspections/{round.Id}");
+        }
+        catch (InvalidOperationException)
+        {
+            // Round already exists for this month — navigate to it
+            var rounds = await InspectionService.GetInspectionRoundsAsync(sched.PlantId);
+            var currentMonth = DateTime.UtcNow.ToString("yyyy-MM");
+            var existing = rounds.FirstOrDefault(r => r.InspectionMonth == currentMonth);
+            if (existing is not null)
+                Navigation.NavigateTo($"/inspections/{existing.Id}");
+            else
+                Navigation.NavigateTo("/inspections");
+        }
     }
 
     private void ViewScheduleRounds(InspectionScheduleDto sched)
