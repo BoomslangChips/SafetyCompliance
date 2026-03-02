@@ -8,13 +8,14 @@
 <div class="sched-page">
     @* ── Header ── *@
     <div class="sched-hero ov-fadeIn">
-        <div class="sched-hero-left">
-            <h1>Inspection Schedules</h1>
-            <p>Manage recurring inspection schedules across your plants</p>
+        <div class="page-header-left">
+            <div class="page-header-icon"><i class="fa-light fa-calendar-check"></i></div>
+            <div class="page-header-info">
+                <h1>Inspection Schedules</h1>
+                <p class="page-header-sub">Manage recurring inspection schedules across your plants</p>
+            </div>
         </div>
-        <button class="btn btn-primary btn-lg" @onclick="() => _showCreate = true">
-            <i class="fa-light fa-plus-circle"></i> New Schedule
-        </button>
+        <button class="btn btn-primary btn-lg" @onclick="() => _showCreate = true"><i class="fa-light fa-plus-circle"></i> New Schedule</button>
     </div>
 
     @if (_loading)

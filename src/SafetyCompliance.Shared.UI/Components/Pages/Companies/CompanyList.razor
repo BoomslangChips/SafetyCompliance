@@ -3,8 +3,14 @@
 @inject NavigationManager Navigation
 
 <div class="page-header">
-    <h1>Companies</h1>
-    <button class="btn btn-primary" @onclick="() => _showCreate = true">Add Company</button>
+    <div class="page-header-left">
+        <div class="page-header-icon"><i class="fa-light fa-buildings"></i></div>
+        <div class="page-header-info">
+            <h1>Companies</h1>
+            <p class="page-header-sub">Manage your organisation's companies and structure</p>
+        </div>
+    </div>
+    <button class="btn btn-primary" @onclick="() => _showCreate = true"><i class="fa-light fa-plus"></i> Add Company</button>
 </div>
 
 @if (_showCreate)
