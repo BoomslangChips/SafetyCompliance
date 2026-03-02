@@ -25,13 +25,15 @@
                     <label>Address</label>
                     <InputText @bind-Value="_createDto.Address" class="form-control" />
                 </div>
-                <div class="form-group">
-                    <label>Contact Name</label>
-                    <InputText @bind-Value="_createDto.ContactName" class="form-control" />
-                </div>
-                <div class="form-group">
-                    <label>Contact Email</label>
-                    <InputText @bind-Value="_createDto.ContactEmail" class="form-control" />
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Contact Name</label>
+                        <InputText @bind-Value="_createDto.ContactName" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Email</label>
+                        <InputText @bind-Value="_createDto.ContactEmail" class="form-control" />
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Contact Phone</label>
@@ -39,7 +41,7 @@
                 </div>
                 <div class="form-group">
                     <label>Photo</label>
-                    <InputFile OnChange="OnPhotoSelected" class="form-control" accept="image/*" />
+                    <InputFile OnChange="OnCreatePhotoSelected" class="form-control" accept="image/*" />
                     @if (_createDto.PhotoBase64 is not null)
                     {
                         <div class="photo-preview">
@@ -57,6 +59,58 @@
     </div>
 }
 
+@if (_showEdit)
+{
+    <div class="modal-overlay" @onclick="() => _showEdit = false">
+        <div class="modal" @onclick:stopPropagation>
+            <h2>Edit Company</h2>
+            <EditForm Model="_editDto" OnValidSubmit="UpdateCompany">
+                <div class="form-group">
+                    <label>Name</label>
+                    <InputText @bind-Value="_editDto.Name" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Code</label>
+                    <InputText @bind-Value="_editDto.Code" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <InputText @bind-Value="_editDto.Address" class="form-control" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Contact Name</label>
+                        <InputText @bind-Value="_editDto.ContactName" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Email</label>
+                        <InputText @bind-Value="_editDto.ContactEmail" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Contact Phone</label>
+                    <InputText @bind-Value="_editDto.ContactPhone" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Photo</label>
+                    <InputFile OnChange="OnEditPhotoSelected" class="form-control" accept="image/*" />
+                    @if (_editDto.PhotoBase64 is not null)
+                    {
+                        <div class="photo-preview">
+                            <img src="@($"data:image/jpeg;base64,{_editDto.PhotoBase64}")" alt="Preview" />
+                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _editDto.PhotoBase64 = null; _editDto.PhotoFileName = null; }">Remove</button>
+                        </div>
+                    }
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Update</button>
+                    <button type="button" class="btn btn-secondary" @onclick="() => _showEdit = false">Cancel</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
 <div class="card-list">
     @foreach (var company in _companies)
     {
@@ -67,7 +121,12 @@
                     <img src="@($"data:image/jpeg;base64,{company.PhotoBase64}")" alt="@company.Name" />
                 </div>
             }
-            <h3>@company.Name</h3>
+            <div class="card-header-row">
+                <h3>@company.Name</h3>
+                <div class="card-edit-btn" @onclick:stopPropagation>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => StartEditCompany(company)">Edit</button>
+                </div>
+            </div>
             <p class="card-subtitle">@(company.Code ?? "No code") &middot; @(company.Address ?? "No address")</p>
             <div class="card-stats">
                 <span>@company.PlantCount plants</span>
@@ -80,7 +139,10 @@
 @code {
     private List<CompanyDto> _companies = [];
     private CompanyCreateModel _createDto = new();
+    private CompanyEditModel _editDto = new();
     private bool _showCreate;
+    private bool _showEdit;
+    private int _editCompanyId;
 
     protected override async Task OnInitializedAsync()
         => _companies = await CompanyService.GetAllCompaniesAsync();
@@ -94,7 +156,34 @@
         _createDto = new();
     }
 
-    private async Task OnPhotoSelected(InputFileChangeEventArgs e)
+    private void StartEditCompany(CompanyDto company)
+    {
+        _editCompanyId = company.Id;
+        _editDto = new CompanyEditModel
+        {
+            Name = company.Name,
+            Code = company.Code,
+            Address = company.Address,
+            ContactName = company.ContactName,
+            ContactEmail = company.ContactEmail,
+            ContactPhone = company.ContactPhone,
+            IsActive = company.IsActive,
+            PhotoBase64 = company.PhotoBase64,
+            PhotoFileName = company.PhotoFileName
+        };
+        _showEdit = true;
+    }
+
+    private async Task UpdateCompany()
+    {
+        var dto = new CompanyUpdateDto(_editCompanyId, _editDto.Name, _editDto.Code, _editDto.Address, _editDto.ContactName, _editDto.ContactEmail, _editDto.ContactPhone, _editDto.IsActive, _editDto.PhotoBase64, _editDto.PhotoFileName);
+        await CompanyService.UpdateCompanyAsync(dto, "current-user");
+        _companies = await CompanyService.GetAllCompaniesAsync();
+        _showEdit = false;
+        _editDto = new();
+    }
+
+    private async Task OnCreatePhotoSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
         if (file is null) return;
@@ -102,6 +191,16 @@
         await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
         _createDto.PhotoBase64 = Convert.ToBase64String(buffer);
         _createDto.PhotoFileName = file.Name;
+    }
+
+    private async Task OnEditPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+        _editDto.PhotoBase64 = Convert.ToBase64String(buffer);
+        _editDto.PhotoFileName = file.Name;
     }
 
     private void GoToCompany(int id) => Navigation.NavigateTo($"/companies/{id}");
@@ -114,6 +213,19 @@
         public string? ContactName { get; set; }
         public string? ContactEmail { get; set; }
         public string? ContactPhone { get; set; }
+        public string? PhotoBase64 { get; set; }
+        public string? PhotoFileName { get; set; }
+    }
+
+    private class CompanyEditModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Code { get; set; }
+        public string? Address { get; set; }
+        public string? ContactName { get; set; }
+        public string? ContactEmail { get; set; }
+        public string? ContactPhone { get; set; }
+        public bool IsActive { get; set; } = true;
         public string? PhotoBase64 { get; set; }
         public string? PhotoFileName { get; set; }
     }

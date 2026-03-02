@@ -8,10 +8,10 @@ namespace SafetyCompliance.Application.Services;
 
 public class EquipmentService(ApplicationDbContext context) : IEquipmentService
 {
-    public async Task<List<EquipmentDto>> GetEquipmentBySectionAsync(int sectionId, CancellationToken ct = default)
+    public async Task<List<EquipmentDto>> GetEquipmentBySectionAsync(int sectionId, bool includeInactive = false, CancellationToken ct = default)
     {
         return await context.Equipment
-            .Where(e => e.SectionId == sectionId && e.IsActive)
+            .Where(e => e.SectionId == sectionId && (includeInactive || e.IsActive))
             .OrderBy(e => e.SortOrder)
             .Select(e => new EquipmentDto(
                 e.Id, e.SectionId, e.Section.Name, e.EquipmentTypeId, e.EquipmentType.Name,

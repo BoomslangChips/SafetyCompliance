@@ -42,13 +42,15 @@ else
                         <label>Description</label>
                         <InputText @bind-Value="_plantCreate.Description" class="form-control" />
                     </div>
-                    <div class="form-group">
-                        <label>Contact Name</label>
-                        <InputText @bind-Value="_plantCreate.ContactName" class="form-control" />
-                    </div>
-                    <div class="form-group">
-                        <label>Contact Phone</label>
-                        <InputText @bind-Value="_plantCreate.ContactPhone" class="form-control" />
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Contact Name</label>
+                            <InputText @bind-Value="_plantCreate.ContactName" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Contact Phone</label>
+                            <InputText @bind-Value="_plantCreate.ContactPhone" class="form-control" />
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Contact Email</label>
@@ -56,7 +58,7 @@ else
                     </div>
                     <div class="form-group">
                         <label>Photo</label>
-                        <InputFile OnChange="OnPlantPhotoSelected" class="form-control" accept="image/*" />
+                        <InputFile OnChange="OnCreatePlantPhotoSelected" class="form-control" accept="image/*" />
                         @if (_plantCreate.PhotoBase64 is not null)
                         {
                             <div class="photo-preview">
@@ -74,6 +76,54 @@ else
         </div>
     }
 
+    @if (_showEditPlant)
+    {
+        <div class="modal-overlay" @onclick="() => _showEditPlant = false">
+            <div class="modal" @onclick:stopPropagation>
+                <h2>Edit Plant</h2>
+                <EditForm Model="_plantEdit" OnValidSubmit="UpdatePlant">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <InputText @bind-Value="_plantEdit.Name" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <InputText @bind-Value="_plantEdit.Description" class="form-control" />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Contact Name</label>
+                            <InputText @bind-Value="_plantEdit.ContactName" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Contact Phone</label>
+                            <InputText @bind-Value="_plantEdit.ContactPhone" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Email</label>
+                        <InputText @bind-Value="_plantEdit.ContactEmail" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Photo</label>
+                        <InputFile OnChange="OnEditPlantPhotoSelected" class="form-control" accept="image/*" />
+                        @if (_plantEdit.PhotoBase64 is not null)
+                        {
+                            <div class="photo-preview">
+                                <img src="@($"data:image/jpeg;base64,{_plantEdit.PhotoBase64}")" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _plantEdit.PhotoBase64 = null; _plantEdit.PhotoFileName = null; }">Remove</button>
+                            </div>
+                        }
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Update</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showEditPlant = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
     <div class="card-list">
         @foreach (var plant in _plants)
         {
@@ -84,7 +134,12 @@ else
                         <img src="@($"data:image/jpeg;base64,{plant.PhotoBase64}")" alt="@plant.Name" />
                     </div>
                 }
-                <h3>@plant.Name</h3>
+                <div class="card-header-row">
+                    <h3>@plant.Name</h3>
+                    <div class="card-edit-btn" @onclick:stopPropagation>
+                        <button class="btn btn-sm btn-secondary" @onclick="() => StartEditPlant(plant)">Edit</button>
+                    </div>
+                </div>
                 <p class="card-subtitle">@(plant.ContactName ?? "No contact")</p>
                 <div class="card-stats">
                     <span>@plant.SectionCount sections</span>
@@ -106,7 +161,10 @@ else
     private CompanyDto? _company;
     private List<PlantDto> _plants = [];
     private bool _showCreatePlant;
+    private bool _showEditPlant;
+    private int _editPlantId;
     private PlantCreateModel _plantCreate = new();
+    private PlantEditModel _plantEdit = new();
 
     protected override async Task OnInitializedAsync() => await LoadData();
 
@@ -125,7 +183,33 @@ else
         _plantCreate = new();
     }
 
-    private async Task OnPlantPhotoSelected(InputFileChangeEventArgs e)
+    private void StartEditPlant(PlantDto plant)
+    {
+        _editPlantId = plant.Id;
+        _plantEdit = new PlantEditModel
+        {
+            Name = plant.Name,
+            Description = plant.Description,
+            ContactName = plant.ContactName,
+            ContactPhone = plant.ContactPhone,
+            ContactEmail = plant.ContactEmail,
+            IsActive = plant.IsActive,
+            PhotoBase64 = plant.PhotoBase64,
+            PhotoFileName = plant.PhotoFileName
+        };
+        _showEditPlant = true;
+    }
+
+    private async Task UpdatePlant()
+    {
+        var dto = new PlantUpdateDto(_editPlantId, _plantEdit.Name, _plantEdit.Description, _plantEdit.ContactName, _plantEdit.ContactPhone, _plantEdit.ContactEmail, _plantEdit.IsActive, _plantEdit.PhotoBase64, _plantEdit.PhotoFileName);
+        await PlantService.UpdatePlantAsync(dto, "current-user");
+        await LoadData();
+        _showEditPlant = false;
+        _plantEdit = new();
+    }
+
+    private async Task OnCreatePlantPhotoSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
         if (file is null) return;
@@ -133,6 +217,16 @@ else
         await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
         _plantCreate.PhotoBase64 = Convert.ToBase64String(buffer);
         _plantCreate.PhotoFileName = file.Name;
+    }
+
+    private async Task OnEditPlantPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+        _plantEdit.PhotoBase64 = Convert.ToBase64String(buffer);
+        _plantEdit.PhotoFileName = file.Name;
     }
 
     private void GoToPlant(int id) => Navigation.NavigateTo($"/plants/{id}");
@@ -145,6 +239,18 @@ else
         public string? ContactName { get; set; }
         public string? ContactPhone { get; set; }
         public string? ContactEmail { get; set; }
+        public string? PhotoBase64 { get; set; }
+        public string? PhotoFileName { get; set; }
+    }
+
+    private class PlantEditModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? ContactName { get; set; }
+        public string? ContactPhone { get; set; }
+        public string? ContactEmail { get; set; }
+        public bool IsActive { get; set; } = true;
         public string? PhotoBase64 { get; set; }
         public string? PhotoFileName { get; set; }
     }

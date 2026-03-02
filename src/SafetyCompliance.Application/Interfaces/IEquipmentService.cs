@@ -4,7 +4,7 @@ namespace SafetyCompliance.Application.Interfaces;
 
 public interface IEquipmentService
 {
-    Task<List<EquipmentDto>> GetEquipmentBySectionAsync(int sectionId, CancellationToken ct = default);
+    Task<List<EquipmentDto>> GetEquipmentBySectionAsync(int sectionId, bool includeInactive = false, CancellationToken ct = default);
     Task<EquipmentDto?> GetEquipmentByIdAsync(int id, CancellationToken ct = default);
     Task<EquipmentDto> CreateEquipmentAsync(EquipmentCreateDto dto, string userId, CancellationToken ct = default);
     Task UpdateEquipmentAsync(EquipmentUpdateDto dto, string userId, CancellationToken ct = default);
