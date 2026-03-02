@@ -438,23 +438,15 @@
         _greeting   = now.Hour < 12 ? "Good morning" : now.Hour < 17 ? "Good afternoon" : "Good evening";
         _dateString = now.ToString("dddd, d MMMM yyyy");
 
-        var statsTask  = ScheduleService.GetDashboardStatsAsync();
-        var compTask   = CompanyService.GetAllCompaniesAsync();
-        var calTask    = ScheduleService.GetCalendarEventsAsync(_today, _today.AddDays(14));
-        var issTask    = IssueService.GetIssuesAsync(IssueStatus.Open);
-        var svcTask    = ServiceBookingService.GetActiveBookingsAsync();
-        var roundsTask = InspectionService.GetActiveRoundsAsync();
-        var tlTask     = ScheduleService.GetTimelineAsync(10);
-
-        await Task.WhenAll(statsTask, compTask, calTask, issTask, svcTask, roundsTask, tlTask);
-
-        _stats          = statsTask.Result;
-        _companies      = compTask.Result;
-        _upcoming       = calTask.Result.OrderBy(e => e.Date).ToList();
-        _openIssues     = issTask.Result.OrderByDescending(i => (int)i.Priority).ToList();
-        _activeServices = svcTask.Result;
-        _activeRounds   = roundsTask.Result;
-        _timeline       = tlTask.Result;
+        // Sequential awaits — EF Core DbContext is not thread-safe; Task.WhenAll
+        // would cause concurrent access on the same scoped context instance.
+        _stats          = await ScheduleService.GetDashboardStatsAsync();
+        _companies      = await CompanyService.GetAllCompaniesAsync();
+        _upcoming       = (await ScheduleService.GetCalendarEventsAsync(_today, _today.AddDays(14))).OrderBy(e => e.Date).ToList();
+        _openIssues     = (await IssueService.GetIssuesAsync(IssueStatus.Open)).OrderByDescending(i => (int)i.Priority).ToList();
+        _activeServices = await ServiceBookingService.GetActiveBookingsAsync();
+        _activeRounds   = await InspectionService.GetActiveRoundsAsync();
+        _timeline       = await ScheduleService.GetTimelineAsync(10);
 
         _loading = false;
     }
