@@ -4306,8 +4306,8 @@ textarea.form-control {
     top: 0;
     z-index: 10;
     background: var(--color-bg);
-    margin: calc(-1 * var(--spacing-md)) calc(-1 * var(--spacing-lg)) var(--spacing-lg);
-    padding: var(--spacing-sm) var(--spacing-lg) 0;
+    margin: calc(-1 * var(--spacing-xl)) calc(-1 * var(--spacing-2xl)) var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-2xl) 0;
     border-bottom: 1px solid var(--color-border);
     display: flex;
     align-items: center;
@@ -4677,7 +4677,7 @@ textarea.form-control {
 /* ── Inspection overview responsive ── */
 @media (max-width: 768px) {
     .insp-tab-bar {
-        margin: calc(-1 * var(--spacing-sm)) calc(-1 * var(--spacing-md)) var(--spacing-md);
+        margin: calc(-1 * var(--spacing-md)) calc(-1 * var(--spacing-md)) var(--spacing-md);
         padding: var(--spacing-xs) var(--spacing-md) 0;
     }
     .insp-tab {
@@ -4715,7 +4715,6 @@ textarea.form-control {
    =============================================================== */
 
 .inc-page {
-    padding: var(--spacing-md) var(--spacing-lg);
 }
 
 /* Log / New Booking button in tab bar — matches btn btn-primary */
@@ -5045,7 +5044,6 @@ textarea.form-control {
    =============================================================== */
 
 .svc-page {
-    padding: var(--spacing-md) var(--spacing-lg);
 }
 .svc-list { display: flex; flex-direction: column; gap: 12px; }
 
@@ -5173,7 +5171,6 @@ textarea.form-control {
 
 /* Responsive */
 @media (max-width: 768px) {
-    .inc-page, .svc-page { padding: var(--spacing-sm) var(--spacing-md); }
     .inc-stats { gap: var(--spacing-sm); }
     .inc-stat  { flex: 1 1 calc(50% - 8px); min-width: 100px; }
     .inc-card-main  { padding: var(--spacing-sm) var(--spacing-md); }
@@ -5499,7 +5496,6 @@ textarea.form-control {
 
 /* Page container */
 .db-page {
-    padding: var(--spacing-xl);
     display: flex;
     flex-direction: column;
     gap: var(--spacing-lg);
@@ -5958,7 +5954,6 @@ textarea.form-control {
     .db-bottom-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 768px) {
-    .db-page      { padding: var(--spacing-md); }
     .db-kpi-row   { grid-template-columns: repeat(2, 1fr); }
     .db-main-grid { grid-template-columns: 1fr; }
     .db-main-grid .db-panel:last-child { grid-column: auto; }
