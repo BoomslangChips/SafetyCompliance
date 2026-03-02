@@ -5107,3 +5107,79 @@ textarea.form-control {
     .svc-card-badges { margin-top: var(--spacing-xs); }
     .chk-incidents-section { padding: var(--spacing-md); }
 }
+
+/* ===============================================================
+   CASCADING EQUIPMENT PICKER  (.picker-*)
+   =============================================================== */
+
+.picker-section {
+    margin-bottom: 0;
+}
+.picker-section > label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: 8px;
+}
+
+.picker-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+/* Styled select — matches .form-control but with a chevron indicator */
+.picker-grid select {
+    width: 100%;
+    padding: 9px 36px 9px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface);
+    color: var(--color-text-primary);
+    font-size: 0.875rem;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    line-height: 1.4;
+}
+.picker-grid select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 15%, transparent);
+}
+.picker-grid select:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background-color: var(--color-border);
+}
+
+/* Dark mode overrides for the SVG chevron */
+[data-theme="dark"] .picker-grid select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+/* Confirmation summary line after selection */
+.picker-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 8px;
+    padding: 5px 12px;
+    background: color-mix(in srgb, var(--color-success) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-success) 30%, transparent);
+    border-radius: var(--radius-md);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-success);
+}
+.picker-summary i { font-size: 0.85rem; }
+
+@media (max-width: 600px) {
+    .picker-grid { grid-template-columns: 1fr; }
+}
