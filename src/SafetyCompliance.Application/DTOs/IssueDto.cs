@@ -8,7 +8,8 @@ public record IssueDto(
     int? InspectionRoundId, int? EquipmentInspectionId, int? EquipmentId,
     string? EquipmentIdentifier, string? EquipmentTypeName,
     string? PhotoBase64, string? PhotoFileName,
-    string CreatedByName, DateTime CreatedAt, int CommentCount);
+    string CreatedByName, DateTime CreatedAt, int CommentCount,
+    string? PlantName = null, string? SectionName = null);
 
 public record IssueCreateDto(
     string Title, string? Description, IssuePriority Priority,

@@ -25,3 +25,10 @@ public record ServiceBookingOverviewDto(
     string PlantName, string SectionName,
     string ServiceProvider, string Reason, ServiceBookingStatus Status,
     DateOnly SentDate, DateOnly? ExpectedReturnDate);
+
+public record ServiceBookingFullDto(
+    int Id, int EquipmentId, string EquipmentIdentifier, string EquipmentTypeName,
+    string PlantName, string SectionName,
+    string ServiceProvider, string Reason, ServiceBookingStatus Status,
+    DateOnly SentDate, DateOnly? ExpectedReturnDate, DateOnly? ActualReturnDate,
+    string? Notes, DateTime CreatedAt);
