@@ -1,19 +1,22 @@
 @page "/setup"
 @inject ICompanyService CompanyService
+@inject IPlantService PlantService
+@inject ISectionService SectionService
 @inject IEquipmentService EquipmentService
-@inject ISetupService SetupService
 @inject NavigationManager Navigation
 
 <div class="page-header">
-    <h1>Setup Wizard</h1>
-    <p class="card-subtitle">Create a complete hierarchy: Company &rarr; Plants &rarr; Sections &rarr; Equipment</p>
+    <h1>Setup</h1>
+    <p class="card-subtitle">Manage your hierarchy: Company &rarr; Plants &rarr; Sections &rarr; Equipment</p>
 </div>
 
 <div class="wizard-progress">
     @for (int i = 0; i < _stepNames.Length; i++)
     {
         var stepIndex = i;
-        <div class="wizard-step @(stepIndex == _currentStep ? "active" : "") @(stepIndex < _currentStep ? "completed" : "")">
+        <div class="wizard-step @(stepIndex == _currentStep ? "active" : "") @(stepIndex < _currentStep ? "completed" : "")"
+             style="cursor: @(stepIndex < _currentStep ? "pointer" : "default")"
+             @onclick="() => GoToStep(stepIndex)">
             <div class="step-number">@(stepIndex < _currentStep ? "\u2713" : (stepIndex + 1).ToString())</div>
             <div class="step-label">@_stepNames[stepIndex]</div>
         </div>
@@ -24,361 +27,693 @@
     }
 </div>
 
-@* Step 0: Company *@
-@if (_currentStep == 0)
-{
-    <div class="wizard-card">
-        <h2>Company</h2>
-        <p class="section-desc">Select an existing company or create a new one.</p>
-
-        <div class="form-group">
-            <label>
-                <input type="radio" name="companyChoice" checked="@(!_createNewCompany)" @onchange="() => _createNewCompany = false" /> Use Existing Company
-            </label>
-        </div>
-
-        @if (!_createNewCompany)
-        {
-            <div class="form-group">
-                <select class="form-control" @onchange="OnExistingCompanyChanged">
-                    <option value="">-- Select Company --</option>
-                    @foreach (var c in _existingCompanies)
-                    {
-                        <option value="@c.Id" selected="@(_selectedCompanyId == c.Id)">@c.Name @(c.Code is not null ? $"({c.Code})" : "")</option>
-                    }
-                </select>
-            </div>
-        }
-
-        <div class="form-group" style="margin-top: var(--spacing-md);">
-            <label>
-                <input type="radio" name="companyChoice" checked="@_createNewCompany" @onchange="() => _createNewCompany = true" /> Create New Company
-            </label>
-        </div>
-
-        @if (_createNewCompany)
-        {
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Company Name *</label>
-                    <InputText @bind-Value="_companyModel.Name" class="form-control" />
-                </div>
-                <div class="form-group">
-                    <label>Code</label>
-                    <InputText @bind-Value="_companyModel.Code" class="form-control" />
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Address</label>
-                <InputText @bind-Value="_companyModel.Address" class="form-control" />
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Contact Name</label>
-                    <InputText @bind-Value="_companyModel.ContactName" class="form-control" />
-                </div>
-                <div class="form-group">
-                    <label>Contact Email</label>
-                    <InputText @bind-Value="_companyModel.ContactEmail" class="form-control" />
-                </div>
-                <div class="form-group">
-                    <label>Contact Phone</label>
-                    <InputText @bind-Value="_companyModel.ContactPhone" class="form-control" />
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Company Photo</label>
-                <InputFile OnChange="e => OnPhotoSelected(e, p => { _companyModel.PhotoBase64 = p.base64; _companyModel.PhotoFileName = p.name; })" class="form-control" accept="image/*" />
-                @if (_companyModel.PhotoBase64 is not null)
-                {
-                    <div class="photo-preview">
-                        <img src="@($"data:image/jpeg;base64,{_companyModel.PhotoBase64}")" alt="Company photo" />
-                        <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _companyModel.PhotoBase64 = null; _companyModel.PhotoFileName = null; }">Remove</button>
-                    </div>
-                }
-            </div>
-        }
-    </div>
-}
-
-@* Step 1: Plants *@
-@if (_currentStep == 1)
-{
-    <div class="wizard-card">
-        <div class="section-header">
-            <h2>Plants</h2>
-            <button class="btn btn-primary" @onclick="AddPlant">+ Add Plant</button>
-        </div>
-        <p class="section-desc">Add one or more plants/facilities to the company.</p>
-
-        @if (!_plants.Any())
-        {
-            <p class="empty-state">No plants added yet. Click "Add Plant" to start.</p>
-        }
-
-        @foreach (var (plant, idx) in _plants.Select((p, i) => (p, i)))
-        {
-            var plantIndex = idx;
-            <div class="setup-item-card">
-                <div class="setup-item-header">
-                    <h3>Plant @(plantIndex + 1): @(string.IsNullOrEmpty(plant.Name) ? "(unnamed)" : plant.Name)</h3>
-                    <button class="btn btn-sm btn-secondary" style="color: var(--color-danger);" @onclick="() => RemovePlant(plantIndex)">Remove</button>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Plant Name *</label>
-                        <InputText @bind-Value="plant.Name" class="form-control" />
-                    </div>
-                    <div class="form-group">
-                        <label>Description</label>
-                        <InputText @bind-Value="plant.Description" class="form-control" />
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Contact Name</label>
-                        <InputText @bind-Value="plant.ContactName" class="form-control" />
-                    </div>
-                    <div class="form-group">
-                        <label>Contact Phone</label>
-                        <InputText @bind-Value="plant.ContactPhone" class="form-control" />
-                    </div>
-                    <div class="form-group">
-                        <label>Contact Email</label>
-                        <InputText @bind-Value="plant.ContactEmail" class="form-control" />
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Plant Photo</label>
-                    <InputFile OnChange="e => OnPhotoSelected(e, p => { plant.PhotoBase64 = p.base64; plant.PhotoFileName = p.name; })" class="form-control" accept="image/*" />
-                    @if (plant.PhotoBase64 is not null)
-                    {
-                        <div class="photo-preview">
-                            <img src="@($"data:image/jpeg;base64,{plant.PhotoBase64}")" alt="Plant photo" />
-                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { plant.PhotoBase64 = null; plant.PhotoFileName = null; }">Remove</button>
-                        </div>
-                    }
-                </div>
-            </div>
-        }
-    </div>
-}
-
-@* Step 2: Sections *@
-@if (_currentStep == 2)
-{
-    <div class="wizard-card">
-        <h2>Sections</h2>
-        <p class="section-desc">Add sections (areas/zones) to each plant where equipment is located.</p>
-
-        @foreach (var (plant, pIdx) in _plants.Select((p, i) => (p, i)))
-        {
-            var plantIndex = pIdx;
-            <div class="setup-plant-group">
-                <div class="section-header">
-                    <h3>@plant.Name</h3>
-                    <button class="btn btn-sm btn-primary" @onclick="() => AddSection(plantIndex)">+ Add Section</button>
-                </div>
-
-                @if (!plant.Sections.Any())
-                {
-                    <p class="empty-state">No sections for this plant yet.</p>
-                }
-
-                @foreach (var (sect, sIdx) in plant.Sections.Select((s, i) => (s, i)))
-                {
-                    var secIndex = sIdx;
-                    <div class="setup-sub-item">
-                        <div class="setup-item-header">
-                            <span class="sub-item-label">Section @(secIndex + 1)</span>
-                            <button class="btn btn-sm btn-secondary" style="color: var(--color-danger);" @onclick="() => RemoveSection(plantIndex, secIndex)">Remove</button>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Section Name *</label>
-                                <InputText @bind-Value="sect.Name" class="form-control" />
-                            </div>
-                            <div class="form-group">
-                                <label>Description</label>
-                                <InputText @bind-Value="sect.Description" class="form-control" />
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Section Photo</label>
-                            <InputFile OnChange="e => OnPhotoSelected(e, p => { sect.PhotoBase64 = p.base64; sect.PhotoFileName = p.name; })" class="form-control" accept="image/*" />
-                            @if (sect.PhotoBase64 is not null)
-                            {
-                                <div class="photo-preview">
-                                    <img src="@($"data:image/jpeg;base64,{sect.PhotoBase64}")" alt="Section photo" />
-                                    <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { sect.PhotoBase64 = null; sect.PhotoFileName = null; }">Remove</button>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                }
-            </div>
-        }
-    </div>
-}
-
-@* Step 3: Equipment *@
-@if (_currentStep == 3)
-{
-    <div class="wizard-card">
-        <h2>Equipment</h2>
-        <p class="section-desc">Add equipment that needs to be inspected in each section.</p>
-
-        @foreach (var (plant, pIdx) in _plants.Select((p, i) => (p, i)))
-        {
-            var plantIndex = pIdx;
-            <div class="setup-plant-group">
-                <h3>@plant.Name</h3>
-
-                @foreach (var (sect, sIdx) in plant.Sections.Select((s, i) => (s, i)))
-                {
-                    var secIndex = sIdx;
-                    <div class="setup-section-group">
-                        <div class="section-header">
-                            <h4>@sect.Name</h4>
-                            <button class="btn btn-sm btn-primary" @onclick="() => AddEquipment(plantIndex, secIndex)">+ Add Equipment</button>
-                        </div>
-
-                        @if (!sect.Equipment.Any())
-                        {
-                            <p class="empty-state">No equipment in this section yet.</p>
-                        }
-
-                        @foreach (var (eq, eIdx) in sect.Equipment.Select((e, i) => (e, i)))
-                        {
-                            var eqIndex = eIdx;
-                            <div class="setup-sub-item">
-                                <div class="setup-item-header">
-                                    <span class="sub-item-label">Equipment @(eqIndex + 1)</span>
-                                    <button class="btn btn-sm btn-secondary" style="color: var(--color-danger);" @onclick="() => RemoveEquipment(plantIndex, secIndex, eqIndex)">Remove</button>
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label>Identifier *</label>
-                                        <InputText @bind-Value="eq.Identifier" class="form-control" placeholder="e.g. FE-01" />
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Equipment Type *</label>
-                                        <select class="form-control" value="@eq.EquipmentTypeId" @onchange="e => OnEqTypeChanged(e, eq)">
-                                            <option value="0">-- Select Type --</option>
-                                            @foreach (var eqType in _equipmentTypes)
-                                            {
-                                                <option value="@eqType.Id">@eqType.Name</option>
-                                            }
-                                        </select>
-                                    </div>
-                                </div>
-                                @if (eq.AvailableSubTypes.Any())
-                                {
-                                    <div class="form-group">
-                                        <label>Sub-Type</label>
-                                        <select class="form-control" value="@eq.EquipmentSubTypeId" @onchange="e => OnEqSubTypeChanged(e, eq)">
-                                            <option value="">-- Optional --</option>
-                                            @foreach (var st in eq.AvailableSubTypes)
-                                            {
-                                                <option value="@st.Id">@st.Name</option>
-                                            }
-                                        </select>
-                                    </div>
-                                }
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label>Description</label>
-                                        <InputText @bind-Value="eq.Description" class="form-control" />
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Size</label>
-                                        <InputText @bind-Value="eq.Size" class="form-control" />
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Serial Number</label>
-                                        <InputText @bind-Value="eq.SerialNumber" class="form-control" />
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                }
-            </div>
-        }
-    </div>
-}
-
-@* Step 4: Review *@
-@if (_currentStep == 4)
-{
-    <div class="wizard-card">
-        <h2>Review</h2>
-        <p class="section-desc">Review everything before saving. You can go back to make changes.</p>
-
-        <div class="review-tree">
-            <div class="tree-node tree-company">
-                <div class="tree-node-header">
-                    <span class="tree-icon">&#127970;</span>
-                    <strong>@(_createNewCompany ? _companyModel.Name : _existingCompanies.FirstOrDefault(c => c.Id == _selectedCompanyId)?.Name ?? "Unknown")</strong>
-                    @if (_createNewCompany)
-                    {
-                        <span class="status-badge status-inprogress">New</span>
-                    }
-                </div>
-
-                @foreach (var plant in _plants)
-                {
-                    <div class="tree-node tree-plant">
-                        <div class="tree-node-header">
-                            <span class="tree-icon">&#127981;</span>
-                            <strong>@plant.Name</strong>
-                            @if (plant.PhotoBase64 is not null)
-                            {
-                                <span class="status-badge status-completed">Has Photo</span>
-                            }
-                        </div>
-
-                        @foreach (var sect in plant.Sections)
-                        {
-                            <div class="tree-node tree-section">
-                                <div class="tree-node-header">
-                                    <span class="tree-icon">&#128193;</span>
-                                    <strong>@sect.Name</strong>
-                                    <span class="card-subtitle">(@sect.Equipment.Count equipment)</span>
-                                </div>
-
-                                @foreach (var eq in sect.Equipment)
-                                {
-                                    <div class="tree-node tree-equipment">
-                                        <span class="tree-icon">&#9881;</span>
-                                        <span>@eq.Identifier</span>
-                                        <span class="card-subtitle">@(_equipmentTypes.FirstOrDefault(t => t.Id == eq.EquipmentTypeId)?.Name ?? "Unknown Type")</span>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-                }
-            </div>
-        </div>
-
-        <div class="review-summary">
-            <div class="stat-card"><div class="stat-value">@_plants.Count</div><div class="stat-label">Plants</div></div>
-            <div class="stat-card"><div class="stat-value">@_plants.Sum(p => p.Sections.Count)</div><div class="stat-label">Sections</div></div>
-            <div class="stat-card"><div class="stat-value">@_plants.Sum(p => p.Sections.Sum(s => s.Equipment.Count))</div><div class="stat-label">Equipment</div></div>
-        </div>
-    </div>
-}
-
 @if (_errorMessage is not null)
 {
     <div class="error-message">@_errorMessage</div>
 }
 
+@* ==================== Step 0: Company ==================== *@
+@if (_currentStep == 0)
+{
+    <div class="wizard-card">
+        <div class="section-header">
+            <h2>Select a Company</h2>
+            <button class="btn btn-primary" @onclick="() => { _showCreateCompany = true; _companyCreate = new(); }">+ New Company</button>
+        </div>
+
+        @if (_showCreateCompany)
+        {
+            <div class="setup-item-card" style="margin-top: var(--spacing-md);">
+                <div class="setup-item-header">
+                    <h3>Create New Company</h3>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => _showCreateCompany = false">Cancel</button>
+                </div>
+                <EditForm Model="_companyCreate" OnValidSubmit="CreateCompany">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Name *</label>
+                            <InputText @bind-Value="_companyCreate.Name" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Code</label>
+                            <InputText @bind-Value="_companyCreate.Code" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <InputText @bind-Value="_companyCreate.Address" class="form-control" />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Contact Name</label>
+                            <InputText @bind-Value="_companyCreate.ContactName" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Contact Email</label>
+                            <InputText @bind-Value="_companyCreate.ContactEmail" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Contact Phone</label>
+                            <InputText @bind-Value="_companyCreate.ContactPhone" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Photo</label>
+                        <InputFile OnChange="OnCreateCompanyPhotoSelected" class="form-control" accept="image/*" />
+                        @if (_companyCreate.PhotoBase64 is not null)
+                        {
+                            <div class="photo-preview">
+                                <img src="@($"data:image/jpeg;base64,{_companyCreate.PhotoBase64}")" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _companyCreate.PhotoBase64 = null; _companyCreate.PhotoFileName = null; }">Remove</button>
+                            </div>
+                        }
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Company</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showCreateCompany = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        <div class="card-list" style="margin-top: var(--spacing-md);">
+            @foreach (var company in _companies)
+            {
+                <div class="card clickable @(company.Id == _selectedCompanyId ? "setup-selected" : "")" @onclick="() => SelectCompany(company.Id)">
+                    @if (company.PhotoBase64 is not null)
+                    {
+                        <div class="card-photo">
+                            <img src="@($"data:image/jpeg;base64,{company.PhotoBase64}")" alt="@company.Name" />
+                        </div>
+                    }
+                    <h3>@company.Name</h3>
+                    <p class="card-subtitle">@(company.Code ?? "No code") &middot; @(company.Address ?? "No address")</p>
+                    <div class="card-stats">
+                        <span>@company.PlantCount plants</span>
+                        <span>@company.TotalEquipment equipment</span>
+                    </div>
+                    @if (company.Id == _selectedCompanyId)
+                    {
+                        <span class="active-badge" style="margin-top: var(--spacing-xs);">&#10003; Selected</span>
+                    }
+                </div>
+            }
+        </div>
+
+        @if (!_companies.Any() && !_showCreateCompany)
+        {
+            <p class="empty-state">No companies yet. Create one to get started.</p>
+        }
+    </div>
+}
+
+@* ==================== Step 1: Plants ==================== *@
+@if (_currentStep == 1)
+{
+    <div class="wizard-card">
+        <div class="section-header">
+            <h2>Plants for @_selectedCompanyName</h2>
+            <button class="btn btn-primary" @onclick="() => { _showCreatePlant = true; _showEditPlant = false; _plantCreate = new(); }">+ Add Plant</button>
+        </div>
+        <p class="card-subtitle" style="margin-bottom: var(--spacing-md);">Add and manage plants/facilities. Changes save immediately.</p>
+
+        @if (_showCreatePlant)
+        {
+            <div class="setup-item-card">
+                <div class="setup-item-header">
+                    <h3>New Plant</h3>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => _showCreatePlant = false">Cancel</button>
+                </div>
+                <EditForm Model="_plantCreate" OnValidSubmit="CreatePlant">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Name *</label>
+                            <InputText @bind-Value="_plantCreate.Name" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <InputText @bind-Value="_plantCreate.Description" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Contact Name</label>
+                            <InputText @bind-Value="_plantCreate.ContactName" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Contact Phone</label>
+                            <InputText @bind-Value="_plantCreate.ContactPhone" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Contact Email</label>
+                            <InputText @bind-Value="_plantCreate.ContactEmail" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Photo</label>
+                        <InputFile OnChange="OnCreatePlantPhotoSelected" class="form-control" accept="image/*" />
+                        @if (_plantCreate.PhotoBase64 is not null)
+                        {
+                            <div class="photo-preview">
+                                <img src="@($"data:image/jpeg;base64,{_plantCreate.PhotoBase64}")" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _plantCreate.PhotoBase64 = null; _plantCreate.PhotoFileName = null; }">Remove</button>
+                            </div>
+                        }
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Plant</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showCreatePlant = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        @if (_showEditPlant)
+        {
+            <div class="setup-item-card">
+                <div class="setup-item-header">
+                    <h3>Edit Plant</h3>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => _showEditPlant = false">Cancel</button>
+                </div>
+                <EditForm Model="_plantEdit" OnValidSubmit="UpdatePlant">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Name *</label>
+                            <InputText @bind-Value="_plantEdit.Name" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <InputText @bind-Value="_plantEdit.Description" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Contact Name</label>
+                            <InputText @bind-Value="_plantEdit.ContactName" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Contact Phone</label>
+                            <InputText @bind-Value="_plantEdit.ContactPhone" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Contact Email</label>
+                            <InputText @bind-Value="_plantEdit.ContactEmail" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Photo</label>
+                        <InputFile OnChange="OnEditPlantPhotoSelected" class="form-control" accept="image/*" />
+                        @if (_plantEdit.PhotoBase64 is not null)
+                        {
+                            <div class="photo-preview">
+                                <img src="@($"data:image/jpeg;base64,{_plantEdit.PhotoBase64}")" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _plantEdit.PhotoBase64 = null; _plantEdit.PhotoFileName = null; }">Remove</button>
+                            </div>
+                        }
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Update Plant</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showEditPlant = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        <div class="card-list" style="margin-top: var(--spacing-md);">
+            @foreach (var plant in _plants)
+            {
+                <div class="card">
+                    @if (plant.PhotoBase64 is not null)
+                    {
+                        <div class="card-photo">
+                            <img src="@($"data:image/jpeg;base64,{plant.PhotoBase64}")" alt="@plant.Name" />
+                        </div>
+                    }
+                    <div class="card-header-row">
+                        <h3>@plant.Name</h3>
+                        <div class="card-edit-btn">
+                            <button class="btn btn-sm btn-secondary" @onclick="() => StartEditPlant(plant)">Edit</button>
+                        </div>
+                    </div>
+                    <p class="card-subtitle">@(plant.Description ?? "No description")</p>
+                    <p class="card-subtitle">&#128100; @(plant.ContactName ?? "No contact")</p>
+                    <div class="card-stats">
+                        <span>@plant.SectionCount sections</span>
+                        <span>@plant.EquipmentCount equipment</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (!_plants.Any() && !_showCreatePlant)
+        {
+            <p class="empty-state">No plants yet. Add one to get started.</p>
+        }
+    </div>
+}
+
+@* ==================== Step 2: Sections ==================== *@
+@if (_currentStep == 2)
+{
+    <div class="wizard-card">
+        <div class="section-header">
+            <h2>Sections</h2>
+            @if (_selectedPlantId > 0)
+            {
+                <button class="btn btn-primary" @onclick="() => { _showCreateSection = true; _showEditSection = false; _sectionCreate = new(); }">+ Add Section</button>
+            }
+        </div>
+        <p class="card-subtitle" style="margin-bottom: var(--spacing-md);">Add sections (areas/zones) to each plant where equipment is located.</p>
+
+        @if (_plants.Any())
+        {
+            <div class="setup-plant-selector">
+                <label>Plant:</label>
+                <select class="form-control" value="@_selectedPlantId" @onchange="OnPlantChanged">
+                    @foreach (var plant in _plants)
+                    {
+                        <option value="@plant.Id">@plant.Name (@plant.SectionCount sections)</option>
+                    }
+                </select>
+            </div>
+        }
+        else
+        {
+            <p class="empty-state">No plants available. Go back and add plants first.</p>
+        }
+
+        @if (_showCreateSection)
+        {
+            <div class="setup-item-card">
+                <div class="setup-item-header">
+                    <h3>New Section</h3>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => _showCreateSection = false">Cancel</button>
+                </div>
+                <EditForm Model="_sectionCreate" OnValidSubmit="CreateSection">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Name *</label>
+                            <InputText @bind-Value="_sectionCreate.Name" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <InputText @bind-Value="_sectionCreate.Description" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Photo</label>
+                        <InputFile OnChange="OnCreateSectionPhotoSelected" class="form-control" accept="image/*" />
+                        @if (_sectionCreate.PhotoBase64 is not null)
+                        {
+                            <div class="photo-preview">
+                                <img src="@($"data:image/jpeg;base64,{_sectionCreate.PhotoBase64}")" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionCreate.PhotoBase64 = null; _sectionCreate.PhotoFileName = null; }">Remove</button>
+                            </div>
+                        }
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Section</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showCreateSection = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        @if (_showEditSection)
+        {
+            <div class="setup-item-card">
+                <div class="setup-item-header">
+                    <h3>Edit Section</h3>
+                    <button class="btn btn-sm btn-secondary" @onclick="() => _showEditSection = false">Cancel</button>
+                </div>
+                <EditForm Model="_sectionEdit" OnValidSubmit="UpdateSection">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Name *</label>
+                            <InputText @bind-Value="_sectionEdit.Name" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <InputText @bind-Value="_sectionEdit.Description" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Photo</label>
+                        <InputFile OnChange="OnEditSectionPhotoSelected" class="form-control" accept="image/*" />
+                        @if (_sectionEdit.PhotoBase64 is not null)
+                        {
+                            <div class="photo-preview">
+                                <img src="@($"data:image/jpeg;base64,{_sectionEdit.PhotoBase64}")" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionEdit.PhotoBase64 = null; _sectionEdit.PhotoFileName = null; }">Remove</button>
+                            </div>
+                        }
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Update Section</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showEditSection = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        @if (_selectedPlantId > 0)
+        {
+            <div class="card-list" style="margin-top: var(--spacing-md);">
+                @foreach (var sec in _sections)
+                {
+                    <div class="card">
+                        @if (sec.PhotoBase64 is not null)
+                        {
+                            <div class="card-photo">
+                                <img src="@($"data:image/jpeg;base64,{sec.PhotoBase64}")" alt="@sec.Name" />
+                            </div>
+                        }
+                        <div class="card-header-row">
+                            <h3>@sec.Name</h3>
+                            <div class="card-edit-btn">
+                                <button class="btn btn-sm btn-secondary" @onclick="() => StartEditSection(sec)">Edit</button>
+                            </div>
+                        </div>
+                        <p class="card-subtitle">@(sec.Description ?? "No description")</p>
+                        <div class="card-stats">
+                            <span>@sec.EquipmentCount equipment</span>
+                            <span>Sort: @sec.SortOrder</span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (!_sections.Any() && !_showCreateSection)
+            {
+                <p class="empty-state">No sections for this plant yet. Add one to get started.</p>
+            }
+        }
+    </div>
+}
+
+@* ==================== Step 3: Equipment ==================== *@
+@if (_currentStep == 3)
+{
+    <div class="wizard-card">
+        <div class="section-header">
+            <h2>Equipment</h2>
+        </div>
+        <p class="card-subtitle" style="margin-bottom: var(--spacing-md);">Add equipment to each section. Equipment will be inspected during rounds.</p>
+
+        @if (_plants.Any())
+        {
+            <div class="setup-plant-selector">
+                <label>Plant:</label>
+                <select class="form-control" value="@_selectedPlantId" @onchange="OnPlantChanged">
+                    @foreach (var plant in _plants)
+                    {
+                        <option value="@plant.Id">@plant.Name</option>
+                    }
+                </select>
+            </div>
+        }
+        else
+        {
+            <p class="empty-state">No plants available. Go back and add plants first.</p>
+        }
+
+        @if (_selectedPlantId > 0 && _sections.Any())
+        {
+            @foreach (var sec in _sections)
+            {
+                <div class="setup-section-group">
+                    <div class="setup-item-header">
+                        <h4>&#128193; @sec.Name</h4>
+                        <button class="btn btn-sm btn-primary" @onclick="() => StartCreateEquipment(sec.Id)">+ Add Equipment</button>
+                    </div>
+
+                    @if (GetEquipmentForSection(sec.Id).Any())
+                    {
+                        <div style="overflow-x: auto;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Identifier</th>
+                                        <th>Type</th>
+                                        <th>Sub-Type</th>
+                                        <th>Description</th>
+                                        <th>Size</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var eq in GetEquipmentForSection(sec.Id))
+                                    {
+                                        <tr class="@(!eq.IsActive ? "row-inactive" : "")">
+                                            <td><strong>@eq.Identifier</strong></td>
+                                            <td>@eq.EquipmentTypeName</td>
+                                            <td>@(eq.SubTypeName ?? "—")</td>
+                                            <td>@(eq.Description ?? "—")</td>
+                                            <td>@(eq.Size ?? "—")</td>
+                                            <td>
+                                                @if (eq.IsActive)
+                                                {
+                                                    <span class="active-badge">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="inactive-badge">Inactive</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-xs btn-secondary" @onclick="() => StartEditEquipment(eq)">Edit</button>
+                                                    <button class="btn btn-xs @(eq.IsActive ? "btn-secondary" : "btn-primary")" @onclick="() => ToggleEquipmentActive(eq)">
+                                                        @(eq.IsActive ? "Deactivate" : "Activate")
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="empty-state">No equipment in this section yet.</p>
+                    }
+                </div>
+            }
+        }
+        else if (_selectedPlantId > 0 && !_sections.Any())
+        {
+            <p class="empty-state">No sections for this plant. Go back to add sections first.</p>
+        }
+    </div>
+
+    @* Equipment Create Modal *@
+    @if (_showCreateEquipment)
+    {
+        <div class="modal-overlay" @onclick="() => _showCreateEquipment = false">
+            <div class="modal" @onclick:stopPropagation>
+                <h2>Add Equipment</h2>
+                <EditForm Model="_equipmentCreate" OnValidSubmit="CreateEquipment">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Identifier *</label>
+                            <InputText @bind-Value="_equipmentCreate.Identifier" class="form-control" placeholder="e.g. FE-01" />
+                        </div>
+                        <div class="form-group">
+                            <label>Equipment Type *</label>
+                            <select class="form-control" value="@_equipmentCreate.EquipmentTypeId" @onchange="OnCreateEquipmentTypeChanged">
+                                <option value="0">-- Select Type --</option>
+                                @foreach (var t in _equipmentTypes)
+                                {
+                                    <option value="@t.Id">@t.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    @if (_createSubTypes.Any())
+                    {
+                        <div class="form-group">
+                            <label>Sub-Type</label>
+                            <select class="form-control" value="@_equipmentCreate.EquipmentSubTypeId" @onchange="OnCreateEquipmentSubTypeChanged">
+                                <option value="">-- Optional --</option>
+                                @foreach (var st in _createSubTypes)
+                                {
+                                    <option value="@st.Id">@st.Name</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Description</label>
+                            <InputText @bind-Value="_equipmentCreate.Description" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Size</label>
+                            <InputText @bind-Value="_equipmentCreate.Size" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Serial Number</label>
+                            <InputText @bind-Value="_equipmentCreate.SerialNumber" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save Equipment</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showCreateEquipment = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @* Equipment Edit Modal *@
+    @if (_showEditEquipment)
+    {
+        <div class="modal-overlay" @onclick="() => _showEditEquipment = false">
+            <div class="modal" @onclick:stopPropagation>
+                <h2>Edit Equipment</h2>
+                <EditForm Model="_equipmentEdit" OnValidSubmit="UpdateEquipment">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Identifier *</label>
+                            <InputText @bind-Value="_equipmentEdit.Identifier" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Equipment Type *</label>
+                            <select class="form-control" value="@_equipmentEdit.EquipmentTypeId" @onchange="OnEditEquipmentTypeChanged">
+                                <option value="0">-- Select Type --</option>
+                                @foreach (var t in _equipmentTypes)
+                                {
+                                    <option value="@t.Id">@t.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    @if (_editSubTypes.Any())
+                    {
+                        <div class="form-group">
+                            <label>Sub-Type</label>
+                            <select class="form-control" value="@_equipmentEdit.EquipmentSubTypeId" @onchange="OnEditEquipmentSubTypeChanged">
+                                <option value="">-- None --</option>
+                                @foreach (var st in _editSubTypes)
+                                {
+                                    <option value="@st.Id">@st.Name</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Description</label>
+                            <InputText @bind-Value="_equipmentEdit.Description" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Size</label>
+                            <InputText @bind-Value="_equipmentEdit.Size" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label>Serial Number</label>
+                            <InputText @bind-Value="_equipmentEdit.SerialNumber" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Update Equipment</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showEditEquipment = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    }
+}
+
+@* ==================== Step 4: Review ==================== *@
+@if (_currentStep == 4)
+{
+    <div class="wizard-card">
+        <h2>Review</h2>
+        <p class="card-subtitle" style="margin-bottom: var(--spacing-lg);">Here's your complete hierarchy. You can go back to make changes.</p>
+
+        @if (_reviewData is not null)
+        {
+            <div class="review-summary" style="margin-bottom: var(--spacing-lg);">
+                <div class="stat-card">
+                    <div class="stat-value">@_reviewData.Plants.Count</div>
+                    <div class="stat-label">Plants</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">@_reviewData.Plants.Sum(p => p.Sections.Count)</div>
+                    <div class="stat-label">Sections</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">@_reviewData.Plants.Sum(p => p.Sections.Sum(s => s.Equipment.Count))</div>
+                    <div class="stat-label">Equipment</div>
+                </div>
+            </div>
+
+            <div class="review-tree">
+                <div class="tree-node tree-company">
+                    <div class="tree-node-header">
+                        <span class="tree-icon">&#127970;</span>
+                        <strong>@_reviewData.Company.Name</strong>
+                        @if (_reviewData.Company.Code is not null)
+                        {
+                            <span class="card-subtitle">(@_reviewData.Company.Code)</span>
+                        }
+                    </div>
+
+                    @foreach (var rp in _reviewData.Plants)
+                    {
+                        <div class="tree-node tree-plant">
+                            <div class="tree-node-header">
+                                <span class="tree-icon">&#127981;</span>
+                                <strong>@rp.Plant.Name</strong>
+                                <span class="card-subtitle">(@rp.Sections.Count sections, @rp.Sections.Sum(s => s.Equipment.Count) equipment)</span>
+                            </div>
+
+                            @foreach (var rs in rp.Sections)
+                            {
+                                <div class="tree-node tree-section">
+                                    <div class="tree-node-header">
+                                        <span class="tree-icon">&#128193;</span>
+                                        <strong>@rs.Section.Name</strong>
+                                        <span class="card-subtitle">(@rs.Equipment.Count equipment)</span>
+                                    </div>
+
+                                    @foreach (var eq in rs.Equipment)
+                                    {
+                                        <div class="tree-node tree-equipment">
+                                            <span class="tree-icon">&#9881;</span>
+                                            <span>@eq.Identifier</span>
+                                            <span class="card-subtitle">@eq.EquipmentTypeName</span>
+                                            @if (eq.SubTypeName is not null)
+                                            {
+                                                <span class="card-subtitle">/ @eq.SubTypeName</span>
+                                            }
+                                            @if (!eq.IsActive)
+                                            {
+                                                <span class="inactive-badge">Inactive</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <p>Loading review data...</p>
+        }
+    </div>
+}
+
 <div class="wizard-actions">
     @if (_currentStep > 0)
     {
-        <button class="btn btn-secondary" @onclick="PreviousStep" disabled="@_saving">&larr; Back</button>
+        <button class="btn btn-secondary" @onclick="PreviousStep">&larr; Back</button>
     }
     <div style="flex: 1;"></div>
     @if (_currentStep < _stepNames.Length - 1)
@@ -387,173 +722,494 @@
     }
     else
     {
-        <button class="btn btn-primary" @onclick="ExecuteSetup" disabled="@_saving">
-            @if (_saving)
-            {
-                <span>Saving...</span>
-            }
-            else
-            {
-                <span>Create Everything</span>
-            }
-        </button>
+        <button class="btn btn-primary btn-lg" @onclick="Finish">&#10003; Done &mdash; Go to Overview</button>
     }
 </div>
 
 @code {
     private readonly string[] _stepNames = ["Company", "Plants", "Sections", "Equipment", "Review"];
     private int _currentStep;
-    private bool _saving;
     private string? _errorMessage;
 
-    private List<CompanyDto> _existingCompanies = [];
-    private List<EquipmentTypeDto> _equipmentTypes = [];
-    private bool _createNewCompany = true;
-    private int? _selectedCompanyId;
+    // Step 0: Company
+    private List<CompanyDto> _companies = [];
+    private int _selectedCompanyId;
+    private string _selectedCompanyName = "";
+    private bool _showCreateCompany;
+    private CompanyCreateModel _companyCreate = new();
 
-    private CompanyModel _companyModel = new();
-    private List<PlantModel> _plants = [];
+    // Step 1: Plants
+    private List<PlantDto> _plants = [];
+    private bool _showCreatePlant;
+    private bool _showEditPlant;
+    private int _editPlantId;
+    private PlantCreateModel _plantCreate = new();
+    private PlantEditModel _plantEdit = new();
+
+    // Step 2: Sections
+    private int _selectedPlantId;
+    private List<SectionDto> _sections = [];
+    private bool _showCreateSection;
+    private bool _showEditSection;
+    private int _editSectionId;
+    private SectionCreateModel _sectionCreate = new();
+    private SectionEditModel _sectionEdit = new();
+
+    // Step 3: Equipment
+    private Dictionary<int, List<EquipmentDto>> _sectionEquipment = new();
+    private List<EquipmentTypeDto> _equipmentTypes = [];
+    private List<EquipmentSubTypeDto> _createSubTypes = [];
+    private List<EquipmentSubTypeDto> _editSubTypes = [];
+    private bool _showCreateEquipment;
+    private bool _showEditEquipment;
+    private int _createEquipmentSectionId;
+    private int _editEquipmentId;
+    private EquipmentCreateModel _equipmentCreate = new();
+    private EquipmentEditModel _equipmentEdit = new();
+
+    // Step 4: Review
+    private ReviewData? _reviewData;
 
     protected override async Task OnInitializedAsync()
     {
-        _existingCompanies = await CompanyService.GetAllCompaniesAsync();
+        _companies = await CompanyService.GetAllCompaniesAsync();
         _equipmentTypes = await EquipmentService.GetEquipmentTypesAsync();
     }
 
-    private void OnExistingCompanyChanged(ChangeEventArgs e)
+    // ==================== Navigation ====================
+
+    private async Task GoToStep(int step)
     {
-        if (int.TryParse(e.Value?.ToString(), out var id))
-            _selectedCompanyId = id;
-        else
-            _selectedCompanyId = null;
+        if (step >= _currentStep) return;
+        _currentStep = step;
+        _errorMessage = null;
+        await OnStepEntered();
     }
 
-    private void AddPlant() => _plants.Add(new PlantModel());
-    private void RemovePlant(int index) => _plants.RemoveAt(index);
-    private void AddSection(int plantIndex) => _plants[plantIndex].Sections.Add(new SectionModel());
-    private void RemoveSection(int plantIndex, int sectionIndex) => _plants[plantIndex].Sections.RemoveAt(sectionIndex);
-    private void AddEquipment(int plantIndex, int sectionIndex) => _plants[plantIndex].Sections[sectionIndex].Equipment.Add(new EquipmentModel());
-    private void RemoveEquipment(int plantIndex, int sectionIndex, int eqIndex) => _plants[plantIndex].Sections[sectionIndex].Equipment.RemoveAt(eqIndex);
-
-    private async Task OnEqTypeChanged(ChangeEventArgs e, EquipmentModel eq)
+    private async Task NextStep()
     {
-        if (int.TryParse(e.Value?.ToString(), out var typeId))
+        if (!ValidateCurrentStep()) return;
+        _currentStep++;
+        _errorMessage = null;
+        await OnStepEntered();
+    }
+
+    private async Task PreviousStep()
+    {
+        _currentStep--;
+        _errorMessage = null;
+        await OnStepEntered();
+    }
+
+    private async Task OnStepEntered()
+    {
+        _showCreateCompany = false;
+        _showCreatePlant = false;
+        _showEditPlant = false;
+        _showCreateSection = false;
+        _showEditSection = false;
+        _showCreateEquipment = false;
+        _showEditEquipment = false;
+
+        switch (_currentStep)
         {
-            eq.EquipmentTypeId = typeId;
-            eq.AvailableSubTypes = await EquipmentService.GetSubTypesByTypeAsync(typeId);
-            eq.EquipmentSubTypeId = null;
+            case 1:
+                await LoadPlants();
+                break;
+            case 2:
+                await LoadPlants();
+                if (_plants.Any() && _selectedPlantId == 0)
+                    _selectedPlantId = _plants.First().Id;
+                if (_selectedPlantId > 0)
+                    await LoadSections();
+                break;
+            case 3:
+                await LoadPlants();
+                if (_plants.Any() && _selectedPlantId == 0)
+                    _selectedPlantId = _plants.First().Id;
+                if (_selectedPlantId > 0)
+                {
+                    await LoadSections();
+                    await LoadAllSectionEquipment();
+                }
+                break;
+            case 4:
+                await LoadReviewData();
+                break;
         }
     }
 
-    private void OnEqSubTypeChanged(ChangeEventArgs e, EquipmentModel eq)
-    {
-        if (int.TryParse(e.Value?.ToString(), out var subTypeId))
-            eq.EquipmentSubTypeId = subTypeId;
-        else
-            eq.EquipmentSubTypeId = null;
-    }
-
-    private async Task OnPhotoSelected(InputFileChangeEventArgs e, Action<(string base64, string name)> setter)
-    {
-        var file = e.File;
-        if (file is null) return;
-
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        var base64 = Convert.ToBase64String(buffer);
-        setter((base64, file.Name));
-        StateHasChanged();
-    }
-
-    private void NextStep()
+    private bool ValidateCurrentStep()
     {
         _errorMessage = null;
-
-        if (_currentStep == 0 && !_createNewCompany && _selectedCompanyId is null)
+        switch (_currentStep)
         {
-            _errorMessage = "Please select a company.";
-            return;
+            case 0:
+                if (_selectedCompanyId == 0)
+                {
+                    _errorMessage = "Please select a company before continuing.";
+                    return false;
+                }
+                break;
+            case 1:
+                if (!_plants.Any())
+                {
+                    _errorMessage = "Add at least one plant before continuing.";
+                    return false;
+                }
+                break;
         }
-        if (_currentStep == 0 && _createNewCompany && string.IsNullOrWhiteSpace(_companyModel.Name))
+        return true;
+    }
+
+    // ==================== Data Loading ====================
+
+    private async Task LoadPlants()
+    {
+        if (_selectedCompanyId > 0)
+            _plants = await PlantService.GetPlantsByCompanyAsync(_selectedCompanyId);
+    }
+
+    private async Task LoadSections()
+    {
+        if (_selectedPlantId > 0)
+            _sections = await SectionService.GetSectionsByPlantAsync(_selectedPlantId);
+        else
+            _sections = [];
+    }
+
+    private async Task LoadAllSectionEquipment()
+    {
+        _sectionEquipment.Clear();
+        foreach (var section in _sections)
+        {
+            var equipment = await EquipmentService.GetEquipmentBySectionAsync(section.Id, includeInactive: true);
+            _sectionEquipment[section.Id] = equipment;
+        }
+    }
+
+    private List<EquipmentDto> GetEquipmentForSection(int sectionId)
+        => _sectionEquipment.TryGetValue(sectionId, out var list) ? list : [];
+
+    private async Task LoadReviewData()
+    {
+        var company = await CompanyService.GetCompanyByIdAsync(_selectedCompanyId);
+        if (company is null) return;
+
+        _reviewData = new ReviewData { Company = company };
+        var plants = await PlantService.GetPlantsByCompanyAsync(_selectedCompanyId);
+        foreach (var plant in plants)
+        {
+            var rp = new ReviewPlantData { Plant = plant };
+            var sections = await SectionService.GetSectionsByPlantAsync(plant.Id);
+            foreach (var section in sections)
+            {
+                var equipment = await EquipmentService.GetEquipmentBySectionAsync(section.Id);
+                rp.Sections.Add(new ReviewSectionData { Section = section, Equipment = equipment });
+            }
+            _reviewData.Plants.Add(rp);
+        }
+    }
+
+    // ==================== Step 0: Company ====================
+
+    private void SelectCompany(int id)
+    {
+        _selectedCompanyId = id;
+        _selectedCompanyName = _companies.FirstOrDefault(c => c.Id == id)?.Name ?? "";
+    }
+
+    private async Task CreateCompany()
+    {
+        if (string.IsNullOrWhiteSpace(_companyCreate.Name))
         {
             _errorMessage = "Company name is required.";
             return;
         }
-        if (_currentStep == 1 && !_plants.Any())
+        var dto = new CompanyCreateDto(_companyCreate.Name, _companyCreate.Code, _companyCreate.Address,
+            _companyCreate.ContactName, _companyCreate.ContactEmail, _companyCreate.ContactPhone,
+            _companyCreate.PhotoBase64, _companyCreate.PhotoFileName);
+        var created = await CompanyService.CreateCompanyAsync(dto, "current-user");
+        _companies = await CompanyService.GetAllCompaniesAsync();
+        SelectCompany(created.Id);
+        _showCreateCompany = false;
+        _companyCreate = new();
+    }
+
+    // ==================== Step 1: Plants ====================
+
+    private void StartEditPlant(PlantDto plant)
+    {
+        _editPlantId = plant.Id;
+        _plantEdit = new PlantEditModel
         {
-            _errorMessage = "Add at least one plant.";
+            Name = plant.Name,
+            Description = plant.Description,
+            ContactName = plant.ContactName,
+            ContactPhone = plant.ContactPhone,
+            ContactEmail = plant.ContactEmail,
+            IsActive = plant.IsActive,
+            PhotoBase64 = plant.PhotoBase64,
+            PhotoFileName = plant.PhotoFileName
+        };
+        _showEditPlant = true;
+        _showCreatePlant = false;
+    }
+
+    private async Task CreatePlant()
+    {
+        if (string.IsNullOrWhiteSpace(_plantCreate.Name))
+        {
+            _errorMessage = "Plant name is required.";
             return;
         }
-        if (_currentStep == 1 && _plants.Any(p => string.IsNullOrWhiteSpace(p.Name)))
+        var dto = new PlantCreateDto(_selectedCompanyId, _plantCreate.Name, _plantCreate.Description,
+            _plantCreate.ContactName, _plantCreate.ContactPhone, _plantCreate.ContactEmail,
+            _plantCreate.PhotoBase64, _plantCreate.PhotoFileName);
+        await PlantService.CreatePlantAsync(dto, "current-user");
+        await LoadPlants();
+        _showCreatePlant = false;
+        _plantCreate = new();
+    }
+
+    private async Task UpdatePlant()
+    {
+        var dto = new PlantUpdateDto(_editPlantId, _plantEdit.Name, _plantEdit.Description,
+            _plantEdit.ContactName, _plantEdit.ContactPhone, _plantEdit.ContactEmail,
+            _plantEdit.IsActive, _plantEdit.PhotoBase64, _plantEdit.PhotoFileName);
+        await PlantService.UpdatePlantAsync(dto, "current-user");
+        await LoadPlants();
+        _showEditPlant = false;
+        _plantEdit = new();
+    }
+
+    // ==================== Step 2: Sections ====================
+
+    private async Task OnPlantChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var id))
         {
-            _errorMessage = "All plants must have a name.";
+            _selectedPlantId = id;
+            _showCreateSection = false;
+            _showEditSection = false;
+            await LoadSections();
+            if (_currentStep == 3)
+                await LoadAllSectionEquipment();
+        }
+    }
+
+    private void StartEditSection(SectionDto section)
+    {
+        _editSectionId = section.Id;
+        _sectionEdit = new SectionEditModel
+        {
+            Name = section.Name,
+            Description = section.Description,
+            SortOrder = section.SortOrder,
+            IsActive = section.IsActive,
+            PhotoBase64 = section.PhotoBase64,
+            PhotoFileName = section.PhotoFileName
+        };
+        _showEditSection = true;
+        _showCreateSection = false;
+    }
+
+    private async Task CreateSection()
+    {
+        if (string.IsNullOrWhiteSpace(_sectionCreate.Name))
+        {
+            _errorMessage = "Section name is required.";
             return;
         }
-
-        _currentStep++;
+        var sortOrder = _sections.Any() ? _sections.Max(s => s.SortOrder) + 1 : 1;
+        var dto = new SectionCreateDto(_selectedPlantId, _sectionCreate.Name, _sectionCreate.Description,
+            sortOrder, _sectionCreate.PhotoBase64, _sectionCreate.PhotoFileName);
+        await SectionService.CreateSectionAsync(dto, "current-user");
+        await LoadSections();
+        _showCreateSection = false;
+        _sectionCreate = new();
     }
 
-    private void PreviousStep()
+    private async Task UpdateSection()
     {
-        _errorMessage = null;
-        _currentStep--;
+        var dto = new SectionUpdateDto(_editSectionId, _sectionEdit.Name, _sectionEdit.Description,
+            _sectionEdit.SortOrder, _sectionEdit.IsActive, _sectionEdit.PhotoBase64, _sectionEdit.PhotoFileName);
+        await SectionService.UpdateSectionAsync(dto, "current-user");
+        await LoadSections();
+        _showEditSection = false;
+        _sectionEdit = new();
     }
 
-    private async Task ExecuteSetup()
+    // ==================== Step 3: Equipment ====================
+
+    private void StartCreateEquipment(int sectionId)
     {
-        _saving = true;
-        _errorMessage = null;
+        _createEquipmentSectionId = sectionId;
+        _equipmentCreate = new();
+        _createSubTypes = [];
+        _showCreateEquipment = true;
+        _showEditEquipment = false;
+    }
 
-        try
+    private async Task StartEditEquipment(EquipmentDto eq)
+    {
+        _editEquipmentId = eq.Id;
+        _equipmentEdit = new EquipmentEditModel
         {
-            var dto = new SetupCreateDto(
-                _createNewCompany ? null : _selectedCompanyId,
-                _companyModel.Name,
-                _companyModel.Code,
-                _companyModel.Address,
-                _companyModel.ContactName,
-                _companyModel.ContactEmail,
-                _companyModel.ContactPhone,
-                _companyModel.PhotoBase64,
-                _companyModel.PhotoFileName,
-                _plants.Select(p => new SetupPlantItem(
-                    p.Name,
-                    p.Description,
-                    p.ContactName,
-                    p.ContactPhone,
-                    p.ContactEmail,
-                    p.PhotoBase64,
-                    p.PhotoFileName,
-                    p.Sections.Select(s => new SetupSectionItem(
-                        s.Name,
-                        s.Description,
-                        s.PhotoBase64,
-                        s.PhotoFileName,
-                        s.Equipment.Select(e => new SetupEquipmentItem(
-                            e.Identifier,
-                            e.EquipmentTypeId,
-                            e.EquipmentSubTypeId,
-                            e.Description,
-                            e.Size,
-                            e.SerialNumber
-                        )).ToList()
-                    )).ToList()
-                )).ToList());
+            EquipmentTypeId = eq.EquipmentTypeId,
+            EquipmentSubTypeId = eq.EquipmentSubTypeId,
+            Identifier = eq.Identifier,
+            Description = eq.Description,
+            Size = eq.Size,
+            SerialNumber = eq.SerialNumber,
+            SortOrder = eq.SortOrder,
+            IsActive = eq.IsActive
+        };
+        _editSubTypes = eq.EquipmentTypeId > 0
+            ? await EquipmentService.GetSubTypesByTypeAsync(eq.EquipmentTypeId)
+            : [];
+        _showEditEquipment = true;
+        _showCreateEquipment = false;
+    }
 
-            var companyId = await SetupService.ExecuteSetupAsync(dto, "current-user");
-            Navigation.NavigateTo($"/companies/{companyId}");
-        }
-        catch (Exception ex)
+    private async Task OnCreateEquipmentTypeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var typeId))
         {
-            _errorMessage = $"Setup failed: {ex.Message}";
-        }
-        finally
-        {
-            _saving = false;
+            _equipmentCreate.EquipmentTypeId = typeId;
+            _equipmentCreate.EquipmentSubTypeId = null;
+            _createSubTypes = typeId > 0
+                ? await EquipmentService.GetSubTypesByTypeAsync(typeId)
+                : [];
         }
     }
 
-    private class CompanyModel
+    private async Task OnEditEquipmentTypeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var typeId))
+        {
+            _equipmentEdit.EquipmentTypeId = typeId;
+            _equipmentEdit.EquipmentSubTypeId = null;
+            _editSubTypes = typeId > 0
+                ? await EquipmentService.GetSubTypesByTypeAsync(typeId)
+                : [];
+        }
+    }
+
+    private void OnCreateEquipmentSubTypeChanged(ChangeEventArgs e)
+    {
+        _equipmentCreate.EquipmentSubTypeId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
+    }
+
+    private void OnEditEquipmentSubTypeChanged(ChangeEventArgs e)
+    {
+        _equipmentEdit.EquipmentSubTypeId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
+    }
+
+    private async Task CreateEquipment()
+    {
+        if (string.IsNullOrWhiteSpace(_equipmentCreate.Identifier))
+        {
+            _errorMessage = "Equipment identifier is required.";
+            return;
+        }
+        if (_equipmentCreate.EquipmentTypeId == 0)
+        {
+            _errorMessage = "Equipment type is required.";
+            return;
+        }
+        var existing = GetEquipmentForSection(_createEquipmentSectionId);
+        var sortOrder = existing.Any() ? existing.Max(e => e.SortOrder) + 1 : 1;
+        var dto = new EquipmentCreateDto(_createEquipmentSectionId, _equipmentCreate.EquipmentTypeId,
+            _equipmentCreate.EquipmentSubTypeId, _equipmentCreate.Identifier, _equipmentCreate.Description,
+            _equipmentCreate.Size, _equipmentCreate.SerialNumber, null, null, sortOrder);
+        await EquipmentService.CreateEquipmentAsync(dto, "current-user");
+        await LoadAllSectionEquipment();
+        _showCreateEquipment = false;
+        _equipmentCreate = new();
+        _createSubTypes = [];
+    }
+
+    private async Task UpdateEquipment()
+    {
+        var dto = new EquipmentUpdateDto(_editEquipmentId, _equipmentEdit.EquipmentTypeId,
+            _equipmentEdit.EquipmentSubTypeId, _equipmentEdit.Identifier, _equipmentEdit.Description,
+            _equipmentEdit.Size, _equipmentEdit.SerialNumber, null, _equipmentEdit.SortOrder, _equipmentEdit.IsActive);
+        await EquipmentService.UpdateEquipmentAsync(dto, "current-user");
+        await LoadAllSectionEquipment();
+        _showEditEquipment = false;
+        _equipmentEdit = new();
+        _editSubTypes = [];
+    }
+
+    private async Task ToggleEquipmentActive(EquipmentDto eq)
+    {
+        var dto = new EquipmentUpdateDto(eq.Id, eq.EquipmentTypeId, eq.EquipmentSubTypeId,
+            eq.Identifier, eq.Description, eq.Size, eq.SerialNumber, eq.NextServiceDate,
+            eq.SortOrder, !eq.IsActive);
+        await EquipmentService.UpdateEquipmentAsync(dto, "current-user");
+        await LoadAllSectionEquipment();
+    }
+
+    // ==================== Photo Handlers ====================
+
+    private async Task OnCreateCompanyPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+        _companyCreate.PhotoBase64 = Convert.ToBase64String(buffer);
+        _companyCreate.PhotoFileName = file.Name;
+    }
+
+    private async Task OnCreatePlantPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+        _plantCreate.PhotoBase64 = Convert.ToBase64String(buffer);
+        _plantCreate.PhotoFileName = file.Name;
+    }
+
+    private async Task OnEditPlantPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+        _plantEdit.PhotoBase64 = Convert.ToBase64String(buffer);
+        _plantEdit.PhotoFileName = file.Name;
+    }
+
+    private async Task OnCreateSectionPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+        _sectionCreate.PhotoBase64 = Convert.ToBase64String(buffer);
+        _sectionCreate.PhotoFileName = file.Name;
+    }
+
+    private async Task OnEditSectionPhotoSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+        var buffer = new byte[file.Size];
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
+        _sectionEdit.PhotoBase64 = Convert.ToBase64String(buffer);
+        _sectionEdit.PhotoFileName = file.Name;
+    }
+
+    // ==================== Navigation ====================
+
+    private void Finish() => Navigation.NavigateTo("/overview");
+
+    // ==================== Models ====================
+
+    private class CompanyCreateModel
     {
         public string Name { get; set; } = string.Empty;
         public string? Code { get; set; }
@@ -565,7 +1221,7 @@
         public string? PhotoFileName { get; set; }
     }
 
-    private class PlantModel
+    private class PlantCreateModel
     {
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
@@ -574,26 +1230,75 @@
         public string? ContactEmail { get; set; }
         public string? PhotoBase64 { get; set; }
         public string? PhotoFileName { get; set; }
-        public List<SectionModel> Sections { get; set; } = [];
     }
 
-    private class SectionModel
+    private class PlantEditModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? ContactName { get; set; }
+        public string? ContactPhone { get; set; }
+        public string? ContactEmail { get; set; }
+        public bool IsActive { get; set; } = true;
+        public string? PhotoBase64 { get; set; }
+        public string? PhotoFileName { get; set; }
+    }
+
+    private class SectionCreateModel
     {
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? PhotoBase64 { get; set; }
         public string? PhotoFileName { get; set; }
-        public List<EquipmentModel> Equipment { get; set; } = [];
     }
 
-    private class EquipmentModel
+    private class SectionEditModel
     {
-        public string Identifier { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int SortOrder { get; set; }
+        public bool IsActive { get; set; } = true;
+        public string? PhotoBase64 { get; set; }
+        public string? PhotoFileName { get; set; }
+    }
+
+    private class EquipmentCreateModel
+    {
         public int EquipmentTypeId { get; set; }
         public int? EquipmentSubTypeId { get; set; }
+        public string Identifier { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string? Size { get; set; }
         public string? SerialNumber { get; set; }
-        public List<EquipmentSubTypeDto> AvailableSubTypes { get; set; } = [];
+    }
+
+    private class EquipmentEditModel
+    {
+        public int EquipmentTypeId { get; set; }
+        public int? EquipmentSubTypeId { get; set; }
+        public string Identifier { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Size { get; set; }
+        public string? SerialNumber { get; set; }
+        public int SortOrder { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+
+    private class ReviewData
+    {
+        public CompanyDto Company { get; set; } = null!;
+        public List<ReviewPlantData> Plants { get; set; } = [];
+    }
+
+    private class ReviewPlantData
+    {
+        public PlantDto Plant { get; set; } = null!;
+        public List<ReviewSectionData> Sections { get; set; } = [];
+    }
+
+    private class ReviewSectionData
+    {
+        public SectionDto Section { get; set; } = null!;
+        public List<EquipmentDto> Equipment { get; set; } = [];
     }
 }
