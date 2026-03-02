@@ -6,4 +6,4 @@ public record HierarchySectionDto(int Id, string Name, string? Description, stri
 
 public record HierarchyPlantDto(int Id, string Name, string? Description, string? PhotoBase64, int SectionCount, int EquipmentCount, List<HierarchySectionDto> Sections);
 
-public record HierarchyCompanyDto(int Id, string Name, string? Code, string? PhotoBase64, int PlantCount, int TotalEquipment, List<HierarchyPlantDto> Plants);
+public record HierarchyCompanyDto(int Id, string Name, string? Code, string? PhotoBase64, string? Address, string? ContactName, string? ContactEmail, int PlantCount, int TotalEquipment, int TotalSections, List<HierarchyPlantDto> Plants);
