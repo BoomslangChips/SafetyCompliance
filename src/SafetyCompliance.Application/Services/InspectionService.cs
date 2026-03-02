@@ -22,20 +22,23 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
             .ToListAsync(ct);
     }
 
-    public async Task<InspectionRoundDto> StartInspectionRoundAsync(int plantId, string userId, CancellationToken ct = default)
+    public async Task<InspectionRoundDto> StartInspectionRoundAsync(int plantId, string userId, int? scheduleId = null, CancellationToken ct = default)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var month = today.ToString("yyyy-MM");
 
-        var existing = await context.InspectionRounds
-            .AnyAsync(ir => ir.PlantId == plantId && ir.InspectionMonth == month, ct);
+        // Only block if there's an active (Draft/InProgress) round for this month
+        var hasActiveRound = await context.InspectionRounds
+            .AnyAsync(ir => ir.PlantId == plantId && ir.InspectionMonth == month
+                && (ir.Status == InspectionStatus.Draft || ir.Status == InspectionStatus.InProgress), ct);
 
-        if (existing)
-            throw new InvalidOperationException($"An inspection round already exists for {month}");
+        if (hasActiveRound)
+            throw new InvalidOperationException($"An active inspection round already exists for {month}");
 
         var round = new InspectionRound
         {
             PlantId = plantId,
+            InspectionScheduleId = scheduleId,
             InspectionDate = today,
             InspectionMonth = month,
             Status = InspectionStatus.InProgress,
@@ -192,7 +195,38 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
             : InspectionStatus.Completed;
         round.CompletedAt = DateTime.UtcNow;
 
+        // Advance linked schedule's NextDueDate and LastCompletedDate
+        if (round.InspectionScheduleId.HasValue)
+        {
+            var schedule = await context.InspectionSchedules.FindAsync([round.InspectionScheduleId.Value], ct);
+            if (schedule is not null)
+            {
+                var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                schedule.LastCompletedDate = today;
+                schedule.NextDueDate = CalculateNextDueDate(schedule.NextDueDate, schedule.Frequency, schedule.FrequencyInterval, today);
+                schedule.ModifiedAt = DateTime.UtcNow;
+            }
+        }
+
         await context.SaveChangesAsync(ct);
+    }
+
+    private static DateOnly CalculateNextDueDate(DateOnly currentDue, FrequencyType frequency, int interval, DateOnly today)
+    {
+        // Start from whichever is later — the current due date or today
+        var baseDate = currentDue >= today ? currentDue : today;
+
+        return frequency switch
+        {
+            FrequencyType.Daily => baseDate.AddDays(1 * interval),
+            FrequencyType.Weekly => baseDate.AddDays(7 * interval),
+            FrequencyType.BiWeekly => baseDate.AddDays(14 * interval),
+            FrequencyType.Monthly => baseDate.AddMonths(1 * interval),
+            FrequencyType.Quarterly => baseDate.AddMonths(3 * interval),
+            FrequencyType.SemiAnnually => baseDate.AddMonths(6 * interval),
+            FrequencyType.Annually => baseDate.AddYears(1 * interval),
+            _ => baseDate.AddMonths(1 * interval)
+        };
     }
 
     public async Task<int> UploadPhotoAsync(int equipmentInspectionId, string fileName, string filePath,

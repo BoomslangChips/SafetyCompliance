@@ -20,7 +20,7 @@ public class ScheduleService(ApplicationDbContext context) : IScheduleService
                 s.Id, s.PlantId, s.Plant.Name, s.Name, s.Description,
                 s.Frequency, s.FrequencyInterval, s.StartDate, s.EndDate,
                 s.NextDueDate, s.LastCompletedDate, s.IsActive, s.AutoGenerate,
-                s.InspectionRounds.Count(r => r.Status == InspectionStatus.Completed || r.Status == InspectionStatus.Reviewed),
+                s.InspectionRounds.Count(r => r.Status == InspectionStatus.Completed || r.Status == InspectionStatus.Reviewed || r.Status == InspectionStatus.CompletedWithIssues),
                 s.InspectionRounds.Count))
             .ToListAsync(ct);
     }
@@ -33,7 +33,7 @@ public class ScheduleService(ApplicationDbContext context) : IScheduleService
                 s.Id, s.PlantId, s.Plant.Name, s.Name, s.Description,
                 s.Frequency, s.FrequencyInterval, s.StartDate, s.EndDate,
                 s.NextDueDate, s.LastCompletedDate, s.IsActive, s.AutoGenerate,
-                s.InspectionRounds.Count(r => r.Status == InspectionStatus.Completed || r.Status == InspectionStatus.Reviewed),
+                s.InspectionRounds.Count(r => r.Status == InspectionStatus.Completed || r.Status == InspectionStatus.Reviewed || r.Status == InspectionStatus.CompletedWithIssues),
                 s.InspectionRounds.Count))
             .FirstOrDefaultAsync(ct);
     }
