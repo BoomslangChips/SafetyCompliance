@@ -5261,6 +5261,239 @@ textarea.form-control {
 }
 
 /* ===============================================================
+   NOTES PAGE  (.note-*)
+   =============================================================== */
+
+.note-page { position: relative; }
+
+/* ── Stats row ── */
+.note-stats {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+.note-stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 10px 16px;
+    min-width: 120px;
+    flex: 1;
+    box-shadow: var(--shadow-sm);
+    transition: var(--theme-transition);
+}
+.note-stat.alert  { border-color: var(--color-danger);  background: var(--color-tint-red);    }
+.note-stat.highlight { border-color: var(--color-primary); background: var(--color-tint-indigo); }
+.note-stat-icon {
+    width: 32px; height: 32px;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; flex-shrink: 0;
+}
+.note-stat-icon.blue   { background: var(--color-tint-blue);   color: #3b82f6; }
+.note-stat-icon.indigo { background: var(--color-tint-indigo); color: var(--color-primary); }
+.note-stat-icon.red    { background: var(--color-tint-red);    color: var(--color-danger); }
+.note-stat-icon.amber  { background: var(--color-tint-yellow); color: var(--color-warning); }
+.note-stat-icon.green  { background: var(--color-tint-green);  color: var(--color-success); }
+.note-stat-icon.gray   { background: var(--color-tint-gray);   color: var(--color-text-secondary); }
+.note-stat-info { display: flex; flex-direction: column; }
+.note-stat-value { font-size: 1.3rem; font-weight: 700; color: var(--color-text); line-height: 1.1; }
+.note-stat-label { font-size: 0.72rem; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ── Card list ── */
+.note-list { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+
+.note-card {
+    display: flex;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease, var(--theme-transition);
+}
+.note-card:hover { box-shadow: var(--shadow-md); border-color: var(--color-primary-light); }
+.note-card-pinned { border-left: none; }
+.note-card-pinned .note-card-stripe { width: 5px; }
+
+/* Category colour stripe */
+.note-card-stripe {
+    width: 4px;
+    flex-shrink: 0;
+}
+.note-card-stripe.note-cat-general     { background: var(--color-secondary); }
+.note-card-stripe.note-cat-safety      { background: var(--color-warning); }
+.note-card-stripe.note-cat-maintenance { background: #6366f1; }
+.note-card-stripe.note-cat-observation { background: #06b6d4; }
+.note-card-stripe.note-cat-compliance  { background: var(--color-success); }
+
+.note-card-main {
+    flex: 1;
+    padding: 14px 16px;
+    cursor: pointer;
+    min-width: 0;
+}
+.note-card-main:hover { background: var(--color-tint-gray); }
+
+.note-card-top { margin-bottom: 6px; }
+.note-card-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.note-card-title-row h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0;
+    font-family: var(--font-body);
+}
+
+.note-pin-icon {
+    color: var(--color-primary);
+    font-size: 0.7rem;
+}
+
+/* Category badge */
+.note-cat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+.note-cat-badge.note-cat-general     { background: var(--color-tint-gray);   color: var(--color-secondary); }
+.note-cat-badge.note-cat-safety      { background: var(--color-tint-yellow); color: var(--color-warning); }
+.note-cat-badge.note-cat-maintenance { background: var(--color-tint-indigo); color: var(--color-primary); }
+.note-cat-badge.note-cat-observation { background: rgba(6,182,212,0.12);     color: #0e7490; }
+.note-cat-badge.note-cat-compliance  { background: var(--color-tint-green);  color: var(--color-success); }
+
+/* Priority badge */
+.note-priority-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.note-priority-badge.note-priority-important { background: var(--color-tint-yellow); color: var(--color-warning); }
+.note-priority-badge.note-priority-urgent    { background: var(--color-tint-red);    color: var(--color-danger); }
+
+.note-card-content {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+    margin: 0 0 8px 0;
+}
+.note-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+/* Delete action button */
+.inc-action-btn.delete {
+    background: var(--color-tint-red);
+    border-color: transparent;
+    color: var(--color-danger);
+}
+.inc-action-btn.delete:hover {
+    background: var(--color-danger);
+    color: #fff;
+}
+
+/* ── Category selector in modal ── */
+.note-cat-select,
+.note-pri-select {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.note-cat-btn,
+.note-pri-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-tint-gray);
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.note-cat-btn:hover, .note-pri-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: var(--color-tint-indigo);
+}
+.note-cat-btn.active, .note-pri-btn.active {
+    border-color: var(--color-primary);
+    background: var(--color-tint-indigo);
+    color: var(--color-primary);
+    font-weight: 600;
+}
+/* Category-specific active colours */
+.note-cat-btn.note-cat-safety.active      { border-color: var(--color-warning); background: var(--color-tint-yellow); color: var(--color-warning); }
+.note-cat-btn.note-cat-observation.active { border-color: #06b6d4; background: rgba(6,182,212,0.12); color: #0e7490; }
+.note-cat-btn.note-cat-compliance.active  { border-color: var(--color-success); background: var(--color-tint-green);  color: var(--color-success); }
+
+/* Priority-specific active colours */
+.note-pri-btn.note-priority-important.active { border-color: var(--color-warning); background: var(--color-tint-yellow); color: var(--color-warning); }
+.note-pri-btn.note-priority-urgent.active    { border-color: var(--color-danger);  background: var(--color-tint-red);    color: var(--color-danger); }
+
+/* Pin checkbox label */
+.note-pin-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text);
+    user-select: none;
+}
+.note-pin-label input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-primary); }
+.note-pin-label i { color: var(--color-primary); font-size: 0.85rem; }
+
+/* Category filter chips */
+.note-chip-safety      { --chip-color: var(--color-warning); }
+.note-chip-maintenance { --chip-color: var(--color-primary); }
+.note-chip-observation { --chip-color: #0e7490; }
+.note-chip-compliance  { --chip-color: var(--color-success); }
+.note-chip-general     { --chip-color: var(--color-secondary); }
+.inc-chip.note-chip-safety.active,
+.inc-chip.note-chip-maintenance.active,
+.inc-chip.note-chip-observation.active,
+.inc-chip.note-chip-compliance.active,
+.inc-chip.note-chip-general.active {
+    background: color-mix(in srgb, var(--chip-color, var(--color-primary)) 12%, transparent);
+    border-color: color-mix(in srgb, var(--chip-color, var(--color-primary)) 50%, transparent);
+    color: var(--chip-color, var(--color-primary));
+}
+
+@media (max-width: 768px) {
+    .note-stats { gap: 6px; }
+    .note-stat  { min-width: 100px; padding: 8px 12px; }
+    .note-cat-select, .note-pri-select { gap: 4px; }
+}
+
+/* ===============================================================
    DASHBOARD  (.db-*)
    =============================================================== */
 
