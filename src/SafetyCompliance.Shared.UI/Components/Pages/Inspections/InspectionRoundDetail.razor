@@ -105,9 +105,9 @@ else
                                                     {
                                                         <div class="check-toggle">
                                                             <button class="toggle-yes @(response.Response == true ? "active" : "")"
-                                                                    @onclick="() => SubmitResponse(inspection.Id, header.ChecklistItemTemplateId, true)">&#10003;</button>
+                                                                    @onclick="() => SubmitResponse(inspection.Id, header.ChecklistItemTemplateId, true)"><i class="fa-light fa-check"></i></button>
                                                             <button class="toggle-no @(response.Response == false ? "active" : "")"
-                                                                    @onclick="() => SubmitResponse(inspection.Id, header.ChecklistItemTemplateId, false)">&#10007;</button>
+                                                                    @onclick="() => SubmitResponse(inspection.Id, header.ChecklistItemTemplateId, false)"><i class="fa-light fa-xmark"></i></button>
                                                         </div>
                                                     }
                                                 </td>
