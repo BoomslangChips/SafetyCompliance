@@ -6,8 +6,10 @@
 @inject NavigationManager Navigation
 
 <div class="page-header">
-    <h1>Setup</h1>
-    <p class="card-subtitle">Manage your hierarchy: Company &rarr; Plants &rarr; Sections &rarr; Equipment</p>
+    <div>
+        <h1>Setup Wizard</h1>
+        <p class="card-subtitle">Build your organizational hierarchy step by step</p>
+    </div>
 </div>
 
 <div class="wizard-progress">
@@ -45,45 +47,67 @@
 @if (_currentStep == 0)
 {
     <div class="wizard-card">
-        <div class="section-header">
-            <h2>Select a Company</h2>
-            <button class="btn btn-primary" @onclick="() => { _showCreateCompany = true; _companyCreate = new(); }">+ New Company</button>
+        <div class="step-intro">
+            <div class="step-intro-icon">
+                <i class="fa-light fa-building"></i>
+            </div>
+            <div class="step-intro-content">
+                <h2>Select Your Company</h2>
+                <p>Choose the company you want to set up. If your company isn't listed yet, create a new one. Each company can have multiple plants, sections, and equipment.</p>
+            </div>
         </div>
+
+        @if (!_companies.Any() && !_showCreateCompany)
+        {
+            <div class="empty-state">
+                <i class="fa-light fa-building"></i>
+                No companies yet. Create your first company to get started.
+                <div style="margin-top: var(--spacing-md);">
+                    <button class="btn btn-primary btn-lg" @onclick="() => { _showCreateCompany = true; _companyCreate = new(); }"><i class="fa-light fa-plus"></i> Create Your First Company</button>
+                </div>
+            </div>
+        }
+        else if (!_showCreateCompany)
+        {
+            <div style="display: flex; justify-content: flex-end; margin-bottom: var(--spacing-md);">
+                <button class="btn btn-primary" @onclick="() => { _showCreateCompany = true; _companyCreate = new(); }"><i class="fa-light fa-plus"></i> New Company</button>
+            </div>
+        }
 
         @if (_showCreateCompany)
         {
-            <div class="setup-item-card" style="margin-top: var(--spacing-md);">
+            <div class="setup-item-card" style="margin-bottom: var(--spacing-lg);">
                 <div class="setup-item-header">
-                    <h3>Create New Company</h3>
-                    <button class="btn btn-sm btn-secondary" @onclick="() => _showCreateCompany = false">Cancel</button>
+                    <h3><i class="fa-light fa-plus" style="color: var(--color-primary);"></i> Create New Company</h3>
+                    <button class="btn btn-sm btn-ghost" @onclick="() => _showCreateCompany = false"><i class="fa-light fa-xmark"></i> Cancel</button>
                 </div>
                 <EditForm Model="_companyCreate" OnValidSubmit="CreateCompany">
                     <div class="form-row">
                         <div class="form-group">
                             <label>Name *</label>
-                            <InputText @bind-Value="_companyCreate.Name" class="form-control" />
+                            <InputText @bind-Value="_companyCreate.Name" class="form-control" placeholder="e.g. Acme Industries" />
                         </div>
                         <div class="form-group">
                             <label>Code</label>
-                            <InputText @bind-Value="_companyCreate.Code" class="form-control" />
+                            <InputText @bind-Value="_companyCreate.Code" class="form-control" placeholder="e.g. ACME" />
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Address</label>
-                        <InputText @bind-Value="_companyCreate.Address" class="form-control" />
+                        <InputText @bind-Value="_companyCreate.Address" class="form-control" placeholder="e.g. 123 Industrial Ave" />
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Contact Name</label>
-                            <InputText @bind-Value="_companyCreate.ContactName" class="form-control" />
+                            <InputText @bind-Value="_companyCreate.ContactName" class="form-control" placeholder="Primary contact" />
                         </div>
                         <div class="form-group">
                             <label>Contact Email</label>
-                            <InputText @bind-Value="_companyCreate.ContactEmail" class="form-control" />
+                            <InputText @bind-Value="_companyCreate.ContactEmail" class="form-control" placeholder="email@example.com" />
                         </div>
                         <div class="form-group">
                             <label>Contact Phone</label>
-                            <InputText @bind-Value="_companyCreate.ContactPhone" class="form-control" />
+                            <InputText @bind-Value="_companyCreate.ContactPhone" class="form-control" placeholder="+1 (555) 000-0000" />
                         </div>
                     </div>
                     <div class="form-group">
@@ -93,45 +117,43 @@
                         {
                             <div class="photo-preview">
                                 <img src="@($"data:image/jpeg;base64,{_companyCreate.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _companyCreate.PhotoBase64 = null; _companyCreate.PhotoFileName = null; }">Remove</button>
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _companyCreate.PhotoBase64 = null; _companyCreate.PhotoFileName = null; }"><i class="fa-light fa-trash"></i> Remove</button>
                             </div>
                         }
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Save Company</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-light fa-check"></i> Save Company</button>
                         <button type="button" class="btn btn-secondary" @onclick="() => _showCreateCompany = false">Cancel</button>
                     </div>
                 </EditForm>
             </div>
         }
 
-        <div class="card-list" style="margin-top: var(--spacing-md);">
-            @foreach (var company in _companies)
-            {
-                <div class="card clickable @(company.Id == _selectedCompanyId ? "setup-selected" : "")" @onclick="() => SelectCompany(company.Id)">
-                    @if (company.PhotoBase64 is not null)
-                    {
-                        <div class="card-photo">
-                            <img src="@($"data:image/jpeg;base64,{company.PhotoBase64}")" alt="@company.Name" />
-                        </div>
-                    }
-                    <h3>@company.Name</h3>
-                    <p class="card-subtitle">@(company.Code ?? "No code") &middot; @(company.Address ?? "No address")</p>
-                    <div class="card-stats">
-                        <span>@company.PlantCount plants</span>
-                        <span>@company.TotalEquipment equipment</span>
-                    </div>
-                    @if (company.Id == _selectedCompanyId)
-                    {
-                        <span class="active-badge" style="margin-top: var(--spacing-xs);"><i class="fa-light fa-check"></i> Selected</span>
-                    }
-                </div>
-            }
-        </div>
-
-        @if (!_companies.Any() && !_showCreateCompany)
+        @if (_companies.Any())
         {
-            <p class="empty-state">No companies yet. Create one to get started.</p>
+            <div class="card-list">
+                @foreach (var company in _companies)
+                {
+                    <div class="card clickable @(company.Id == _selectedCompanyId ? "setup-selected" : "")" @onclick="() => SelectCompany(company.Id)">
+                        @if (company.PhotoBase64 is not null)
+                        {
+                            <div class="card-photo">
+                                <img src="@($"data:image/jpeg;base64,{company.PhotoBase64}")" alt="@company.Name" />
+                            </div>
+                        }
+                        <h3>@company.Name</h3>
+                        <p class="card-subtitle">@(company.Code ?? "No code") &middot; @(company.Address ?? "No address")</p>
+                        <div class="card-stats">
+                            <span><i class="fa-light fa-industry"></i> @company.PlantCount plants</span>
+                            <span><i class="fa-light fa-gear"></i> @company.TotalEquipment equipment</span>
+                        </div>
+                        @if (company.Id == _selectedCompanyId)
+                        {
+                            <span class="active-badge" style="margin-top: var(--spacing-sm);"><i class="fa-light fa-check"></i> Selected</span>
+                        }
+                    </div>
+                }
+            </div>
         }
     </div>
 }
@@ -140,42 +162,50 @@
 @if (_currentStep == 1)
 {
     <div class="wizard-card">
-        <div class="section-header">
-            <h2>Plants for @_selectedCompanyName</h2>
-            <button class="btn btn-primary" @onclick="() => { _showCreatePlant = true; _showEditPlant = false; _plantCreate = new(); }">+ Add Plant</button>
+        <div class="step-intro">
+            <div class="step-intro-icon" style="background: var(--color-tint-blue); color: #3b82f6;">
+                <i class="fa-light fa-industry"></i>
+            </div>
+            <div class="step-intro-content">
+                <h2>Add Plants for @_selectedCompanyName</h2>
+                <p>Plants are physical locations or facilities within your company. Add each site where safety inspections will take place. You can add contact details and photos to help identify each plant.</p>
+            </div>
         </div>
-        <p class="card-subtitle" style="margin-bottom: var(--spacing-md);">Add and manage plants/facilities. Changes save immediately.</p>
+
+        <div style="display: flex; justify-content: flex-end; margin-bottom: var(--spacing-md);">
+            <button class="btn btn-primary" @onclick="() => { _showCreatePlant = true; _showEditPlant = false; _plantCreate = new(); }"><i class="fa-light fa-plus"></i> Add Plant</button>
+        </div>
 
         @if (_showCreatePlant)
         {
             <div class="setup-item-card">
                 <div class="setup-item-header">
-                    <h3>New Plant</h3>
-                    <button class="btn btn-sm btn-secondary" @onclick="() => _showCreatePlant = false">Cancel</button>
+                    <h3><i class="fa-light fa-plus" style="color: var(--color-primary);"></i> New Plant</h3>
+                    <button class="btn btn-sm btn-ghost" @onclick="() => _showCreatePlant = false"><i class="fa-light fa-xmark"></i> Cancel</button>
                 </div>
                 <EditForm Model="_plantCreate" OnValidSubmit="CreatePlant">
                     <div class="form-row">
                         <div class="form-group">
                             <label>Name *</label>
-                            <InputText @bind-Value="_plantCreate.Name" class="form-control" />
+                            <InputText @bind-Value="_plantCreate.Name" class="form-control" placeholder="e.g. Main Manufacturing Plant" />
                         </div>
                         <div class="form-group">
                             <label>Description</label>
-                            <InputText @bind-Value="_plantCreate.Description" class="form-control" />
+                            <InputText @bind-Value="_plantCreate.Description" class="form-control" placeholder="Brief description of this facility" />
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Contact Name</label>
-                            <InputText @bind-Value="_plantCreate.ContactName" class="form-control" />
+                            <InputText @bind-Value="_plantCreate.ContactName" class="form-control" placeholder="Site manager" />
                         </div>
                         <div class="form-group">
                             <label>Contact Phone</label>
-                            <InputText @bind-Value="_plantCreate.ContactPhone" class="form-control" />
+                            <InputText @bind-Value="_plantCreate.ContactPhone" class="form-control" placeholder="+1 (555) 000-0000" />
                         </div>
                         <div class="form-group">
                             <label>Contact Email</label>
-                            <InputText @bind-Value="_plantCreate.ContactEmail" class="form-control" />
+                            <InputText @bind-Value="_plantCreate.ContactEmail" class="form-control" placeholder="manager@example.com" />
                         </div>
                     </div>
                     <div class="form-group">
@@ -185,12 +215,12 @@
                         {
                             <div class="photo-preview">
                                 <img src="@($"data:image/jpeg;base64,{_plantCreate.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _plantCreate.PhotoBase64 = null; _plantCreate.PhotoFileName = null; }">Remove</button>
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _plantCreate.PhotoBase64 = null; _plantCreate.PhotoFileName = null; }"><i class="fa-light fa-trash"></i> Remove</button>
                             </div>
                         }
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Save Plant</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-light fa-check"></i> Save Plant</button>
                         <button type="button" class="btn btn-secondary" @onclick="() => _showCreatePlant = false">Cancel</button>
                     </div>
                 </EditForm>
@@ -201,8 +231,8 @@
         {
             <div class="setup-item-card">
                 <div class="setup-item-header">
-                    <h3>Edit Plant</h3>
-                    <button class="btn btn-sm btn-secondary" @onclick="() => _showEditPlant = false">Cancel</button>
+                    <h3><i class="fa-light fa-pen" style="color: var(--color-primary);"></i> Edit Plant</h3>
+                    <button class="btn btn-sm btn-ghost" @onclick="() => _showEditPlant = false"><i class="fa-light fa-xmark"></i> Cancel</button>
                 </div>
                 <EditForm Model="_plantEdit" OnValidSubmit="UpdatePlant">
                     <div class="form-row">
@@ -276,7 +306,10 @@
 
         @if (!_plants.Any() && !_showCreatePlant)
         {
-            <p class="empty-state">No plants yet. Add one to get started.</p>
+            <div class="empty-state">
+                <i class="fa-light fa-industry"></i>
+                No plants yet. Click "Add Plant" above to create your first facility.
+            </div>
         }
     </div>
 }
@@ -285,48 +318,56 @@
 @if (_currentStep == 2)
 {
     <div class="wizard-card">
-        <div class="section-header">
-            <h2>Sections</h2>
-            @if (_selectedPlantId > 0)
-            {
-                <button class="btn btn-primary" @onclick="() => { _showCreateSection = true; _showEditSection = false; _sectionCreate = new(); }">+ Add Section</button>
-            }
+        <div class="step-intro">
+            <div class="step-intro-icon" style="background: var(--color-tint-purple); color: #8b5cf6;">
+                <i class="fa-light fa-layer-group"></i>
+            </div>
+            <div class="step-intro-content">
+                <h2>Define Sections</h2>
+                <p>Sections are areas or zones within a plant where equipment is located. For example: "Boiler Room", "Workshop A", or "Warehouse". Group your equipment logically for easier inspection rounds.</p>
+            </div>
         </div>
-        <p class="card-subtitle" style="margin-bottom: var(--spacing-md);">Add sections (areas/zones) to each plant where equipment is located.</p>
 
         @if (_plants.Any())
         {
             <div class="setup-plant-selector">
-                <label>Plant:</label>
+                <label><i class="fa-light fa-industry"></i> Plant:</label>
                 <select class="form-control" value="@_selectedPlantId" @onchange="OnPlantChanged">
                     @foreach (var plant in _plants)
                     {
                         <option value="@plant.Id">@plant.Name (@plant.SectionCount sections)</option>
                     }
                 </select>
+                @if (_selectedPlantId > 0)
+                {
+                    <button class="btn btn-primary" @onclick="() => { _showCreateSection = true; _showEditSection = false; _sectionCreate = new(); }"><i class="fa-light fa-plus"></i> Add Section</button>
+                }
             </div>
         }
         else
         {
-            <p class="empty-state">No plants available. Go back and add plants first.</p>
+            <div class="empty-state">
+                <i class="fa-light fa-arrow-left"></i>
+                No plants available. Go back to the previous step and add plants first.
+            </div>
         }
 
         @if (_showCreateSection)
         {
             <div class="setup-item-card">
                 <div class="setup-item-header">
-                    <h3>New Section</h3>
-                    <button class="btn btn-sm btn-secondary" @onclick="() => _showCreateSection = false">Cancel</button>
+                    <h3><i class="fa-light fa-plus" style="color: var(--color-primary);"></i> New Section</h3>
+                    <button class="btn btn-sm btn-ghost" @onclick="() => _showCreateSection = false"><i class="fa-light fa-xmark"></i> Cancel</button>
                 </div>
                 <EditForm Model="_sectionCreate" OnValidSubmit="CreateSection">
                     <div class="form-row">
                         <div class="form-group">
                             <label>Name *</label>
-                            <InputText @bind-Value="_sectionCreate.Name" class="form-control" />
+                            <InputText @bind-Value="_sectionCreate.Name" class="form-control" placeholder="e.g. Boiler Room" />
                         </div>
                         <div class="form-group">
                             <label>Description</label>
-                            <InputText @bind-Value="_sectionCreate.Description" class="form-control" />
+                            <InputText @bind-Value="_sectionCreate.Description" class="form-control" placeholder="Brief description of this area" />
                         </div>
                     </div>
                     <div class="form-group">
@@ -336,12 +377,12 @@
                         {
                             <div class="photo-preview">
                                 <img src="@($"data:image/jpeg;base64,{_sectionCreate.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionCreate.PhotoBase64 = null; _sectionCreate.PhotoFileName = null; }">Remove</button>
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionCreate.PhotoBase64 = null; _sectionCreate.PhotoFileName = null; }"><i class="fa-light fa-trash"></i> Remove</button>
                             </div>
                         }
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Save Section</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-light fa-check"></i> Save Section</button>
                         <button type="button" class="btn btn-secondary" @onclick="() => _showCreateSection = false">Cancel</button>
                     </div>
                 </EditForm>
@@ -352,8 +393,8 @@
         {
             <div class="setup-item-card">
                 <div class="setup-item-header">
-                    <h3>Edit Section</h3>
-                    <button class="btn btn-sm btn-secondary" @onclick="() => _showEditSection = false">Cancel</button>
+                    <h3><i class="fa-light fa-pen" style="color: var(--color-primary);"></i> Edit Section</h3>
+                    <button class="btn btn-sm btn-ghost" @onclick="() => _showEditSection = false"><i class="fa-light fa-xmark"></i> Cancel</button>
                 </div>
                 <EditForm Model="_sectionEdit" OnValidSubmit="UpdateSection">
                     <div class="form-row">
@@ -414,7 +455,10 @@
 
             @if (!_sections.Any() && !_showCreateSection)
             {
-                <p class="empty-state">No sections for this plant yet. Add one to get started.</p>
+                <div class="empty-state">
+                    <i class="fa-light fa-layer-group"></i>
+                    No sections for this plant yet. Click "Add Section" to create zones or areas.
+                </div>
             }
         }
     </div>
@@ -424,15 +468,20 @@
 @if (_currentStep == 3)
 {
     <div class="wizard-card">
-        <div class="section-header">
-            <h2>Equipment</h2>
+        <div class="step-intro">
+            <div class="step-intro-icon" style="background: var(--color-tint-green); color: var(--color-success);">
+                <i class="fa-light fa-gear"></i>
+            </div>
+            <div class="step-intro-content">
+                <h2>Register Equipment</h2>
+                <p>Add the equipment that needs to be inspected in each section. Each piece of equipment gets a unique identifier (e.g. "FE-01" for Fire Extinguisher 1) and is assigned a type. This equipment will appear on your inspection checklists.</p>
+            </div>
         </div>
-        <p class="card-subtitle" style="margin-bottom: var(--spacing-md);">Add equipment to each section. Equipment will be inspected during rounds.</p>
 
         @if (_plants.Any())
         {
             <div class="setup-plant-selector">
-                <label>Plant:</label>
+                <label><i class="fa-light fa-industry"></i> Plant:</label>
                 <select class="form-control" value="@_selectedPlantId" @onchange="OnPlantChanged">
                     @foreach (var plant in _plants)
                     {
@@ -443,7 +492,10 @@
         }
         else
         {
-            <p class="empty-state">No plants available. Go back and add plants first.</p>
+            <div class="empty-state">
+                <i class="fa-light fa-arrow-left"></i>
+                No plants available. Go back and add plants first.
+            </div>
         }
 
         @if (_selectedPlantId > 0 && _sections.Any())
@@ -452,8 +504,8 @@
             {
                 <div class="setup-section-group">
                     <div class="setup-item-header">
-                        <h4><i class="fa-light fa-folder"></i> @sec.Name</h4>
-                        <button class="btn btn-sm btn-primary" @onclick="() => StartCreateEquipment(sec.Id)">+ Add Equipment</button>
+                        <h4><i class="fa-light fa-layer-group" style="color: #8b5cf6;"></i> @sec.Name</h4>
+                        <button class="btn btn-sm btn-primary" @onclick="() => StartCreateEquipment(sec.Id)"><i class="fa-light fa-plus"></i> Add Equipment</button>
                     </div>
 
                     @if (GetEquipmentForSection(sec.Id).Any())
@@ -506,14 +558,20 @@
                     }
                     else
                     {
-                        <p class="empty-state">No equipment in this section yet.</p>
+                        <div class="empty-state" style="margin-top: var(--spacing-sm);">
+                            <i class="fa-light fa-gear"></i>
+                            No equipment in this section yet. Click "Add Equipment" to register items.
+                        </div>
                     }
                 </div>
             }
         }
         else if (_selectedPlantId > 0 && !_sections.Any())
         {
-            <p class="empty-state">No sections for this plant. Go back to add sections first.</p>
+            <div class="empty-state">
+                <i class="fa-light fa-arrow-left"></i>
+                No sections for this plant. Go back to Step 3 to add sections first.
+            </div>
         }
     </div>
 
@@ -640,8 +698,15 @@
 @if (_currentStep == 4)
 {
     <div class="wizard-card">
-        <h2>Review</h2>
-        <p class="card-subtitle" style="margin-bottom: var(--spacing-lg);">Here's your complete hierarchy. You can go back to make changes.</p>
+        <div class="step-intro">
+            <div class="step-intro-icon" style="background: var(--color-tint-orange); color: #d97706;">
+                <i class="fa-light fa-clipboard-check"></i>
+            </div>
+            <div class="step-intro-content">
+                <h2>Review Your Setup</h2>
+                <p>Review your complete organizational hierarchy below. If anything looks wrong, use the "Back" button to go to any previous step and make changes. When you're satisfied, click "Done" to finish.</p>
+            </div>
+        </div>
 
         @if (_reviewData is not null)
         {
@@ -722,16 +787,16 @@
 <div class="wizard-actions">
     @if (_currentStep > 0)
     {
-        <button class="btn btn-secondary" @onclick="PreviousStep">&larr; Back</button>
+        <button class="btn btn-secondary" @onclick="PreviousStep"><i class="fa-light fa-arrow-left"></i> Back</button>
     }
     <div style="flex: 1;"></div>
     @if (_currentStep < _stepNames.Length - 1)
     {
-        <button class="btn btn-primary" @onclick="NextStep">Next &rarr;</button>
+        <button class="btn btn-primary btn-lg" @onclick="NextStep">Continue to @_stepNames[_currentStep + 1] <i class="fa-light fa-arrow-right"></i></button>
     }
     else
     {
-        <button class="btn btn-primary btn-lg" @onclick="Finish"><i class="fa-light fa-check"></i> Done &mdash; Go to Overview</button>
+        <button class="btn btn-success btn-lg" @onclick="Finish"><i class="fa-light fa-check"></i> Complete Setup</button>
     }
 </div>
 
