@@ -19,3 +19,9 @@ public record ServiceBookingUpdateStatusDto(
 public record ActiveServiceBookingDto(
     int Id, string ServiceProvider, ServiceBookingStatus Status,
     DateOnly SentDate, DateOnly? ExpectedReturnDate);
+
+public record ServiceBookingOverviewDto(
+    int Id, int EquipmentId, string EquipmentIdentifier, string EquipmentTypeName,
+    string PlantName, string SectionName,
+    string ServiceProvider, string Reason, ServiceBookingStatus Status,
+    DateOnly SentDate, DateOnly? ExpectedReturnDate);

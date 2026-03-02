@@ -2,170 +2,367 @@
 @inject ICompanyService CompanyService
 @inject IPlantService PlantService
 @inject IInspectionService InspectionService
+@inject IServiceBookingService ServiceBookingService
 @inject NavigationManager Navigation
 
 <div class="insp-page">
-    @* ── Hero header ── *@
-    <div class="insp-hero ov-fadeIn">
-        <div class="insp-hero-left">
-            <h1>Inspections</h1>
-            <p>Manage and track your equipment inspection rounds</p>
-        </div>
-        @if (_selectedPlantId > 0)
-        {
-            <button class="btn btn-primary btn-lg insp-start-btn"
-                    @onclick="StartNewRound"
-                    disabled="@_hasCurrentMonthRound">
-                @if (_hasCurrentMonthRound)
-                {
-                    <i class="fa-light fa-check-circle"></i>
-                    <span>Already Inspected This Month</span>
-                }
-                else
-                {
-                    <i class="fa-light fa-plus-circle"></i>
-                    <span>Start Monthly Inspection</span>
-                }
+    @* ── Tab bar ── *@
+    <div class="insp-tab-bar ov-fadeIn">
+        <div class="insp-tabs">
+            <button class="insp-tab @(_tab == Tab.Overview ? "active" : "")" @onclick="() => SwitchTab(Tab.Overview)">
+                <i class="fa-light fa-gauge-high"></i> Overview
             </button>
-        }
+            <button class="insp-tab @(_tab == Tab.Plant ? "active" : "")" @onclick="() => SwitchTab(Tab.Plant)">
+                <i class="fa-light fa-clipboard-list"></i> Plant Inspections
+            </button>
+        </div>
     </div>
 
     @if (_loading)
     {
-        <div class="ov-loading">
-            <div class="ov-spinner"></div>
-            <p>Loading&hellip;</p>
-        </div>
+        <div class="ov-loading"><div class="ov-spinner"></div><p>Loading&hellip;</p></div>
     }
     else
     {
-        @* ── Selectors ── *@
-        <div class="insp-selectors ov-fadeIn">
-            <div class="insp-selector-group">
-                <label><i class="fa-light fa-building"></i> Company</label>
-                <select class="form-control" value="@_selectedCompanyId" @onchange="OnCompanyChanged">
-                    <option value="0">Select a company&hellip;</option>
-                    @foreach (var company in _companies)
-                    {
-                        <option value="@company.Id">@company.Name</option>
-                    }
-                </select>
+        @* ════════ OVERVIEW TAB ════════ *@
+        @if (_tab == Tab.Overview)
+        {
+            @* ── Active Inspections ── *@
+            <div class="insp-ov-section ov-fadeIn">
+                <div class="insp-ov-section-header">
+                    <div class="insp-ov-section-icon blue"><i class="fa-light fa-clipboard-list-check"></i></div>
+                    <div>
+                        <h2>Active Inspections</h2>
+                        <p>In-progress and draft rounds across all plants</p>
+                    </div>
+                    <span class="insp-ov-count">@_activeRounds.Count</span>
+                </div>
+
+                @if (_activeRounds.Any())
+                {
+                    <div class="insp-ov-timeline">
+                        @{ var aidx = 0; }
+                        @foreach (var round in _activeRounds)
+                        {
+                            var r = round;
+                            var ai = aidx;
+                            var pct = r.TotalEquipment > 0 ? (int)((double)r.CompletedEquipment / r.TotalEquipment * 100) : 0;
+                            <div class="insp-ov-card ov-staggerUp" style="animation-delay: @(ai * 0.06)s"
+                                 @onclick="() => GoToRound(r.Id)">
+                                <div class="insp-ov-card-left">
+                                    <div class="insp-ring-wrap insp-ring-sm">
+                                        <svg class="insp-ring" viewBox="0 0 44 44">
+                                            <circle class="insp-ring-bg" cx="22" cy="22" r="18" />
+                                            <circle class="insp-ring-fill status-ring-@r.Status.ToString().ToLower()"
+                                                    cx="22" cy="22" r="18"
+                                                    stroke-dasharray="113.1" stroke-dashoffset="@(113.1 - 113.1 * pct / 100)" />
+                                        </svg>
+                                        <span class="insp-ring-pct">@pct%</span>
+                                    </div>
+                                </div>
+                                <div class="insp-ov-card-body">
+                                    <div class="insp-ov-card-top">
+                                        <h3>@r.PlantName</h3>
+                                        <span class="status-badge status-@r.Status.ToString().ToLower()">@r.Status</span>
+                                    </div>
+                                    <div class="insp-ov-card-meta">
+                                        <span><i class="fa-light fa-calendar"></i> @r.InspectionDate.ToString("MMM dd, yyyy")</span>
+                                        <span><i class="fa-light fa-hashtag"></i> @r.InspectionMonth</span>
+                                        <span class="insp-ov-eq-count">@r.CompletedEquipment/@r.TotalEquipment equipment</span>
+                                    </div>
+                                    <div class="insp-round-bar">
+                                        <div class="insp-round-bar-fill" style="width: @pct%"></div>
+                                    </div>
+                                </div>
+                                <div class="insp-round-arrow"><i class="fa-light fa-chevron-right"></i></div>
+                            </div>
+                            aidx++;
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="insp-ov-empty">
+                        <i class="fa-light fa-circle-check"></i>
+                        <span>No active inspections right now</span>
+                    </div>
+                }
             </div>
 
-            @if (_selectedCompanyId > 0)
-            {
-                <div class="insp-selector-group ov-fadeIn">
-                    <label><i class="fa-light fa-industry"></i> Plant</label>
-                    <select class="form-control" value="@_selectedPlantId" @onchange="OnPlantChanged">
-                        <option value="0">Select a plant&hellip;</option>
-                        @foreach (var plant in _plants)
+            @* ── Failed Items ── *@
+            <div class="insp-ov-section ov-fadeIn" style="animation-delay: 0.1s">
+                <div class="insp-ov-section-header">
+                    <div class="insp-ov-section-icon red"><i class="fa-light fa-triangle-exclamation"></i></div>
+                    <div>
+                        <h2>Failed Items</h2>
+                        <p>Equipment with failed checklist items that need attention</p>
+                    </div>
+                    <span class="insp-ov-count danger">@_failedItems.Count</span>
+                </div>
+
+                @if (_failedItems.Any())
+                {
+                    <div class="insp-ov-list">
+                        @{ var fidx = 0; }
+                        @foreach (var item in _failedItems)
                         {
-                            <option value="@plant.Id">@plant.Name</option>
+                            var fi = fidx;
+                            var f = item;
+                            <div class="insp-fail-card ov-staggerUp" style="animation-delay: @(fi * 0.05)s"
+                                 @onclick="() => GoToRound(f.InspectionRoundId)">
+                                <div class="insp-fail-indicator"></div>
+                                <div class="insp-fail-body">
+                                    <div class="insp-fail-top">
+                                        <strong>@f.EquipmentIdentifier</strong>
+                                        <span class="insp-fail-type">@f.EquipmentTypeName</span>
+                                    </div>
+                                    <div class="insp-fail-location">
+                                        <span><i class="fa-light fa-industry"></i> @f.PlantName</span>
+                                        <span><i class="fa-light fa-folder"></i> @f.SectionName</span>
+                                        <span><i class="fa-light fa-calendar"></i> @f.InspectionDate.ToString("MMM dd")</span>
+                                    </div>
+                                    <div class="insp-fail-items">
+                                        @foreach (var check in f.FailedChecklistItems)
+                                        {
+                                            <span class="chk-failed-tag">@check</span>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="insp-round-arrow"><i class="fa-light fa-chevron-right"></i></div>
+                            </div>
+                            fidx++;
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="insp-ov-empty success">
+                        <i class="fa-light fa-circle-check"></i>
+                        <span>All checklist items are passing</span>
+                    </div>
+                }
+            </div>
+
+            @* ── Equipment Out for Service ── *@
+            <div class="insp-ov-section ov-fadeIn" style="animation-delay: 0.2s">
+                <div class="insp-ov-section-header">
+                    <div class="insp-ov-section-icon amber"><i class="fa-light fa-wrench"></i></div>
+                    <div>
+                        <h2>Equipment in Service</h2>
+                        <p>Equipment currently sent out for repair or calibration</p>
+                    </div>
+                    <span class="insp-ov-count warning">@_activeBookings.Count</span>
+                </div>
+
+                @if (_activeBookings.Any())
+                {
+                    <div class="insp-ov-list">
+                        @{ var sidx = 0; }
+                        @foreach (var booking in _activeBookings)
+                        {
+                            var si = sidx;
+                            var b = booking;
+                            <div class="insp-svc-card ov-staggerUp" style="animation-delay: @(si * 0.05)s">
+                                <div class="insp-svc-icon">
+                                    <i class="fa-light fa-@(b.Status == ServiceBookingStatus.Sent ? "truck" : "screwdriver-wrench")"></i>
+                                </div>
+                                <div class="insp-svc-body">
+                                    <div class="insp-svc-top">
+                                        <strong>@b.EquipmentIdentifier</strong>
+                                        <span class="insp-svc-status status-@b.Status.ToString().ToLower()">@b.Status</span>
+                                    </div>
+                                    <div class="insp-svc-meta">
+                                        <span><i class="fa-light fa-industry"></i> @b.PlantName</span>
+                                        <span><i class="fa-light fa-building"></i> @b.ServiceProvider</span>
+                                    </div>
+                                    <div class="insp-svc-dates">
+                                        <span>Sent: @b.SentDate.ToString("MMM dd, yyyy")</span>
+                                        @if (b.ExpectedReturnDate.HasValue)
+                                        {
+                                            var isOverdue = b.ExpectedReturnDate.Value < DateOnly.FromDateTime(DateTime.UtcNow);
+                                            <span class="@(isOverdue ? "overdue" : "")">
+                                                Return: @b.ExpectedReturnDate.Value.ToString("MMM dd, yyyy")
+                                                @if (isOverdue) { <text> (overdue)</text> }
+                                            </span>
+                                        }
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(b.Reason))
+                                    {
+                                        <p class="insp-svc-reason">@b.Reason</p>
+                                    }
+                                </div>
+                            </div>
+                            sidx++;
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="insp-ov-empty">
+                        <i class="fa-light fa-circle-check"></i>
+                        <span>No equipment currently out for service</span>
+                    </div>
+                }
+            </div>
+        }
+
+        @* ════════ PLANT INSPECTIONS TAB ════════ *@
+        else if (_tab == Tab.Plant)
+        {
+            <div class="insp-hero ov-fadeIn">
+                <div class="insp-hero-left">
+                    <h1>Plant Inspections</h1>
+                    <p>Select a plant to view and manage its inspection rounds</p>
+                </div>
+                @if (_selectedPlantId > 0)
+                {
+                    <button class="btn btn-primary btn-lg insp-start-btn"
+                            @onclick="StartNewRound"
+                            disabled="@_hasCurrentMonthRound">
+                        @if (_hasCurrentMonthRound)
+                        {
+                            <i class="fa-light fa-check-circle"></i>
+                            <span>Already Inspected This Month</span>
+                        }
+                        else
+                        {
+                            <i class="fa-light fa-plus-circle"></i>
+                            <span>Start Monthly Inspection</span>
+                        }
+                    </button>
+                }
+            </div>
+
+            @* Selectors *@
+            <div class="insp-selectors ov-fadeIn">
+                <div class="insp-selector-group">
+                    <label><i class="fa-light fa-building"></i> Company</label>
+                    <select class="form-control" value="@_selectedCompanyId" @onchange="OnCompanyChanged">
+                        <option value="0">Select a company&hellip;</option>
+                        @foreach (var company in _companies)
+                        {
+                            <option value="@company.Id">@company.Name</option>
                         }
                     </select>
                 </div>
-            }
-        </div>
-
-        @if (_selectedPlantId > 0 && _rounds.Any())
-        {
-            @* ── Status filter chips ── *@
-            <div class="insp-filters ov-fadeIn">
-                <button class="insp-chip @(_statusFilter == null ? "active" : "")"
-                        @onclick="() => SetFilter(null)">
-                    All <span class="insp-chip-count">@_rounds.Count</span>
-                </button>
-                @foreach (var status in new[] { InspectionStatus.InProgress, InspectionStatus.Completed, InspectionStatus.Draft })
+                @if (_selectedCompanyId > 0)
                 {
-                    var s = status;
-                    var count = _rounds.Count(r => r.Status == s);
-                    @if (count > 0)
-                    {
-                        <button class="insp-chip status-@s.ToString().ToLower() @(_statusFilter == s ? "active" : "")"
-                                @onclick="() => SetFilter(s)">
-                            @s <span class="insp-chip-count">@count</span>
-                        </button>
-                    }
-                }
-            </div>
-
-            @* ── Rounds cards ── *@
-            <div class="insp-rounds-grid">
-                @{ var idx = 0; }
-                @foreach (var round in FilteredRounds)
-                {
-                    var r = round;
-                    var i = idx;
-                    var pct = r.TotalEquipment > 0 ? (int)((double)r.CompletedEquipment / r.TotalEquipment * 100) : 0;
-                    <div class="insp-round-card ov-staggerUp" style="animation-delay: @(i * 0.06)s"
-                         @onclick="() => GoToRound(r.Id)">
-                        @* Progress ring *@
-                        <div class="insp-ring-wrap">
-                            <svg class="insp-ring" viewBox="0 0 44 44">
-                                <circle class="insp-ring-bg" cx="22" cy="22" r="18" />
-                                <circle class="insp-ring-fill status-ring-@r.Status.ToString().ToLower()"
-                                        cx="22" cy="22" r="18"
-                                        stroke-dasharray="@(113.1)" stroke-dashoffset="@(113.1 - 113.1 * pct / 100)" />
-                            </svg>
-                            <span class="insp-ring-pct">@pct%</span>
-                        </div>
-
-                        <div class="insp-round-info">
-                            <div class="insp-round-top">
-                                <h3>@r.InspectionMonth</h3>
-                                <span class="status-badge status-@r.Status.ToString().ToLower()">@r.Status</span>
-                            </div>
-                            <div class="insp-round-meta">
-                                <span><i class="fa-light fa-calendar"></i> @r.InspectionDate.ToString("MMM dd, yyyy")</span>
-                                <span><i class="fa-light fa-user"></i> @r.InspectorName</span>
-                            </div>
-                            <div class="insp-round-progress">
-                                <div class="insp-round-bar">
-                                    <div class="insp-round-bar-fill" style="width: @pct%"></div>
-                                </div>
-                                <span class="insp-round-count">@r.CompletedEquipment / @r.TotalEquipment</span>
-                            </div>
-                        </div>
-
-                        <div class="insp-round-arrow">
-                            <i class="fa-light fa-chevron-right"></i>
-                        </div>
+                    <div class="insp-selector-group ov-fadeIn">
+                        <label><i class="fa-light fa-industry"></i> Plant</label>
+                        <select class="form-control" value="@_selectedPlantId" @onchange="OnPlantChanged">
+                            <option value="0">Select a plant&hellip;</option>
+                            @foreach (var plant in _plants)
+                            {
+                                <option value="@plant.Id">@plant.Name</option>
+                            }
+                        </select>
                     </div>
-                    idx++;
                 }
             </div>
-        }
-        else if (_selectedPlantId > 0)
-        {
-            <div class="ov-empty ov-fadeIn">
-                <div class="ov-empty-icon">
-                    <i class="fa-light fa-clipboard-list"></i>
+
+            @if (_selectedPlantId > 0 && _rounds.Any())
+            {
+                @* Status filter chips *@
+                <div class="insp-filters ov-fadeIn">
+                    <button class="insp-chip @(_statusFilter == null ? "active" : "")"
+                            @onclick="() => SetFilter(null)">
+                        All <span class="insp-chip-count">@_rounds.Count</span>
+                    </button>
+                    @foreach (var status in new[] { InspectionStatus.InProgress, InspectionStatus.Completed, InspectionStatus.Draft })
+                    {
+                        var s = status;
+                        var count = _rounds.Count(r => r.Status == s);
+                        @if (count > 0)
+                        {
+                            <button class="insp-chip status-@s.ToString().ToLower() @(_statusFilter == s ? "active" : "")"
+                                    @onclick="() => SetFilter(s)">
+                                @s <span class="insp-chip-count">@count</span>
+                            </button>
+                        }
+                    }
                 </div>
-                <h2>No inspections yet</h2>
-                <p>Start your first monthly inspection for this plant.</p>
-                <button class="btn btn-primary btn-lg" @onclick="StartNewRound" disabled="@_hasCurrentMonthRound">
-                    <i class="fa-light fa-plus-circle"></i> Start Monthly Inspection
-                </button>
-            </div>
-        }
-        else
-        {
-            <div class="insp-prompt ov-fadeIn">
-                <i class="fa-light fa-hand-pointer"></i>
-                <p>Select a company and plant above to view inspections</p>
-            </div>
+
+                @* Rounds cards *@
+                <div class="insp-rounds-grid">
+                    @{ var idx = 0; }
+                    @foreach (var round in FilteredRounds)
+                    {
+                        var r = round;
+                        var i = idx;
+                        var pct = r.TotalEquipment > 0 ? (int)((double)r.CompletedEquipment / r.TotalEquipment * 100) : 0;
+                        <div class="insp-round-card ov-staggerUp" style="animation-delay: @(i * 0.06)s"
+                             @onclick="() => GoToRound(r.Id)">
+                            <div class="insp-ring-wrap">
+                                <svg class="insp-ring" viewBox="0 0 44 44">
+                                    <circle class="insp-ring-bg" cx="22" cy="22" r="18" />
+                                    <circle class="insp-ring-fill status-ring-@r.Status.ToString().ToLower()"
+                                            cx="22" cy="22" r="18"
+                                            stroke-dasharray="113.1" stroke-dashoffset="@(113.1 - 113.1 * pct / 100)" />
+                                </svg>
+                                <span class="insp-ring-pct">@pct%</span>
+                            </div>
+                            <div class="insp-round-info">
+                                <div class="insp-round-top">
+                                    <h3>@r.InspectionMonth</h3>
+                                    <span class="status-badge status-@r.Status.ToString().ToLower()">@r.Status</span>
+                                </div>
+                                <div class="insp-round-meta">
+                                    <span><i class="fa-light fa-calendar"></i> @r.InspectionDate.ToString("MMM dd, yyyy")</span>
+                                    <span><i class="fa-light fa-user"></i> @r.InspectorName</span>
+                                </div>
+                                <div class="insp-round-progress">
+                                    <div class="insp-round-bar">
+                                        <div class="insp-round-bar-fill" style="width: @pct%"></div>
+                                    </div>
+                                    <span class="insp-round-count">@r.CompletedEquipment / @r.TotalEquipment</span>
+                                </div>
+                            </div>
+                            <div class="insp-round-arrow"><i class="fa-light fa-chevron-right"></i></div>
+                        </div>
+                        idx++;
+                    }
+                </div>
+            }
+            else if (_selectedPlantId > 0)
+            {
+                <div class="ov-empty ov-fadeIn">
+                    <div class="ov-empty-icon"><i class="fa-light fa-clipboard-list"></i></div>
+                    <h2>No inspections yet</h2>
+                    <p>Start your first monthly inspection for this plant.</p>
+                    <button class="btn btn-primary btn-lg" @onclick="StartNewRound" disabled="@_hasCurrentMonthRound">
+                        <i class="fa-light fa-plus-circle"></i> Start Monthly Inspection
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="insp-prompt ov-fadeIn">
+                    <i class="fa-light fa-hand-pointer"></i>
+                    <p>Select a company and plant above to view inspections</p>
+                </div>
+            }
         }
     }
 </div>
 
 @code {
+    // Tabs
+    private Tab _tab = Tab.Overview;
+    private bool _loading = true;
+    private enum Tab { Overview, Plant }
+
+    // Overview data
+    private List<InspectionRoundDto> _activeRounds = [];
+    private List<FailedInspectionItemDto> _failedItems = [];
+    private List<ServiceBookingOverviewDto> _activeBookings = [];
+
+    // Plant tab data
     private List<CompanyDto> _companies = [];
     private List<PlantDto> _plants = [];
     private List<InspectionRoundDto> _rounds = [];
     private int _selectedCompanyId;
     private int _selectedPlantId;
     private bool _hasCurrentMonthRound;
-    private bool _loading = true;
     private InspectionStatus? _statusFilter;
 
     private IEnumerable<InspectionRoundDto> FilteredRounds =>
@@ -173,10 +370,24 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _companies = await CompanyService.GetAllCompaniesAsync();
+        // Load overview data and companies in parallel
+        var activeTask = InspectionService.GetActiveRoundsAsync();
+        var failedTask = InspectionService.GetFailedItemsAsync();
+        var bookingsTask = ServiceBookingService.GetActiveBookingsAsync();
+        var companiesTask = CompanyService.GetAllCompaniesAsync();
+
+        await Task.WhenAll(activeTask, failedTask, bookingsTask, companiesTask);
+
+        _activeRounds = activeTask.Result;
+        _failedItems = failedTask.Result;
+        _activeBookings = bookingsTask.Result;
+        _companies = companiesTask.Result;
         _loading = false;
     }
 
+    private void SwitchTab(Tab tab) => _tab = tab;
+
+    // Plant tab methods
     private async Task OnCompanyChanged(ChangeEventArgs e)
     {
         _selectedPlantId = 0;

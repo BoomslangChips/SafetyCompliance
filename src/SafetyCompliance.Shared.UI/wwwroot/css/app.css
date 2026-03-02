@@ -3781,3 +3781,415 @@ textarea.form-control {
     .chk-modal { max-width: none; margin: var(--spacing-sm); }
     .chk-priority-select { flex-wrap: wrap; }
 }
+
+/* ═══════════════════════════════════════════════════
+   INSPECTION OVERVIEW — Tabs, Timeline, Failed, Service
+   ═══════════════════════════════════════════════════ */
+
+/* Tab bar */
+.insp-tab-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--color-bg);
+    padding: var(--spacing-sm) 0 0;
+    margin: calc(-1 * var(--spacing-md)) calc(-1 * var(--spacing-lg)) var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-lg) 0;
+    border-bottom: 1px solid var(--color-border);
+}
+.insp-tabs {
+    display: flex;
+    gap: 0;
+}
+.insp-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-body);
+    position: relative;
+}
+.insp-tab:hover {
+    color: var(--color-text);
+    background: var(--color-tint-gray);
+}
+.insp-tab.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    font-weight: 600;
+}
+.insp-tab i { font-size: 1rem; }
+
+/* Overview sections */
+.insp-ov-section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+.insp-ov-section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+.insp-ov-section-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 2px;
+    font-family: var(--font-heading);
+}
+.insp-ov-section-header p {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    margin: 0;
+}
+.insp-ov-section-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+.insp-ov-section-icon.blue {
+    background: var(--color-tint-blue);
+    color: var(--color-primary);
+}
+.insp-ov-section-icon.red {
+    background: var(--color-tint-red);
+    color: var(--color-danger);
+}
+.insp-ov-section-icon.amber {
+    background: var(--color-tint-orange);
+    color: #d97706;
+}
+.insp-ov-count {
+    margin-left: auto;
+    background: var(--color-tint-blue);
+    color: var(--color-primary);
+    font-size: 1.3rem;
+    font-weight: 700;
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    padding: 0 10px;
+    font-family: var(--font-heading);
+}
+.insp-ov-count.danger {
+    background: var(--color-tint-red);
+    color: var(--color-danger);
+}
+.insp-ov-count.warning {
+    background: var(--color-tint-orange);
+    color: #d97706;
+}
+
+/* Active inspections timeline */
+.insp-ov-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+.insp-ov-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.insp-ov-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 2px 12px rgba(79,70,229,0.08);
+    transform: translateX(4px);
+}
+.insp-ov-card-left {
+    flex-shrink: 0;
+}
+.insp-ring-sm {
+    width: 44px !important;
+    height: 44px !important;
+}
+.insp-ring-sm .insp-ring-pct {
+    font-size: 0.55rem !important;
+}
+.insp-ov-card-body {
+    flex: 1;
+    min-width: 0;
+}
+.insp-ov-card-top {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: 4px;
+}
+.insp-ov-card-top h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.insp-ov-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 6px;
+}
+.insp-ov-card-meta i {
+    margin-right: 3px;
+    font-size: 0.7rem;
+}
+.insp-ov-eq-count {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+/* Empty states */
+.insp-ov-empty {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-lg);
+    justify-content: center;
+    color: var(--color-text-secondary);
+    font-size: 0.9rem;
+}
+.insp-ov-empty i {
+    font-size: 1.3rem;
+    color: var(--color-text-muted);
+}
+.insp-ov-empty.success i {
+    color: var(--color-success);
+}
+
+/* Overview list container (used for failed items & service bookings) */
+.insp-ov-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+/* ── Failed items cards ── */
+.insp-fail-card {
+    display: flex;
+    align-items: stretch;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.insp-fail-card:hover {
+    border-color: var(--color-danger);
+    box-shadow: 0 2px 12px rgba(220,38,38,0.08);
+    transform: translateX(4px);
+}
+.insp-fail-indicator {
+    width: 4px;
+    background: var(--color-danger);
+    flex-shrink: 0;
+}
+.insp-fail-body {
+    flex: 1;
+    padding: var(--spacing-md) var(--spacing-lg);
+    min-width: 0;
+}
+.insp-fail-top {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: 4px;
+}
+.insp-fail-top strong {
+    font-size: 0.95rem;
+}
+.insp-fail-type {
+    font-size: 0.75rem;
+    background: var(--color-tint-gray);
+    padding: 1px 8px;
+    border-radius: 999px;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+.insp-fail-location {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 8px;
+}
+.insp-fail-location i {
+    margin-right: 3px;
+    font-size: 0.7rem;
+}
+.insp-fail-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.insp-fail-card .insp-round-arrow {
+    display: flex;
+    align-items: center;
+    padding: 0 var(--spacing-md);
+}
+
+/* ── Service booking cards ── */
+.insp-svc-card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: all 0.2s;
+}
+.insp-svc-card:hover {
+    border-color: #d97706;
+    box-shadow: 0 2px 12px rgba(217,119,6,0.08);
+}
+.insp-svc-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--color-tint-orange);
+    color: #d97706;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.insp-svc-body {
+    flex: 1;
+    min-width: 0;
+}
+.insp-svc-top {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: 4px;
+}
+.insp-svc-top strong {
+    font-size: 0.95rem;
+}
+.insp-svc-status {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.insp-svc-status.status-sent {
+    background: var(--color-tint-blue);
+    color: var(--color-primary);
+}
+.insp-svc-status.status-inservice {
+    background: var(--color-tint-orange);
+    color: #d97706;
+}
+.insp-svc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 6px;
+}
+.insp-svc-meta i {
+    margin-right: 3px;
+    font-size: 0.7rem;
+}
+.insp-svc-dates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm) var(--spacing-lg);
+    font-size: 0.78rem;
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+}
+.insp-svc-dates .overdue {
+    color: var(--color-danger);
+    font-weight: 600;
+}
+.insp-svc-reason {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    margin: 4px 0 0;
+    font-style: italic;
+}
+
+/* Prompt (select a plant) */
+.insp-prompt {
+    text-align: center;
+    padding: var(--spacing-xxl) var(--spacing-lg);
+    color: var(--color-text-secondary);
+}
+.insp-prompt i {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: var(--spacing-sm);
+    color: var(--color-text-muted);
+}
+.insp-prompt p { margin: 0; font-size: 0.95rem; }
+
+/* ── Inspection overview responsive ── */
+@media (max-width: 768px) {
+    .insp-tab-bar {
+        margin: calc(-1 * var(--spacing-sm)) calc(-1 * var(--spacing-md)) var(--spacing-md);
+        padding: var(--spacing-xs) var(--spacing-md) 0;
+    }
+    .insp-tab {
+        padding: 8px 14px;
+        font-size: 0.82rem;
+        gap: 6px;
+    }
+    .insp-ov-section {
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+    }
+    .insp-ov-section-header {
+        flex-wrap: wrap;
+        gap: var(--spacing-sm);
+    }
+    .insp-ov-card {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+    .insp-ov-card-meta {
+        gap: var(--spacing-xs) var(--spacing-sm);
+    }
+    .insp-fail-body {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+    .insp-fail-location {
+        gap: var(--spacing-xs) var(--spacing-sm);
+    }
+    .insp-svc-card {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+}
