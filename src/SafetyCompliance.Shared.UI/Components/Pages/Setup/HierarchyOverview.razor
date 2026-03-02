@@ -1,157 +1,461 @@
 @page "/overview"
 @inject ICompanyService CompanyService
+@inject IPlantService PlantService
+@inject ISectionService SectionService
 @inject NavigationManager Navigation
 
-<div class="page-header">
-    <h1>Hierarchy Overview</h1>
-    <p class="card-subtitle">Full view of your Company &rarr; Plant &rarr; Section &rarr; Equipment structure</p>
-</div>
+<div class="overview-page">
+    @* ── Breadcrumb ── *@
+    <nav class="ov-breadcrumb">
+        <button class="ov-crumb @(_view == View.Companies ? "active" : "")" @onclick="GoCompanies">
+            <i class="fa-light fa-buildings"></i>
+            <span>Companies</span>
+        </button>
+        @if (_selCompany is not null)
+        {
+            <i class="fa-light fa-chevron-right ov-crumb-sep"></i>
+            <button class="ov-crumb @(_view == View.CompanyTree ? "active" : "")"
+                    @onclick="() => DrillCompany(_selCompany)">
+                <i class="fa-light fa-building"></i>
+                <span>@_selCompany.Name</span>
+            </button>
+        }
+        @if (_selPlant is not null)
+        {
+            <i class="fa-light fa-chevron-right ov-crumb-sep"></i>
+            <button class="ov-crumb active">
+                <i class="fa-light fa-industry"></i>
+                <span>@_selPlant.Name</span>
+            </button>
+        }
+    </nav>
 
-@if (_loading)
-{
-    <p>Loading...</p>
-}
-else if (!_hierarchy.Any())
-{
-    <div class="empty-state-card">
-        <h2>No data yet</h2>
-        <p>Use the Setup Wizard to create your first company hierarchy.</p>
-        <button class="btn btn-primary" @onclick="GoToSetup">Go to Setup Wizard</button>
-    </div>
-}
-else
-{
-    <div class="overview-stats">
-        <div class="stat-card">
-            <div class="stat-value">@_hierarchy.Count</div>
-            <div class="stat-label">Companies</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">@_hierarchy.Sum(c => c.PlantCount)</div>
-            <div class="stat-label">Plants</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">@_hierarchy.Sum(c => c.Plants.Sum(p => p.SectionCount))</div>
-            <div class="stat-label">Sections</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">@_hierarchy.Sum(c => c.TotalEquipment)</div>
-            <div class="stat-label">Equipment</div>
-        </div>
-    </div>
-
-    @foreach (var company in _hierarchy)
+    @if (_loading)
     {
-        var companyId = company.Id;
-        <div class="hierarchy-company">
-            <div class="hierarchy-header company-level" @onclick="() => GoToCompany(companyId)">
-                <div class="hierarchy-header-content">
-                    @if (company.PhotoBase64 is not null)
-                    {
-                        <img class="hierarchy-thumb" src="@GetPhotoSrc(company.PhotoBase64)" alt="" />
-                    }
-                    else
-                    {
-                        <i class="fa-light fa-building hierarchy-icon"></i>
-                    }
-                    <div>
-                        <h2>@company.Name</h2>
-                        @if (company.Code is not null)
-                        {
-                            <span class="card-subtitle">@company.Code</span>
-                        }
-                    </div>
+        <div class="ov-loading">
+            <div class="ov-spinner"></div>
+            <p>Loading hierarchy&hellip;</p>
+        </div>
+    }
+    else if (!_hierarchy.Any())
+    {
+        <div class="ov-empty ov-fadeIn">
+            <div class="ov-empty-icon"><i class="fa-light fa-sitemap"></i></div>
+            <h2>No companies yet</h2>
+            <p>Create your first company hierarchy using the Setup Wizard.</p>
+            <button class="btn btn-primary btn-lg" @onclick="GoToSetup">
+                <i class="fa-light fa-wand-magic-sparkles"></i> Open Setup Wizard
+            </button>
+        </div>
+    }
+    else
+    {
+        @* ════════ COMPANIES GRID ════════ *@
+        @if (_view == View.Companies)
+        {
+            <div class="ov-hero ov-fadeIn">
+                <div class="ov-hero-left">
+                    <h1>Organization Overview</h1>
+                    <p>Select a company to explore its plant hierarchy</p>
                 </div>
-                <div class="hierarchy-counts">
-                    <span class="count-badge">@company.PlantCount plants</span>
-                    <span class="count-badge">@company.TotalEquipment equipment</span>
+                <div class="ov-hero-stats">
+                    <div class="ov-hero-stat">
+                        <strong>@_hierarchy.Count</strong>
+                        <span>Companies</span>
+                    </div>
+                    <div class="ov-hero-stat">
+                        <strong>@_hierarchy.Sum(c => c.PlantCount)</strong>
+                        <span>Plants</span>
+                    </div>
+                    <div class="ov-hero-stat">
+                        <strong>@_hierarchy.Sum(c => c.Plants.Sum(p => p.SectionCount))</strong>
+                        <span>Sections</span>
+                    </div>
+                    <div class="ov-hero-stat">
+                        <strong>@_hierarchy.Sum(c => c.TotalEquipment)</strong>
+                        <span>Equipment</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="hierarchy-children">
-                @foreach (var plant in company.Plants)
+            <div class="ov-company-grid">
+                @{ var idx = 0; }
+                @foreach (var company in _hierarchy)
                 {
-                    var plantId = plant.Id;
-                    <div class="hierarchy-plant">
-                        <div class="hierarchy-header plant-level" @onclick="() => GoToPlant(plantId)">
-                            <div class="hierarchy-header-content">
-                                @if (plant.PhotoBase64 is not null)
+                    var c = company;
+                    var i = idx;
+                    <div class="ov-company-card ov-staggerUp" style="animation-delay: @(i * 0.08)s"
+                         @onclick="() => DrillCompany(c)">
+                        <div class="ov-card-accent"></div>
+                        <div class="ov-card-body">
+                            <div class="ov-card-icon-wrap">
+                                @if (c.PhotoBase64 is not null)
                                 {
-                                    <img class="hierarchy-thumb" src="@GetPhotoSrc(plant.PhotoBase64)" alt="" />
+                                    <img class="ov-card-photo" src="@GetPhotoSrc(c.PhotoBase64)" alt="" />
                                 }
                                 else
                                 {
-                                    <i class="fa-light fa-industry hierarchy-icon"></i>
+                                    <i class="fa-light fa-building"></i>
                                 }
-                                <div>
-                                    <h3>@plant.Name</h3>
-                                    @if (plant.Description is not null)
-                                    {
-                                        <span class="card-subtitle">@plant.Description</span>
-                                    }
+                            </div>
+                            <div class="ov-card-info">
+                                <h2>@c.Name</h2>
+                                @if (c.Code is not null)
+                                {
+                                    <span class="ov-card-code">@c.Code</span>
+                                }
+                            </div>
+                            <div class="ov-card-metrics">
+                                <div class="ov-metric">
+                                    <i class="fa-light fa-industry"></i>
+                                    <span>@c.PlantCount Plants</span>
+                                </div>
+                                <div class="ov-metric">
+                                    <i class="fa-light fa-gears"></i>
+                                    <span>@c.TotalEquipment Equipment</span>
                                 </div>
                             </div>
-                            <div class="hierarchy-counts">
-                                <span class="count-badge">@plant.SectionCount sections</span>
-                                <span class="count-badge">@plant.EquipmentCount equipment</span>
+                        </div>
+                        <div class="ov-card-cta">
+                            <span>Explore</span>
+                            <i class="fa-light fa-arrow-right"></i>
+                        </div>
+                    </div>
+                    idx++;
+                }
+            </div>
+        }
+
+        @* ════════ COMPANY DETAIL — FAMILY TREE ════════ *@
+        else if (_view == View.CompanyTree && _selCompany is not null)
+        {
+            <div class="ov-tree">
+                @* Root node *@
+                <div class="ov-tree-root ov-scaleIn">
+                    <div class="ov-tree-root-card">
+                        <div class="ov-tree-root-row">
+                            <div class="ov-tree-root-icon">
+                                @if (_selCompany.PhotoBase64 is not null)
+                                {
+                                    <img src="@GetPhotoSrc(_selCompany.PhotoBase64)" alt="" />
+                                }
+                                else
+                                {
+                                    <i class="fa-light fa-building"></i>
+                                }
+                            </div>
+                            <div class="ov-tree-root-info">
+                                @if (_editId == _selCompany.Id && _editType == EditType.Company)
+                                {
+                                    <div class="ov-inline-edit">
+                                        <input class="form-control" @bind="_editName" @bind:event="oninput"
+                                               @onkeydown="HandleEditKey" />
+                                        <button class="btn btn-success btn-sm" @onclick="SaveEdit">
+                                            <i class="fa-light fa-check"></i>
+                                        </button>
+                                        <button class="btn btn-ghost btn-sm" @onclick="CancelEdit">
+                                            <i class="fa-light fa-xmark"></i>
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="ov-name-row">
+                                        <h2>@_selCompany.Name</h2>
+                                        <button class="ov-edit-btn"
+                                                @onclick="() => StartEdit(_selCompany.Id, _selCompany.Name, EditType.Company)"
+                                                title="Edit name">
+                                            <i class="fa-light fa-pen-to-square"></i>
+                                        </button>
+                                    </div>
+                                }
+                                @if (_selCompany.Code is not null)
+                                {
+                                    <span class="ov-tree-root-code">@_selCompany.Code</span>
+                                }
+                            </div>
+                            <div class="ov-tree-root-stats">
+                                <div class="ov-tree-stat">
+                                    <strong>@_selCompany.PlantCount</strong>
+                                    <span>Plants</span>
+                                </div>
+                                <div class="ov-tree-stat">
+                                    <strong>@_selCompany.TotalEquipment</strong>
+                                    <span>Equipment</span>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="hierarchy-children">
-                            @foreach (var sect in plant.Sections)
-                            {
-                                <div class="hierarchy-section">
-                                    <div class="hierarchy-header section-level">
-                                        <div class="hierarchy-header-content">
-                                            @if (sect.PhotoBase64 is not null)
+                @if (_selCompany.Plants.Any())
+                {
+                    <div class="ov-tree-trunk ov-drawDown"></div>
+
+                    <div class="ov-tree-branches">
+                        @{ var pIdx = 0; }
+                        @foreach (var plant in _selCompany.Plants)
+                        {
+                            var p = plant;
+                            var pi = pIdx;
+                            <div class="ov-tree-branch ov-staggerUp" style="animation-delay: @(pi * 0.12 + 0.4)s">
+                                <div class="ov-branch-connector"></div>
+                                <div class="ov-branch-card" @onclick="() => DrillPlant(p)">
+                                    <div class="ov-branch-dot"></div>
+                                    <div class="ov-branch-content">
+                                        <div class="ov-branch-header">
+                                            <div class="ov-branch-icon">
+                                                @if (p.PhotoBase64 is not null)
+                                                {
+                                                    <img src="@GetPhotoSrc(p.PhotoBase64)" alt="" />
+                                                }
+                                                else
+                                                {
+                                                    <i class="fa-light fa-industry"></i>
+                                                }
+                                            </div>
+                                            @if (_editId == p.Id && _editType == EditType.Plant)
                                             {
-                                                <img class="hierarchy-thumb-sm" src="@GetPhotoSrc(sect.PhotoBase64)" alt="" />
+                                                <div class="ov-inline-edit" @onclick:stopPropagation="true">
+                                                    <input class="form-control" @bind="_editName" @bind:event="oninput"
+                                                           @onkeydown="HandleEditKey" />
+                                                    <button class="btn btn-success btn-sm" @onclick="SaveEdit">
+                                                        <i class="fa-light fa-check"></i>
+                                                    </button>
+                                                    <button class="btn btn-ghost btn-sm" @onclick="CancelEdit">
+                                                        <i class="fa-light fa-xmark"></i>
+                                                    </button>
+                                                </div>
                                             }
                                             else
                                             {
-                                                <i class="fa-light fa-folder hierarchy-icon-sm"></i>
+                                                <h3>@p.Name</h3>
+                                                <button class="ov-edit-btn" @onclick:stopPropagation="true"
+                                                        @onclick="() => StartEdit(p.Id, p.Name, EditType.Plant)"
+                                                        title="Edit name">
+                                                    <i class="fa-light fa-pen-to-square"></i>
+                                                </button>
                                             }
-                                            <div>
-                                                <h4>@sect.Name</h4>
-                                                @if (sect.Description is not null)
-                                                {
-                                                    <span class="card-subtitle">@sect.Description</span>
-                                                }
-                                            </div>
                                         </div>
-                                        <span class="count-badge">@sect.EquipmentCount equipment</span>
+                                        @if (p.Description is not null)
+                                        {
+                                            <p class="ov-branch-desc">@p.Description</p>
+                                        }
+                                        <div class="ov-branch-badges">
+                                            <span class="ov-badge blue">
+                                                <i class="fa-light fa-layer-group"></i> @p.SectionCount sections
+                                            </span>
+                                            <span class="ov-badge purple">
+                                                <i class="fa-light fa-gears"></i> @p.EquipmentCount equipment
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="ov-branch-arrow">
+                                        <i class="fa-light fa-chevron-right"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            pIdx++;
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="ov-empty-branch ov-fadeIn" style="animation-delay: 0.5s">
+                        <i class="fa-light fa-industry"></i>
+                        <p>No plants in this company yet.</p>
+                        <button class="btn btn-primary" @onclick="GoToSetup">
+                            <i class="fa-light fa-plus"></i> Add Plants
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+
+        @* ════════ PLANT DETAIL — TIMELINE VIEW ════════ *@
+        else if (_view == View.PlantTimeline && _selPlant is not null)
+        {
+            <div class="ov-timeline-page ov-fadeIn">
+                @* Plant hero card *@
+                <div class="ov-plant-hero ov-scaleIn">
+                    <div class="ov-plant-hero-icon">
+                        @if (_selPlant.PhotoBase64 is not null)
+                        {
+                            <img src="@GetPhotoSrc(_selPlant.PhotoBase64)" alt="" />
+                        }
+                        else
+                        {
+                            <i class="fa-light fa-industry"></i>
+                        }
+                    </div>
+                    <div class="ov-plant-hero-info">
+                        @if (_editId == _selPlant.Id && _editType == EditType.Plant)
+                        {
+                            <div class="ov-inline-edit">
+                                <input class="form-control" @bind="_editName" @bind:event="oninput"
+                                       @onkeydown="HandleEditKey" />
+                                <button class="btn btn-success btn-sm" @onclick="SaveEdit">
+                                    <i class="fa-light fa-check"></i>
+                                </button>
+                                <button class="btn btn-ghost btn-sm" @onclick="CancelEdit">
+                                    <i class="fa-light fa-xmark"></i>
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="ov-name-row">
+                                <h2>@_selPlant.Name</h2>
+                                <button class="ov-edit-btn"
+                                        @onclick="() => StartEdit(_selPlant.Id, _selPlant.Name, EditType.Plant)"
+                                        title="Edit name">
+                                    <i class="fa-light fa-pen-to-square"></i>
+                                </button>
+                            </div>
+                        }
+                        @if (_selPlant.Description is not null)
+                        {
+                            <p class="ov-plant-hero-desc">@_selPlant.Description</p>
+                        }
+                    </div>
+                    <div class="ov-plant-hero-stats">
+                        <div class="ov-hero-stat-pill">
+                            <i class="fa-light fa-layer-group"></i>
+                            <strong>@_selPlant.SectionCount</strong>
+                            <span>Sections</span>
+                        </div>
+                        <div class="ov-hero-stat-pill">
+                            <i class="fa-light fa-gears"></i>
+                            <strong>@_selPlant.EquipmentCount</strong>
+                            <span>Equipment</span>
+                        </div>
+                    </div>
+                </div>
+
+                @if (_selPlant.Sections.Any())
+                {
+                    <div class="ov-timeline">
+                        <div class="ov-timeline-line"></div>
+                        @{ var sIdx = 0; }
+                        @foreach (var sect in _selPlant.Sections)
+                        {
+                            var s = sect;
+                            var si = sIdx;
+                            var side = si % 2 == 0 ? "left" : "right";
+                            <div class="ov-tl-item @side ov-staggerUp" style="animation-delay: @(si * 0.1 + 0.3)s">
+                                <div class="ov-tl-dot">
+                                    <div class="ov-tl-dot-inner"></div>
+                                </div>
+                                <div class="ov-tl-card">
+                                    <div class="ov-tl-card-header">
+                                        <div class="ov-tl-section-icon">
+                                            @if (s.PhotoBase64 is not null)
+                                            {
+                                                <img src="@GetPhotoSrc(s.PhotoBase64)" alt="" />
+                                            }
+                                            else
+                                            {
+                                                <i class="fa-light fa-folder"></i>
+                                            }
+                                        </div>
+                                        <div class="ov-tl-section-info">
+                                            @if (_editId == s.Id && _editType == EditType.Section)
+                                            {
+                                                <div class="ov-inline-edit">
+                                                    <input class="form-control" @bind="_editName" @bind:event="oninput"
+                                                           @onkeydown="HandleEditKey" />
+                                                    <button class="btn btn-success btn-sm" @onclick="SaveEdit">
+                                                        <i class="fa-light fa-check"></i>
+                                                    </button>
+                                                    <button class="btn btn-ghost btn-sm" @onclick="CancelEdit">
+                                                        <i class="fa-light fa-xmark"></i>
+                                                    </button>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="ov-name-row">
+                                                    <h3>@s.Name</h3>
+                                                    <button class="ov-edit-btn"
+                                                            @onclick="() => StartEdit(s.Id, s.Name, EditType.Section)"
+                                                            title="Edit name">
+                                                        <i class="fa-light fa-pen-to-square"></i>
+                                                    </button>
+                                                </div>
+                                            }
+                                            @if (s.Description is not null)
+                                            {
+                                                <p class="ov-tl-desc">@s.Description</p>
+                                            }
+                                        </div>
                                     </div>
 
-                                    @if (sect.Equipment.Any())
+                                    <div class="ov-tl-eq-badge">
+                                        <i class="fa-light fa-gears"></i> @s.EquipmentCount equipment
+                                    </div>
+
+                                    @if (s.Equipment.Any())
                                     {
-                                        <div class="hierarchy-equipment-list">
-                                            @foreach (var eq in sect.Equipment)
+                                        <div class="ov-tl-equipment">
+                                            @foreach (var eq in s.Equipment)
                                             {
-                                                <div class="hierarchy-equipment-item">
-                                                    <i class="fa-light fa-gear eq-icon"></i>
-                                                    <strong>@eq.Identifier</strong>
-                                                    <span class="eq-type">@eq.EquipmentTypeName</span>
+                                                <div class="ov-tl-eq">
+                                                    <i class="fa-light fa-gear ov-tl-eq-icon"></i>
+                                                    <div class="ov-tl-eq-info">
+                                                        <strong>@eq.Identifier</strong>
+                                                        <span>@eq.EquipmentTypeName</span>
+                                                    </div>
                                                     @if (eq.SubTypeName is not null)
                                                     {
-                                                        <span class="eq-subtype">@eq.SubTypeName</span>
+                                                        <span class="ov-tl-eq-sub">@eq.SubTypeName</span>
                                                     }
                                                 </div>
                                             }
                                         </div>
                                     }
+                                    else
+                                    {
+                                        <div class="ov-tl-no-eq">
+                                            <i class="fa-light fa-gear"></i>
+                                            <span>No equipment assigned</span>
+                                        </div>
+                                    }
                                 </div>
-                            }
-                        </div>
+                            </div>
+                            sIdx++;
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="ov-empty-branch ov-fadeIn" style="animation-delay: 0.3s">
+                        <i class="fa-light fa-layer-group"></i>
+                        <p>No sections in this plant yet.</p>
+                        <button class="btn btn-primary" @onclick="GoToSetup">
+                            <i class="fa-light fa-plus"></i> Add Sections
+                        </button>
                     </div>
                 }
             </div>
-        </div>
+        }
     }
-}
+</div>
 
 @code {
     private List<HierarchyCompanyDto> _hierarchy = [];
     private bool _loading = true;
+
+    private View _view = View.Companies;
+    private HierarchyCompanyDto? _selCompany;
+    private HierarchyPlantDto? _selPlant;
+
+    // Edit state
+    private int? _editId;
+    private EditType? _editType;
+    private string _editName = "";
+
+    private enum View { Companies, CompanyTree, PlantTimeline }
+    private enum EditType { Company, Plant, Section }
 
     protected override async Task OnInitializedAsync()
     {
@@ -159,8 +463,112 @@ else
         _loading = false;
     }
 
+    // ── Navigation ──
+    private void GoCompanies()
+    {
+        _selPlant = null;
+        _selCompany = null;
+        _view = View.Companies;
+        CancelEdit();
+    }
+
+    private void DrillCompany(HierarchyCompanyDto company)
+    {
+        _selCompany = company;
+        _selPlant = null;
+        _view = View.CompanyTree;
+        CancelEdit();
+    }
+
+    private void DrillPlant(HierarchyPlantDto plant)
+    {
+        _selPlant = plant;
+        _view = View.PlantTimeline;
+        CancelEdit();
+    }
+
+    // ── Inline editing ──
+    private void StartEdit(int id, string name, EditType type)
+    {
+        _editId = id;
+        _editType = type;
+        _editName = name;
+    }
+
+    private void CancelEdit()
+    {
+        _editId = null;
+        _editType = null;
+        _editName = "";
+    }
+
+    private async Task HandleEditKey(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SaveEdit();
+        else if (e.Key == "Escape") CancelEdit();
+    }
+
+    private async Task SaveEdit()
+    {
+        if (_editId is null || _editType is null || string.IsNullOrWhiteSpace(_editName)) return;
+
+        try
+        {
+            switch (_editType)
+            {
+                case EditType.Company:
+                    var comp = await CompanyService.GetCompanyByIdAsync(_editId.Value);
+                    if (comp is not null)
+                    {
+                        await CompanyService.UpdateCompanyAsync(
+                            new CompanyUpdateDto(comp.Id, _editName.Trim(), comp.Code, comp.Address,
+                                comp.ContactName, comp.ContactEmail, comp.ContactPhone, comp.IsActive),
+                            "system");
+                    }
+                    break;
+
+                case EditType.Plant:
+                    var plant = await PlantService.GetPlantByIdAsync(_editId.Value);
+                    if (plant is not null)
+                    {
+                        await PlantService.UpdatePlantAsync(
+                            new PlantUpdateDto(plant.Id, _editName.Trim(), plant.Description,
+                                plant.ContactName, plant.ContactPhone, plant.ContactEmail, plant.IsActive),
+                            "system");
+                    }
+                    break;
+
+                case EditType.Section:
+                    var sect = await SectionService.GetSectionByIdAsync(_editId.Value);
+                    if (sect is not null)
+                    {
+                        await SectionService.UpdateSectionAsync(
+                            new SectionUpdateDto(sect.Id, _editName.Trim(), sect.Description,
+                                sect.SortOrder, sect.IsActive),
+                            "system");
+                    }
+                    break;
+            }
+
+            // Reload hierarchy
+            _hierarchy = await CompanyService.GetHierarchyAsync();
+
+            // Re-select current nodes with fresh data
+            if (_selCompany is not null)
+                _selCompany = _hierarchy.FirstOrDefault(c => c.Id == _selCompany.Id);
+            if (_selPlant is not null && _selCompany is not null)
+                _selPlant = _selCompany.Plants.FirstOrDefault(p => p.Id == _selPlant.Id);
+        }
+        catch
+        {
+            // TODO: toast notification
+        }
+        finally
+        {
+            CancelEdit();
+        }
+    }
+
     private static string GetPhotoSrc(string base64) => $"data:image/jpeg;base64,{base64}";
     private void GoToSetup() => Navigation.NavigateTo("/setup");
-    private void GoToCompany(int id) => Navigation.NavigateTo($"/companies/{id}");
-    private void GoToPlant(int id) => Navigation.NavigateTo($"/plants/{id}");
 }
