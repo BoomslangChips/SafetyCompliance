@@ -289,15 +289,16 @@
     {
         try
         {
-            var round = await InspectionService.StartInspectionRoundAsync(sched.PlantId, "current-user");
+            var round = await InspectionService.StartInspectionRoundAsync(sched.PlantId, "current-user", sched.Id);
             Navigation.NavigateTo($"/inspections/{round.Id}");
         }
         catch (InvalidOperationException)
         {
-            // Round already exists for this month — navigate to it
+            // Active round already exists for this month — navigate to it
             var rounds = await InspectionService.GetInspectionRoundsAsync(sched.PlantId);
             var currentMonth = DateTime.UtcNow.ToString("yyyy-MM");
-            var existing = rounds.FirstOrDefault(r => r.InspectionMonth == currentMonth);
+            var existing = rounds.FirstOrDefault(r => r.InspectionMonth == currentMonth
+                && (r.Status == InspectionStatus.Draft || r.Status == InspectionStatus.InProgress));
             if (existing is not null)
                 Navigation.NavigateTo($"/inspections/{existing.Id}");
             else

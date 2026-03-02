@@ -5,7 +5,7 @@ namespace SafetyCompliance.Application.Interfaces;
 public interface IInspectionService
 {
     Task<List<InspectionRoundDto>> GetInspectionRoundsAsync(int plantId, CancellationToken ct = default);
-    Task<InspectionRoundDto> StartInspectionRoundAsync(int plantId, string userId, CancellationToken ct = default);
+    Task<InspectionRoundDto> StartInspectionRoundAsync(int plantId, string userId, int? scheduleId = null, CancellationToken ct = default);
     Task<List<EquipmentInspectionDto>> GetEquipmentInspectionsAsync(int roundId, CancellationToken ct = default);
     Task SubmitResponseAsync(SubmitResponseDto dto, CancellationToken ct = default);
     Task SaveEquipmentCommentAsync(int equipmentInspectionId, string? comments, CancellationToken ct = default);
