@@ -35,6 +35,12 @@
         function getTheme() {
             return document.documentElement.getAttribute('data-theme') || 'light';
         }
+        function getSidebarCollapsed() {
+            return localStorage.getItem('safecheck-sidebar-collapsed') === 'true';
+        }
+        function setSidebarCollapsed(val) {
+            localStorage.setItem('safecheck-sidebar-collapsed', val ? 'true' : 'false');
+        }
     </script>
     <script src="_framework/blazor.web.js"></script>
 </body>
