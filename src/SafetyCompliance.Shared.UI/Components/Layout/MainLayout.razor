@@ -10,8 +10,11 @@
     }
     <aside class="sidebar @(_sidebarOpen ? "sidebar-open" : "")">
         <div class="sidebar-brand">
-            <i class="fa-light fa-shield-keyhole brand-icon"></i>
-            <span class="brand-text">Security &amp; Compliance</span>
+            <div class="brand-logo"><i class="fa-light fa-shield-keyhole"></i></div>
+            <div class="brand-names">
+                <span class="brand-name-main">Security</span>
+                <span class="brand-name-sub">&amp; Compliance</span>
+            </div>
         </div>
         <NavMenu />
         <button class="sidebar-collapse-btn" @onclick="ToggleCollapsed" title="@(_sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar")">
