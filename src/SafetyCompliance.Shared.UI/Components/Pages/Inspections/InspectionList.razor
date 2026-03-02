@@ -221,13 +221,13 @@
                             disabled="@_hasCurrentMonthRound">
                         @if (_hasCurrentMonthRound)
                         {
-                            <i class="fa-light fa-check-circle"></i>
-                            <span>Already Inspected This Month</span>
+                            <i class="fa-light fa-spinner"></i>
+                            <span>Active Round In Progress</span>
                         }
                         else
                         {
                             <i class="fa-light fa-plus-circle"></i>
-                            <span>Start Monthly Inspection</span>
+                            <span>Start New Inspection</span>
                         }
                     </button>
                 }
@@ -407,7 +407,10 @@
     {
         _rounds = await InspectionService.GetInspectionRoundsAsync(_selectedPlantId);
         var currentMonth = DateTime.UtcNow.ToString("yyyy-MM");
-        _hasCurrentMonthRound = _rounds.Any(r => r.InspectionMonth == currentMonth);
+        // Only block when there is an active (Draft/InProgress) round — allow multiple
+        // completed rounds per month so re-inspections are always possible.
+        _hasCurrentMonthRound = _rounds.Any(r => r.InspectionMonth == currentMonth
+            && (r.Status == InspectionStatus.Draft || r.Status == InspectionStatus.InProgress));
     }
 
     private void SetFilter(InspectionStatus? status) => _statusFilter = status;
