@@ -2,154 +2,217 @@
 @inject IScheduleService ScheduleService
 @inject NavigationManager Navigation
 
-<div class="page-header">
-    <h1>Inspection Dashboard</h1>
-    <div class="view-toggle">
-        <button class="btn @(_view == "calendar" ? "btn-primary" : "btn-secondary")" @onclick='() => _view = "calendar"'>Calendar</button>
-        <button class="btn @(_view == "timeline" ? "btn-primary" : "btn-secondary")" @onclick='() => _view = "timeline"'>Timeline</button>
-    </div>
-</div>
-
-@if (_loading)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <div class="dashboard-stats-row">
-        <div class="mini-stat">
-            <div class="mini-stat-value">@_stats.ScheduledThisMonth</div>
-            <div class="mini-stat-label">Scheduled</div>
-        </div>
-        <div class="mini-stat completed">
-            <div class="mini-stat-value">@_stats.CompletedThisMonth</div>
-            <div class="mini-stat-label">Completed</div>
-        </div>
-        <div class="mini-stat @(_stats.OverdueInspections > 0 ? "danger" : "")">
-            <div class="mini-stat-value">@_stats.OverdueInspections</div>
-            <div class="mini-stat-label">Overdue</div>
-        </div>
-        <div class="mini-stat @(_stats.OpenIssues > 0 ? "warning" : "")">
-            <div class="mini-stat-value">@_stats.OpenIssues</div>
-            <div class="mini-stat-label">Open Issues</div>
-        </div>
-        <div class="mini-stat @(_stats.CriticalIssues > 0 ? "danger" : "")">
-            <div class="mini-stat-value">@_stats.CriticalIssues</div>
-            <div class="mini-stat-label">Critical</div>
-        </div>
-        <div class="mini-stat completed">
-            <div class="mini-stat-value">@_stats.ResolvedThisMonth</div>
-            <div class="mini-stat-label">Resolved</div>
+<div class="cal-page">
+    @* ── Tab bar (matches inspections style) ── *@
+    <div class="insp-tab-bar ov-fadeIn">
+        <div class="insp-tabs">
+            <button class="insp-tab @(_view == "calendar" ? "active" : "")" @onclick='() => _view = "calendar"'>
+                <i class="fa-light fa-calendar-days"></i> Calendar
+            </button>
+            <button class="insp-tab @(_view == "timeline" ? "active" : "")" @onclick='() => _view = "timeline"'>
+                <i class="fa-light fa-list-timeline"></i> Timeline
+            </button>
         </div>
     </div>
 
-    @if (_view == "calendar")
+    @if (_loading)
     {
-        <div class="calendar-container">
-            <div class="calendar-nav">
-                <button class="btn btn-sm btn-secondary" @onclick="PrevMonth">&larr;</button>
-                <h2>@_calendarMonth.ToString("MMMM yyyy")</h2>
-                <button class="btn btn-sm btn-secondary" @onclick="NextMonth">&rarr;</button>
-            </div>
-
-            <div class="calendar-grid">
-                <div class="calendar-header-cell">Sun</div>
-                <div class="calendar-header-cell">Mon</div>
-                <div class="calendar-header-cell">Tue</div>
-                <div class="calendar-header-cell">Wed</div>
-                <div class="calendar-header-cell">Thu</div>
-                <div class="calendar-header-cell">Fri</div>
-                <div class="calendar-header-cell">Sat</div>
-
-                @foreach (var day in _calendarDays)
-                {
-                    var dayEvents = _calendarEvents.Where(e => e.Date == day.Date).ToList();
-                    var isToday = day.Date == DateOnly.FromDateTime(DateTime.UtcNow);
-                    <div class="calendar-cell @(day.IsCurrentMonth ? "" : "other-month") @(isToday ? "today" : "")">
-                        <span class="calendar-day-number">@day.Date.Day</span>
-                        @foreach (var evt in dayEvents.Take(3))
-                        {
-                            <div class="calendar-event @evt.EventType @(evt.IsOverdue ? "overdue" : "") @(evt.InspectionStatus?.ToString().ToLower() ?? "")"
-                                 @onclick="() => OnCalendarEventClick(evt)"
-                                 title="@evt.Title">
-                                @TruncateText(evt.Title, 18)
-                            </div>
-                        }
-                        @if (dayEvents.Count > 3)
-                        {
-                            <div class="calendar-more">+@(dayEvents.Count - 3) more</div>
-                        }
-                    </div>
-                }
-            </div>
-        </div>
+        <div class="ov-loading"><div class="ov-spinner"></div><p>Loading&hellip;</p></div>
     }
     else
     {
-        <div class="timeline-container">
-            @if (!_timelineItems.Any())
-            {
-                <p class="empty-state">No upcoming items. Create a schedule to get started.</p>
-            }
-            @foreach (var item in _timelineItems)
-            {
-                var isToday = item.Date == DateOnly.FromDateTime(DateTime.UtcNow);
-                <div class="timeline-item @item.EventType @(item.IsOverdue ? "overdue" : "") @(isToday ? "today" : "")">
-                    <div class="timeline-marker">
-                        @if (item.EventType == "inspection")
-                        {
-                            <i class="fa-light fa-clipboard-list timeline-icon"></i>
-                        }
-                        else if (item.EventType == "issue")
-                        {
-                            <i class="fa-light fa-triangle-exclamation timeline-icon priority-@item.Priority?.ToString().ToLower()"></i>
-                        }
-                        else
-                        {
-                            <i class="fa-light fa-calendar timeline-icon"></i>
-                        }
-                    </div>
-                    <div class="timeline-content" @onclick="() => OnTimelineItemClick(item)">
-                        <div class="timeline-header-row">
-                            <h3>@item.Title</h3>
-                            <span class="timeline-date">@item.Date.ToString("MMM dd, yyyy")</span>
-                        </div>
-                        <div class="timeline-meta">
-                            <span class="timeline-plant">@item.PlantName</span>
-                            @if (item.EventType == "inspection" && item.TotalItems > 0)
-                            {
-                                <span class="timeline-progress">@item.CompletedItems / @item.TotalItems items</span>
-                                <div class="mini-progress">
-                                    <div class="mini-progress-bar" style="width: @(item.TotalItems > 0 ? (int)((double)item.CompletedItems / item.TotalItems * 100) : 0)%"></div>
-                                </div>
-                            }
-                            @if (item.InspectionStatus.HasValue)
-                            {
-                                <span class="status-badge status-@item.InspectionStatus.Value.ToString().ToLower()">@item.InspectionStatus</span>
-                            }
-                            @if (item.IssueStatus.HasValue)
-                            {
-                                <span class="status-badge issue-@item.IssueStatus.Value.ToString().ToLower()">@item.IssueStatus</span>
-                            }
-                            @if (item.Priority.HasValue)
-                            {
-                                <span class="priority-badge priority-@item.Priority.Value.ToString().ToLower()">@item.Priority</span>
-                            }
-                            @if (item.IsOverdue)
-                            {
-                                <span class="status-badge status-overdue">Overdue</span>
-                            }
-                        </div>
-                        @if (item.Description is not null)
-                        {
-                            <p class="timeline-desc">@TruncateText(item.Description, 120)</p>
-                        }
-                    </div>
+        @* ── Stats row ── *@
+        <div class="cal-stats ov-fadeIn">
+            <div class="cal-stat">
+                <div class="cal-stat-icon blue"><i class="fa-light fa-clipboard-list"></i></div>
+                <div class="cal-stat-info">
+                    <span class="cal-stat-value">@_stats.ScheduledThisMonth</span>
+                    <span class="cal-stat-label">Scheduled</span>
                 </div>
-            }
+            </div>
+            <div class="cal-stat">
+                <div class="cal-stat-icon green"><i class="fa-light fa-circle-check"></i></div>
+                <div class="cal-stat-info">
+                    <span class="cal-stat-value">@_stats.CompletedThisMonth</span>
+                    <span class="cal-stat-label">Completed</span>
+                </div>
+            </div>
+            <div class="cal-stat @(_stats.OverdueInspections > 0 ? "alert" : "")">
+                <div class="cal-stat-icon @(_stats.OverdueInspections > 0 ? "red" : "gray")"><i class="fa-light fa-clock"></i></div>
+                <div class="cal-stat-info">
+                    <span class="cal-stat-value">@_stats.OverdueInspections</span>
+                    <span class="cal-stat-label">Overdue</span>
+                </div>
+            </div>
+            <div class="cal-stat @(_stats.OpenIssues > 0 ? "alert" : "")">
+                <div class="cal-stat-icon @(_stats.OpenIssues > 0 ? "amber" : "gray")"><i class="fa-light fa-triangle-exclamation"></i></div>
+                <div class="cal-stat-info">
+                    <span class="cal-stat-value">@_stats.OpenIssues</span>
+                    <span class="cal-stat-label">Open Issues</span>
+                </div>
+            </div>
+            <div class="cal-stat @(_stats.CriticalIssues > 0 ? "alert" : "")">
+                <div class="cal-stat-icon @(_stats.CriticalIssues > 0 ? "red" : "gray")"><i class="fa-light fa-siren-on"></i></div>
+                <div class="cal-stat-info">
+                    <span class="cal-stat-value">@_stats.CriticalIssues</span>
+                    <span class="cal-stat-label">Critical</span>
+                </div>
+            </div>
+            <div class="cal-stat">
+                <div class="cal-stat-icon green"><i class="fa-light fa-check-double"></i></div>
+                <div class="cal-stat-info">
+                    <span class="cal-stat-value">@_stats.ResolvedThisMonth</span>
+                    <span class="cal-stat-label">Resolved</span>
+                </div>
+            </div>
         </div>
+
+        @* ════════ CALENDAR VIEW ════════ *@
+        @if (_view == "calendar")
+        {
+            <div class="cal-container ov-fadeIn">
+                <div class="cal-nav">
+                    <button class="cal-nav-btn" @onclick="PrevMonth">
+                        <i class="fa-light fa-chevron-left"></i>
+                    </button>
+                    <h2 class="cal-nav-title">@_calendarMonth.ToString("MMMM yyyy")</h2>
+                    <button class="cal-nav-btn" @onclick="NextMonth">
+                        <i class="fa-light fa-chevron-right"></i>
+                    </button>
+                    <button class="cal-today-btn" @onclick="GoToToday">Today</button>
+                </div>
+
+                <div class="cal-grid">
+                    @foreach (var dayName in new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" })
+                    {
+                        <div class="cal-weekday">@dayName</div>
+                    }
+
+                    @foreach (var day in _calendarDays)
+                    {
+                        var dayEvents = _calendarEvents.Where(e => e.Date == day.Date).ToList();
+                        var isToday = day.Date == DateOnly.FromDateTime(DateTime.UtcNow);
+                        <div class="cal-cell @(day.IsCurrentMonth ? "" : "other") @(isToday ? "today" : "")">
+                            <span class="cal-day-num @(isToday ? "today-badge" : "")">@day.Date.Day</span>
+                            <div class="cal-cell-events">
+                                @foreach (var evt in dayEvents.Take(3))
+                                {
+                                    var e = evt;
+                                    <div class="cal-evt @EventClass(e)" @onclick="() => OnCalendarEventClick(e)" title="@e.Title">
+                                        <span class="cal-evt-dot"></span>
+                                        <span class="cal-evt-text">@TruncateText(e.Title, 16)</span>
+                                    </div>
+                                }
+                                @if (dayEvents.Count > 3)
+                                {
+                                    <div class="cal-evt-more">+@(dayEvents.Count - 3) more</div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @* ════════ TIMELINE VIEW ════════ *@
+        else
+        {
+            <div class="cal-tl ov-fadeIn">
+                @if (!_timelineItems.Any())
+                {
+                    <div class="ov-empty">
+                        <div class="ov-empty-icon"><i class="fa-light fa-list-timeline"></i></div>
+                        <h2>No upcoming items</h2>
+                        <p>Create a schedule to get started.</p>
+                    </div>
+                }
+                else
+                {
+                    var tlIdx = 0; DateOnly? lastDate = null;
+                    @foreach (var item in _timelineItems)
+                    {
+                        var it = item;
+                        var ti = tlIdx;
+                        var isToday = it.Date == DateOnly.FromDateTime(DateTime.UtcNow);
+
+                        @* Date separator *@
+                        @if (lastDate == null || lastDate != it.Date)
+                        {
+                            <div class="cal-tl-date ov-fadeIn" style="animation-delay: @(ti * 0.03)s">
+                                <span>@(isToday ? "Today" : it.Date.ToString("ddd, MMM dd yyyy"))</span>
+                            </div>
+                            lastDate = it.Date;
+                        }
+
+                        <div class="cal-tl-item @it.EventType @(it.IsOverdue ? "overdue" : "") @(isToday ? "today" : "") ov-staggerUp"
+                             style="animation-delay: @(ti * 0.04)s"
+                             @onclick="() => OnTimelineItemClick(it)">
+                            <div class="cal-tl-marker @it.EventType">
+                                @if (it.EventType == "inspection")
+                                {
+                                    <i class="fa-light fa-clipboard-list"></i>
+                                }
+                                else if (it.EventType == "issue")
+                                {
+                                    <i class="fa-light fa-triangle-exclamation"></i>
+                                }
+                                else
+                                {
+                                    <i class="fa-light fa-calendar-clock"></i>
+                                }
+                            </div>
+                            <div class="cal-tl-body">
+                                <div class="cal-tl-top">
+                                    <h3>@it.Title</h3>
+                                    <div class="cal-tl-badges">
+                                        @if (it.InspectionStatus.HasValue)
+                                        {
+                                            <span class="status-badge status-@it.InspectionStatus.Value.ToString().ToLower()">@StatusLabel(it.InspectionStatus.Value)</span>
+                                        }
+                                        @if (it.IssueStatus.HasValue)
+                                        {
+                                            <span class="status-badge issue-@it.IssueStatus.Value.ToString().ToLower()">@it.IssueStatus</span>
+                                        }
+                                        @if (it.Priority.HasValue)
+                                        {
+                                            <span class="cal-tl-priority priority-@it.Priority.Value.ToString().ToLower()">@it.Priority</span>
+                                        }
+                                        @if (it.IsOverdue)
+                                        {
+                                            <span class="status-badge status-completedwithissues">Overdue</span>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="cal-tl-meta">
+                                    <span><i class="fa-light fa-industry"></i> @it.PlantName</span>
+                                    @if (it.EquipmentIdentifier is not null)
+                                    {
+                                        <span><i class="fa-light fa-barcode"></i> @it.EquipmentIdentifier</span>
+                                    }
+                                </div>
+                                @if (it.EventType == "inspection" && it.TotalItems > 0)
+                                {
+                                    var pct = (int)((double)it.CompletedItems / it.TotalItems * 100);
+                                    <div class="cal-tl-progress">
+                                        <div class="insp-round-bar">
+                                            <div class="insp-round-bar-fill" style="width: @pct%"></div>
+                                        </div>
+                                        <span>@it.CompletedItems / @it.TotalItems equipment</span>
+                                    </div>
+                                }
+                                @if (it.Description is not null)
+                                {
+                                    <p class="cal-tl-desc">@TruncateText(it.Description, 120)</p>
+                                }
+                            </div>
+                        </div>
+                        tlIdx++;
+                    }
+                }
+            </div>
+        }
     }
-}
+</div>
 
 @code {
     private string _view = "calendar";
@@ -163,15 +226,10 @@ else
     protected override async Task OnInitializedAsync()
     {
         _calendarMonth = new DateOnly(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-        await LoadAll();
-        _loading = false;
-    }
-
-    private async Task LoadAll()
-    {
         _stats = await ScheduleService.GetDashboardStatsAsync();
         await LoadCalendarEvents();
         _timelineItems = await ScheduleService.GetTimelineAsync(30);
+        _loading = false;
     }
 
     private async Task LoadCalendarEvents()
@@ -199,15 +257,11 @@ else
         }
     }
 
-    private async Task PrevMonth()
+    private async Task PrevMonth() { _calendarMonth = _calendarMonth.AddMonths(-1); await LoadCalendarEvents(); }
+    private async Task NextMonth() { _calendarMonth = _calendarMonth.AddMonths(1); await LoadCalendarEvents(); }
+    private async Task GoToToday()
     {
-        _calendarMonth = _calendarMonth.AddMonths(-1);
-        await LoadCalendarEvents();
-    }
-
-    private async Task NextMonth()
-    {
-        _calendarMonth = _calendarMonth.AddMonths(1);
+        _calendarMonth = new DateOnly(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
         await LoadCalendarEvents();
     }
 
@@ -229,8 +283,25 @@ else
             Navigation.NavigateTo("/schedules");
     }
 
+    private static string EventClass(CalendarEventDto evt) => evt switch
+    {
+        { IsOverdue: true } => "overdue",
+        { EventType: "inspection", InspectionStatus: InspectionStatus.Completed } => "completed",
+        { EventType: "inspection", InspectionStatus: InspectionStatus.Reviewed } => "completed",
+        { EventType: "inspection", InspectionStatus: InspectionStatus.CompletedWithIssues } => "has-issues",
+        { EventType: "inspection" } => "inspection",
+        { EventType: "scheduled" } => "scheduled",
+        _ => ""
+    };
+
+    private static string StatusLabel(InspectionStatus s) => s switch
+    {
+        InspectionStatus.CompletedWithIssues => "Has Issues",
+        _ => s.ToString()
+    };
+
     private static string TruncateText(string text, int maxLen)
-        => text.Length > maxLen ? text[..maxLen] + "..." : text;
+        => text.Length > maxLen ? text[..maxLen] + "…" : text;
 
     private record CalendarDay(DateOnly Date, bool IsCurrentMonth);
 }
