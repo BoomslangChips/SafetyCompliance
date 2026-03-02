@@ -415,8 +415,19 @@
 
     private async Task StartNewRound()
     {
-        var round = await InspectionService.StartInspectionRoundAsync(_selectedPlantId, "current-user");
-        Navigation.NavigateTo($"/inspections/{round.Id}");
+        try
+        {
+            var round = await InspectionService.StartInspectionRoundAsync(_selectedPlantId, "current-user");
+            Navigation.NavigateTo($"/inspections/{round.Id}");
+        }
+        catch (InvalidOperationException)
+        {
+            // Round already exists — navigate to it
+            var currentMonth = DateTime.UtcNow.ToString("yyyy-MM");
+            var existing = _rounds.FirstOrDefault(r => r.InspectionMonth == currentMonth);
+            if (existing is not null)
+                Navigation.NavigateTo($"/inspections/{existing.Id}");
+        }
     }
 
     private static string StatusLabel(InspectionStatus s) => s switch
