@@ -89,10 +89,15 @@ public class CompanyService(ApplicationDbContext context) : ICompanyService
                 c.Name,
                 c.Code,
                 c.PhotoBase64,
+                c.Address,
+                c.ContactName,
+                c.ContactEmail,
                 c.Plants.Count(p => p.IsActive),
                 c.Plants.Where(p => p.IsActive)
                     .SelectMany(p => p.Sections.Where(s => s.IsActive))
                     .SelectMany(s => s.Equipment.Where(e => e.IsActive)).Count(),
+                c.Plants.Where(p => p.IsActive)
+                    .SelectMany(p => p.Sections.Where(s => s.IsActive)).Count(),
                 c.Plants.Where(p => p.IsActive).Select(p => new HierarchyPlantDto(
                     p.Id,
                     p.Name,

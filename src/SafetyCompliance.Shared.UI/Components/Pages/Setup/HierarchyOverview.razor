@@ -68,7 +68,7 @@
                         <span>Plants</span>
                     </div>
                     <div class="ov-hero-stat">
-                        <strong>@_hierarchy.Sum(c => c.Plants.Sum(p => p.SectionCount))</strong>
+                        <strong>@_hierarchy.Sum(c => c.TotalSections)</strong>
                         <span>Sections</span>
                     </div>
                     <div class="ov-hero-stat">
@@ -88,33 +88,77 @@
                          @onclick="() => DrillCompany(c)">
                         <div class="ov-card-accent"></div>
                         <div class="ov-card-body">
-                            <div class="ov-card-icon-wrap">
-                                @if (c.PhotoBase64 is not null)
-                                {
-                                    <img class="ov-card-photo" src="@GetPhotoSrc(c.PhotoBase64)" alt="" />
-                                }
-                                else
-                                {
-                                    <i class="fa-light fa-building"></i>
-                                }
+                            <div class="ov-card-header-row">
+                                <div class="ov-card-icon-wrap">
+                                    @if (c.PhotoBase64 is not null)
+                                    {
+                                        <img class="ov-card-photo" src="@GetPhotoSrc(c.PhotoBase64)" alt="" />
+                                    }
+                                    else
+                                    {
+                                        <i class="fa-light fa-building"></i>
+                                    }
+                                </div>
+                                <div class="ov-card-info">
+                                    <h2>@c.Name</h2>
+                                    @if (c.Code is not null)
+                                    {
+                                        <span class="ov-card-code">@c.Code</span>
+                                    }
+                                </div>
                             </div>
-                            <div class="ov-card-info">
-                                <h2>@c.Name</h2>
-                                @if (c.Code is not null)
-                                {
-                                    <span class="ov-card-code">@c.Code</span>
-                                }
-                            </div>
-                            <div class="ov-card-metrics">
-                                <div class="ov-metric">
+
+                            <div class="ov-card-stats">
+                                <div class="ov-card-stat">
                                     <i class="fa-light fa-industry"></i>
-                                    <span>@c.PlantCount Plants</span>
+                                    <strong>@c.PlantCount</strong>
+                                    <span>Plants</span>
                                 </div>
-                                <div class="ov-metric">
+                                <div class="ov-card-stat">
+                                    <i class="fa-light fa-layer-group"></i>
+                                    <strong>@c.TotalSections</strong>
+                                    <span>Sections</span>
+                                </div>
+                                <div class="ov-card-stat">
                                     <i class="fa-light fa-gears"></i>
-                                    <span>@c.TotalEquipment Equipment</span>
+                                    <strong>@c.TotalEquipment</strong>
+                                    <span>Equipment</span>
                                 </div>
                             </div>
+
+                            @if (c.ContactName is not null || c.Address is not null || c.ContactEmail is not null)
+                            {
+                                <div class="ov-card-contact">
+                                    @if (c.ContactName is not null)
+                                    {
+                                        <span><i class="fa-light fa-user"></i> @c.ContactName</span>
+                                    }
+                                    @if (c.ContactEmail is not null)
+                                    {
+                                        <span><i class="fa-light fa-envelope"></i> @c.ContactEmail</span>
+                                    }
+                                    @if (c.Address is not null)
+                                    {
+                                        <span><i class="fa-light fa-location-dot"></i> @c.Address</span>
+                                    }
+                                </div>
+                            }
+
+                            @if (c.Plants.Any())
+                            {
+                                <div class="ov-card-plants-preview">
+                                    @foreach (var plant in c.Plants.Take(4))
+                                    {
+                                        <span class="ov-card-plant-chip">
+                                            <i class="fa-light fa-industry"></i> @plant.Name
+                                        </span>
+                                    }
+                                    @if (c.Plants.Count > 4)
+                                    {
+                                        <span class="ov-card-plant-chip">+@(c.Plants.Count - 4) more</span>
+                                    }
+                                </div>
+                            }
                         </div>
                         <div class="ov-card-cta">
                             <span>Explore</span>

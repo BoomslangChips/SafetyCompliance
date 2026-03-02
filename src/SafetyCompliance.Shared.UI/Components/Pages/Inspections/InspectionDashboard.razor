@@ -95,7 +95,7 @@
                         <div class="cal-cell @(day.IsCurrentMonth ? "" : "other") @(isToday ? "today" : "")">
                             <span class="cal-day-num @(isToday ? "today-badge" : "")">@day.Date.Day</span>
                             <div class="cal-cell-events">
-                                @foreach (var evt in dayEvents.Take(3))
+                                @foreach (var evt in dayEvents.Take(5))
                                 {
                                     var e = evt;
                                     <div class="cal-evt @EventClass(e)" @onclick="() => OnCalendarEventClick(e)" title="@e.Title">
@@ -103,9 +103,9 @@
                                         <span class="cal-evt-text">@TruncateText(e.Title, 16)</span>
                                     </div>
                                 }
-                                @if (dayEvents.Count > 3)
+                                @if (dayEvents.Count > 5)
                                 {
-                                    <div class="cal-evt-more">+@(dayEvents.Count - 3) more</div>
+                                    <div class="cal-evt-more">+@(dayEvents.Count - 5) more</div>
                                 }
                             </div>
                         </div>
