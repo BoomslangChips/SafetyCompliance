@@ -63,7 +63,7 @@
                                 <div class="insp-ov-card-body">
                                     <div class="insp-ov-card-top">
                                         <h3>@r.PlantName</h3>
-                                        <span class="status-badge status-@r.Status.ToString().ToLower()">@r.Status</span>
+                                        <span class="status-badge status-@r.Status.ToString().ToLower()">@StatusLabel(r.Status)</span>
                                     </div>
                                     <div class="insp-ov-card-meta">
                                         <span><i class="fa-light fa-calendar"></i> @r.InspectionDate.ToString("MMM dd, yyyy")</span>
@@ -268,7 +268,7 @@
                             @onclick="() => SetFilter(null)">
                         All <span class="insp-chip-count">@_rounds.Count</span>
                     </button>
-                    @foreach (var status in new[] { InspectionStatus.InProgress, InspectionStatus.Completed, InspectionStatus.Draft })
+                    @foreach (var status in new[] { InspectionStatus.InProgress, InspectionStatus.CompletedWithIssues, InspectionStatus.Completed, InspectionStatus.Draft })
                     {
                         var s = status;
                         var count = _rounds.Count(r => r.Status == s);
@@ -276,7 +276,7 @@
                         {
                             <button class="insp-chip status-@s.ToString().ToLower() @(_statusFilter == s ? "active" : "")"
                                     @onclick="() => SetFilter(s)">
-                                @s <span class="insp-chip-count">@count</span>
+                                @StatusLabel(s) <span class="insp-chip-count">@count</span>
                             </button>
                         }
                     }
@@ -304,7 +304,7 @@
                             <div class="insp-round-info">
                                 <div class="insp-round-top">
                                     <h3>@r.InspectionMonth</h3>
-                                    <span class="status-badge status-@r.Status.ToString().ToLower()">@r.Status</span>
+                                    <span class="status-badge status-@r.Status.ToString().ToLower()">@StatusLabel(r.Status)</span>
                                 </div>
                                 <div class="insp-round-meta">
                                     <span><i class="fa-light fa-calendar"></i> @r.InspectionDate.ToString("MMM dd, yyyy")</span>
@@ -418,4 +418,10 @@
         var round = await InspectionService.StartInspectionRoundAsync(_selectedPlantId, "current-user");
         Navigation.NavigateTo($"/inspections/{round.Id}");
     }
+
+    private static string StatusLabel(InspectionStatus s) => s switch
+    {
+        InspectionStatus.CompletedWithIssues => "Has Issues",
+        _ => s.ToString()
+    };
 }

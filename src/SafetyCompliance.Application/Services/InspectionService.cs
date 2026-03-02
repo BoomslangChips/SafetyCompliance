@@ -180,7 +180,16 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
         var round = await context.InspectionRounds.FindAsync([roundId], ct)
             ?? throw new InvalidOperationException($"Round {roundId} not found");
 
-        round.Status = InspectionStatus.Completed;
+        // Check if any equipment is incomplete or has failed responses
+        var hasIncomplete = await context.EquipmentInspections
+            .AnyAsync(ei => ei.InspectionRoundId == roundId && !ei.IsComplete, ct);
+
+        var hasFailures = await context.InspectionResponses
+            .AnyAsync(r => r.EquipmentInspection.InspectionRoundId == roundId && r.Response == false, ct);
+
+        round.Status = (hasIncomplete || hasFailures)
+            ? InspectionStatus.CompletedWithIssues
+            : InspectionStatus.Completed;
         round.CompletedAt = DateTime.UtcNow;
 
         await context.SaveChangesAsync(ct);
@@ -208,7 +217,9 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
     public async Task<List<InspectionRoundDto>> GetActiveRoundsAsync(CancellationToken ct = default)
     {
         return await context.InspectionRounds
-            .Where(ir => ir.Status == InspectionStatus.InProgress || ir.Status == InspectionStatus.Draft)
+            .Where(ir => ir.Status == InspectionStatus.InProgress
+                      || ir.Status == InspectionStatus.Draft
+                      || ir.Status == InspectionStatus.CompletedWithIssues)
             .OrderByDescending(ir => ir.InspectionDate)
             .Select(ir => new InspectionRoundDto(
                 ir.Id, ir.PlantId, ir.Plant.Name,
@@ -223,7 +234,8 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
     public async Task<List<FailedInspectionItemDto>> GetFailedItemsAsync(CancellationToken ct = default)
     {
         var failedEquipment = await context.EquipmentInspections
-            .Where(ei => ei.InspectionRound.Status == InspectionStatus.InProgress
+            .Where(ei => ei.InspectionRound.Status != InspectionStatus.Draft
+                      && ei.InspectionRound.Status != InspectionStatus.Reviewed
                       && ei.Responses.Any(r => r.Response == false))
             .OrderByDescending(ei => ei.InspectionRound.InspectionDate)
             .Select(ei => new FailedInspectionItemDto(

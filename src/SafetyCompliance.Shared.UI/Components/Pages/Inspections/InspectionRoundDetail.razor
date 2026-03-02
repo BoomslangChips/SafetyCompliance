@@ -370,18 +370,21 @@
 @* ── Complete Confirmation Modal ── *@
 @if (_showCompleteConfirmation)
 {
+    var hasIssues = _incompleteCount > 0 || _failedItemCount > 0;
     <div class="chk-modal-overlay" @onclick="() => _showCompleteConfirmation = false">
         <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon success"><i class="fa-light fa-badge-check"></i></div>
+                <div class="chk-modal-icon @(hasIssues ? "warning" : "success")">
+                    <i class="fa-light @(hasIssues ? "fa-triangle-exclamation" : "fa-badge-check")"></i>
+                </div>
                 <div>
-                    <h2>Complete Inspection</h2>
+                    <h2>@(hasIssues ? "Close with Issues" : "Complete Inspection")</h2>
                     <span class="chk-modal-sub">Round #@RoundId</span>
                 </div>
                 <button class="chk-modal-close" @onclick="() => _showCompleteConfirmation = false"><i class="fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
-                @if (_incompleteCount > 0 || _failedItemCount > 0 || _outForServiceCount > 0)
+                @if (hasIssues || _outForServiceCount > 0)
                 {
                     <div class="chk-complete-warnings">
                         @if (_incompleteCount > 0)
@@ -405,21 +408,28 @@
                                 <span>@_outForServiceCount equipment out for service</span>
                             </div>
                         }
-                        <p class="chk-warn-note">You can still complete. Items will be recorded as-is.</p>
+                        @if (hasIssues)
+                        {
+                            <p class="chk-warn-note">
+                                This round will be marked as <strong>Completed with Issues</strong>
+                                and remain visible in the overview until all items are resolved.
+                            </p>
+                        }
                     </div>
                 }
                 else
                 {
                     <div class="chk-complete-ready">
                         <i class="fa-light fa-circle-check"></i>
-                        <p>All equipment has been inspected. Ready to complete!</p>
+                        <p>All equipment has been inspected and passed. Ready to complete!</p>
                     </div>
                 }
             </div>
             <div class="chk-modal-footer">
                 <button class="btn btn-ghost" @onclick="() => _showCompleteConfirmation = false">Cancel</button>
-                <button class="btn btn-success" @onclick="ConfirmCompleteRound">
-                    <i class="fa-light fa-badge-check"></i> Confirm Complete
+                <button class="btn @(hasIssues ? "btn-warning" : "btn-success")" @onclick="ConfirmCompleteRound">
+                    <i class="fa-light @(hasIssues ? "fa-triangle-exclamation" : "fa-badge-check")"></i>
+                    @(hasIssues ? "Close with Issues" : "Confirm Complete")
                 </button>
             </div>
         </div>

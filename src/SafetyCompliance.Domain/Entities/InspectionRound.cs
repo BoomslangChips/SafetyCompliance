@@ -29,5 +29,6 @@ public enum InspectionStatus : byte
     Draft = 0,
     InProgress = 1,
     Completed = 2,
-    Reviewed = 3
+    Reviewed = 3,
+    CompletedWithIssues = 4
 }

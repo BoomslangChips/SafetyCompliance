@@ -642,6 +642,7 @@ select.form-control {
 .status-inprogress { background: var(--color-tint-orange); color: #b45309; }
 .status-completed { background: var(--color-tint-green); color: var(--color-success); }
 .status-reviewed { background: var(--color-tint-blue); color: #1d4ed8; }
+.status-completedwithissues { background: var(--color-tint-red); color: var(--color-danger); }
 
 /* ===== Progress Bar ===== */
 .progress-bar-container {
@@ -3021,6 +3022,7 @@ textarea.form-control {
     border-color: var(--color-primary);
 }
 .insp-chip.status-inprogress.active { background: #2563eb; border-color: #2563eb; }
+.insp-chip.status-completedwithissues.active { background: var(--color-danger); border-color: var(--color-danger); }
 .insp-chip.status-completed.active { background: var(--color-success); border-color: var(--color-success); }
 .insp-chip.status-draft.active { background: var(--color-secondary); border-color: var(--color-secondary); }
 .insp-chip-count {
@@ -3083,6 +3085,7 @@ textarea.form-control {
 .status-ring-completed { stroke: var(--color-success); }
 .status-ring-draft { stroke: var(--color-secondary); }
 .status-ring-reviewed { stroke: #8b5cf6; }
+.status-ring-completedwithissues { stroke: var(--color-danger); }
 .insp-ring-pct {
     position: absolute;
     top: 50%; left: 50%;
