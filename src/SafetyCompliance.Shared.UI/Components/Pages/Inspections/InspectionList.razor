@@ -370,18 +370,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load overview data and companies in parallel
-        var activeTask = InspectionService.GetActiveRoundsAsync();
-        var failedTask = InspectionService.GetFailedItemsAsync();
-        var bookingsTask = ServiceBookingService.GetActiveBookingsAsync();
-        var companiesTask = CompanyService.GetAllCompaniesAsync();
-
-        await Task.WhenAll(activeTask, failedTask, bookingsTask, companiesTask);
-
-        _activeRounds = activeTask.Result;
-        _failedItems = failedTask.Result;
-        _activeBookings = bookingsTask.Result;
-        _companies = companiesTask.Result;
+        // DbContext is not thread-safe — must run queries sequentially
+        _activeRounds = await InspectionService.GetActiveRoundsAsync();
+        _failedItems = await InspectionService.GetFailedItemsAsync();
+        _activeBookings = await ServiceBookingService.GetActiveBookingsAsync();
+        _companies = await CompanyService.GetAllCompaniesAsync();
         _loading = false;
     }
 
