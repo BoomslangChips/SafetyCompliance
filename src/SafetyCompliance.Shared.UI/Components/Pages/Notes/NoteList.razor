@@ -1,0 +1,524 @@
+@page "/notes"
+@inject INoteService NoteService
+@inject ICompanyService CompanyService
+@inject IPlantService PlantService
+@inject ISectionService SectionService
+@inject IEquipmentService EquipmentService
+@inject NavigationManager Navigation
+@using SafetyCompliance.Domain.Entities
+
+<div class="note-page">
+    @* ── Tab bar ── *@
+    <div class="insp-tab-bar ov-fadeIn">
+        <div class="insp-tabs">
+            <button class="insp-tab @(_tab == NoteTab.All ? "active" : "")" @onclick="() => SetTab(NoteTab.All)">
+                <i class="fa-light fa-memo"></i> All
+            </button>
+            <button class="insp-tab @(_tab == NoteTab.Pinned ? "active" : "")" @onclick="() => SetTab(NoteTab.Pinned)">
+                <i class="fa-light fa-thumbtack"></i> Pinned
+            </button>
+            <button class="insp-tab @(_tab == NoteTab.Urgent ? "active" : "")" @onclick="() => SetTab(NoteTab.Urgent)">
+                <i class="fa-light fa-siren-on"></i> Urgent
+            </button>
+        </div>
+        <button class="inc-log-btn" @onclick="OpenCreateModal"><i class="fa-light fa-plus"></i> Add Note</button>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="ov-loading"><div class="ov-spinner"></div><p>Loading notes&hellip;</p></div>
+    }
+    else
+    {
+        @* ── Stats row ── *@
+        <div class="note-stats ov-fadeIn">
+            <div class="note-stat">
+                <div class="note-stat-icon blue"><i class="fa-light fa-memo"></i></div>
+                <div class="note-stat-info">
+                    <span class="note-stat-value">@_all.Count</span>
+                    <span class="note-stat-label">Total Notes</span>
+                </div>
+            </div>
+            <div class="note-stat @(_pinnedCount > 0 ? "highlight" : "")">
+                <div class="note-stat-icon @(_pinnedCount > 0 ? "indigo" : "gray")"><i class="fa-light fa-thumbtack"></i></div>
+                <div class="note-stat-info">
+                    <span class="note-stat-value">@_pinnedCount</span>
+                    <span class="note-stat-label">Pinned</span>
+                </div>
+            </div>
+            <div class="note-stat @(_urgentCount > 0 ? "alert" : "")">
+                <div class="note-stat-icon @(_urgentCount > 0 ? "red" : "gray")"><i class="fa-light fa-siren-on"></i></div>
+                <div class="note-stat-info">
+                    <span class="note-stat-value">@_urgentCount</span>
+                    <span class="note-stat-label">Urgent</span>
+                </div>
+            </div>
+            <div class="note-stat">
+                <div class="note-stat-icon amber"><i class="fa-light fa-shield-halved"></i></div>
+                <div class="note-stat-info">
+                    <span class="note-stat-value">@_all.Count(n => n.Category == NoteCategory.Safety)</span>
+                    <span class="note-stat-label">Safety</span>
+                </div>
+            </div>
+            <div class="note-stat">
+                <div class="note-stat-icon green"><i class="fa-light fa-clipboard-check"></i></div>
+                <div class="note-stat-info">
+                    <span class="note-stat-value">@_all.Count(n => n.Category == NoteCategory.Compliance)</span>
+                    <span class="note-stat-label">Compliance</span>
+                </div>
+            </div>
+        </div>
+
+        @* ── Category filter chips ── *@
+        <div class="inc-filters ov-fadeIn">
+            <button class="inc-chip @(_categoryFilter == null ? "active" : "")" @onclick="() => SetCategoryFilter(null)">
+                All Categories <span class="inc-chip-count">@_display.Count</span>
+            </button>
+            @foreach (var cat in Enum.GetValues<NoteCategory>())
+            {
+                var c = cat;
+                var cnt = _display.Count(n => n.Category == c);
+                @if (cnt > 0)
+                {
+                    <button class="inc-chip note-chip-@c.ToString().ToLower() @(_categoryFilter == c ? "active" : "")"
+                            @onclick="() => SetCategoryFilter(c)">
+                        <i class="fa-light @CategoryIcon(c)"></i> @c <span class="inc-chip-count">@cnt</span>
+                    </button>
+                }
+            }
+        </div>
+
+        @* ── Cards ── *@
+        @if (!_finalDisplay.Any())
+        {
+            <div class="ov-empty ov-fadeIn">
+                <div class="ov-empty-icon"><i class="fa-light fa-memo"></i></div>
+                <h2>No notes found</h2>
+                <p>@(_tab == NoteTab.All ? "No notes have been added yet." : $"No {_tab.ToString().ToLower()} notes.")</p>
+                @if (_tab == NoteTab.All)
+                {
+                    <button class="btn btn-primary btn-lg" @onclick="OpenCreateModal">
+                        <i class="fa-light fa-plus"></i> Add First Note
+                    </button>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="note-list">
+                @{ var idx = 0; }
+                @foreach (var note in _finalDisplay)
+                {
+                    var n = note;
+                    var ii = idx;
+                    <div class="note-card ov-staggerUp @(n.IsPinned ? "note-card-pinned" : "")" style="animation-delay: @(ii * 0.04)s">
+                        <div class="note-card-stripe note-cat-@n.Category.ToString().ToLower()"></div>
+                        <div class="note-card-main" @onclick="() => OpenEditModal(n)">
+                            <div class="note-card-top">
+                                <div class="note-card-title-row">
+                                    @if (n.IsPinned)
+                                    {
+                                        <i class="fa-solid fa-thumbtack note-pin-icon" title="Pinned"></i>
+                                    }
+                                    <span class="note-cat-badge note-cat-@n.Category.ToString().ToLower()">
+                                        <i class="fa-light @CategoryIcon(n.Category)"></i> @n.Category
+                                    </span>
+                                    @if (n.Priority != NotePriority.Normal)
+                                    {
+                                        <span class="note-priority-badge note-priority-@n.Priority.ToString().ToLower()">
+                                            <i class="fa-light @PriorityIcon(n.Priority)"></i> @n.Priority
+                                        </span>
+                                    }
+                                    <h3>@n.Title</h3>
+                                </div>
+                            </div>
+                            <p class="note-card-content">@TruncateText(n.Content, 160)</p>
+                            <div class="note-card-meta">
+                                @if (n.PlantName is not null)
+                                {
+                                    <span class="inc-meta-tag"><i class="fa-light fa-industry"></i> @n.PlantName</span>
+                                }
+                                @if (n.EquipmentIdentifier is not null)
+                                {
+                                    <span class="inc-meta-tag equip"><i class="fa-light fa-gear"></i> @n.EquipmentIdentifier — @n.EquipmentTypeName</span>
+                                }
+                                @if (n.SectionName is not null)
+                                {
+                                    <span class="inc-meta-tag"><i class="fa-light fa-layer-group"></i> @n.SectionName</span>
+                                }
+                                @if (n.ModifiedAt.HasValue)
+                                {
+                                    <span class="inc-meta-tag muted"><i class="fa-light fa-pen-to-square"></i> Edited @n.ModifiedAt.Value.ToString("MMM dd, yyyy")</span>
+                                }
+                                else
+                                {
+                                    <span class="inc-meta-tag muted"><i class="fa-light fa-clock"></i> @n.CreatedAt.ToString("MMM dd, yyyy")</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="inc-card-actions" @onclick:stopPropagation="true">
+                            <button class="inc-action-btn @(n.IsPinned ? "reopen" : "resolve")"
+                                    @onclick="() => TogglePin(n.Id)"
+                                    title="@(n.IsPinned ? "Unpin" : "Pin")">
+                                <i class="fa-light fa-thumbtack"></i>
+                                <span>@(n.IsPinned ? "Unpin" : "Pin")</span>
+                            </button>
+                            <button class="inc-action-btn view" @onclick="() => OpenEditModal(n)" title="Edit">
+                                <i class="fa-light fa-pen"></i>
+                            </button>
+                            <button class="inc-action-btn delete" @onclick="() => ConfirmDelete(n.Id, n.Title)" title="Delete">
+                                <i class="fa-light fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    idx++;
+                }
+            </div>
+        }
+    }
+</div>
+
+@* ── Create / Edit Modal ── *@
+@if (_showForm)
+{
+    <div class="chk-modal-overlay" @onclick="CloseForm">
+        <div class="chk-modal chk-modal-wide ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon primary"><i class="fa-light fa-memo"></i></div>
+                <div>
+                    <h2>@(_editId.HasValue ? "Edit Note" : "Add Note")</h2>
+                    <span class="chk-modal-sub">@(_editId.HasValue ? "Update this note" : "Capture something notable")</span>
+                </div>
+                <button class="chk-modal-close" @onclick="CloseForm"><i class="fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                <div class="form-group">
+                    <label>Title <span class="form-required">*</span></label>
+                    <input @bind="_formTitle" class="form-control" placeholder="Brief summary of the note" />
+                </div>
+                <div class="form-group">
+                    <label>Content <span class="form-required">*</span></label>
+                    <textarea @bind="_formContent" class="form-control" rows="5"
+                              placeholder="Detailed notes, observations, or action items..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Category</label>
+                        <div class="note-cat-select">
+                            @foreach (var cat in Enum.GetValues<NoteCategory>())
+                            {
+                                var c = cat;
+                                <button type="button"
+                                        class="note-cat-btn note-cat-@c.ToString().ToLower() @(_formCategory == c ? "active" : "")"
+                                        @onclick="() => _formCategory = c">
+                                    <i class="fa-light @CategoryIcon(c)"></i> @c
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority</label>
+                        <div class="note-pri-select">
+                            @foreach (var pri in Enum.GetValues<NotePriority>())
+                            {
+                                var p = pri;
+                                <button type="button"
+                                        class="note-pri-btn note-priority-@p.ToString().ToLower() @(_formPriority == p ? "active" : "")"
+                                        @onclick="() => _formPriority = p">
+                                    <i class="fa-light @PriorityIcon(p)"></i> @p
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="note-pin-label">
+                        <input type="checkbox" @bind="_formPinned" class="form-check" />
+                        <i class="fa-light fa-thumbtack"></i> Pin this note
+                    </label>
+                </div>
+                @if (!_editId.HasValue)
+                {
+                    <div class="form-group picker-section">
+                        <label>Link to Equipment <span class="form-hint">(optional)</span></label>
+                        <div class="picker-grid">
+                            <select @onchange="OnPickerCompanyChanged">
+                                <option value="">— Company —</option>
+                                @foreach (var co in _companies)
+                                {
+                                    <option value="@co.Id">@co.Name</option>
+                                }
+                            </select>
+                            <select @onchange="OnPickerPlantChanged" disabled="@(_pickerCompanyId == null)">
+                                <option value="">— Plant —</option>
+                                @foreach (var pl in _pickerPlants)
+                                {
+                                    <option value="@pl.Id">@pl.Name</option>
+                                }
+                            </select>
+                            <select @onchange="OnPickerSectionChanged" disabled="@(_pickerPlantId == null)">
+                                <option value="">— Section —</option>
+                                @foreach (var sc in _pickerSections)
+                                {
+                                    <option value="@sc.Id">@sc.Name</option>
+                                }
+                            </select>
+                            <select @onchange="e => _formEquipmentId = ParseId(e)" disabled="@(_pickerSectionId == null)">
+                                <option value="">— Equipment —</option>
+                                @foreach (var eq in _pickerEquipment)
+                                {
+                                    <option value="@eq.Id">@eq.Identifier — @eq.EquipmentTypeName</option>
+                                }
+                            </select>
+                        </div>
+                        @if (_formEquipmentId.HasValue)
+                        {
+                            var sel = _pickerEquipment.FirstOrDefault(e => e.Id == _formEquipmentId);
+                            <div class="picker-summary"><i class="fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName</div>
+                        }
+                    </div>
+                }
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="CloseForm">Cancel</button>
+                @if (_editId.HasValue)
+                {
+                    <button class="btn btn-primary" @onclick="SaveEdit"
+                            disabled="@(string.IsNullOrWhiteSpace(_formTitle) || string.IsNullOrWhiteSpace(_formContent))">
+                        <i class="fa-light fa-floppy-disk"></i> Save Changes
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-primary" @onclick="CreateNote"
+                            disabled="@(string.IsNullOrWhiteSpace(_formTitle) || string.IsNullOrWhiteSpace(_formContent))">
+                        <i class="fa-light fa-memo"></i> Add Note
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Delete Confirmation Modal ── *@
+@if (_showDelete)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showDelete = false">
+        <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon danger"><i class="fa-light fa-trash"></i></div>
+                <div>
+                    <h2>Delete Note</h2>
+                    <span class="chk-modal-sub">This cannot be undone</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showDelete = false"><i class="fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                <p>Are you sure you want to delete <strong>@_deleteTitle</strong>?</p>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showDelete = false">Cancel</button>
+                <button class="btn btn-danger" @onclick="DoDelete">
+                    <i class="fa-light fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private enum NoteTab { All, Pinned, Urgent }
+
+    private List<NoteDto> _all     = [];
+    private List<NoteDto> _display = [];
+    private List<NoteDto> _finalDisplay = [];
+    private NoteTab       _tab            = NoteTab.All;
+    private NoteCategory? _categoryFilter;
+    private bool          _loading = true;
+
+    private int _pinnedCount, _urgentCount;
+
+    // Form state (shared create + edit)
+    private bool         _showForm;
+    private int?         _editId;
+    private string       _formTitle    = string.Empty;
+    private string       _formContent  = string.Empty;
+    private NoteCategory _formCategory = NoteCategory.General;
+    private NotePriority _formPriority = NotePriority.Normal;
+    private bool         _formPinned;
+    private int?         _formEquipmentId;
+    private int?         _formCompanyId;
+    private int?         _formPlantId;
+
+    // Cascading equipment picker
+    private List<CompanyDto>   _companies      = [];
+    private List<PlantDto>     _pickerPlants   = [];
+    private List<SectionDto>   _pickerSections = [];
+    private List<EquipmentDto> _pickerEquipment = [];
+    private int? _pickerCompanyId, _pickerPlantId, _pickerSectionId;
+
+    // Delete
+    private bool   _showDelete;
+    private int    _deleteId;
+    private string _deleteTitle = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _companies = await CompanyService.GetAllCompaniesAsync();
+        await LoadNotes();
+        _loading = false;
+    }
+
+    private async Task LoadNotes()
+    {
+        _all = await NoteService.GetNotesAsync();
+        _pinnedCount = _all.Count(n => n.IsPinned);
+        _urgentCount = _all.Count(n => n.Priority == NotePriority.Urgent);
+        ApplyFilters();
+    }
+
+    private void SetTab(NoteTab tab) { _tab = tab; _categoryFilter = null; ApplyFilters(); }
+    private void SetCategoryFilter(NoteCategory? c) { _categoryFilter = c; ApplyFilters(); }
+
+    private void ApplyFilters()
+    {
+        _display = _tab switch
+        {
+            NoteTab.Pinned => _all.Where(n => n.IsPinned).ToList(),
+            NoteTab.Urgent => _all.Where(n => n.Priority == NotePriority.Urgent).ToList(),
+            _              => _all.ToList()
+        };
+
+        _finalDisplay = _categoryFilter.HasValue
+            ? _display.Where(n => n.Category == _categoryFilter.Value).ToList()
+            : _display.ToList();
+    }
+
+    private void OpenCreateModal()
+    {
+        _editId          = null;
+        _formTitle       = string.Empty;
+        _formContent     = string.Empty;
+        _formCategory    = NoteCategory.General;
+        _formPriority    = NotePriority.Normal;
+        _formPinned      = false;
+        _formEquipmentId = null;
+        _formCompanyId   = null;
+        _formPlantId     = null;
+        _pickerCompanyId = null;
+        _pickerPlantId   = null;
+        _pickerSectionId = null;
+        _pickerPlants    = [];
+        _pickerSections  = [];
+        _pickerEquipment = [];
+        _showForm = true;
+    }
+
+    private void OpenEditModal(NoteDto note)
+    {
+        _editId       = note.Id;
+        _formTitle    = note.Title;
+        _formContent  = note.Content;
+        _formCategory = note.Category;
+        _formPriority = note.Priority;
+        _formPinned   = note.IsPinned;
+        _showForm     = true;
+    }
+
+    private void CloseForm() => _showForm = false;
+
+    private async Task CreateNote()
+    {
+        if (string.IsNullOrWhiteSpace(_formTitle) || string.IsNullOrWhiteSpace(_formContent)) return;
+
+        var dto = new NoteCreateDto(
+            _formTitle, _formContent, _formCategory, _formPriority, _formPinned,
+            _formEquipmentId, _formCompanyId, _formPlantId);
+
+        await NoteService.CreateNoteAsync(dto, "current-user");
+        _showForm = false;
+        await LoadNotes();
+    }
+
+    private async Task SaveEdit()
+    {
+        if (_editId is null || string.IsNullOrWhiteSpace(_formTitle) || string.IsNullOrWhiteSpace(_formContent)) return;
+
+        var dto = new NoteUpdateDto(_editId.Value, _formTitle, _formContent, _formCategory, _formPriority, _formPinned);
+        await NoteService.UpdateNoteAsync(dto, "current-user");
+        _showForm = false;
+        await LoadNotes();
+    }
+
+    private async Task TogglePin(int id)
+    {
+        await NoteService.TogglePinnedAsync(id, "current-user");
+        await LoadNotes();
+    }
+
+    private void ConfirmDelete(int id, string title)
+    {
+        _deleteId    = id;
+        _deleteTitle = title;
+        _showDelete  = true;
+    }
+
+    private async Task DoDelete()
+    {
+        await NoteService.DeleteNoteAsync(_deleteId);
+        _showDelete = false;
+        await LoadNotes();
+    }
+
+    // Cascading picker
+    private async Task OnPickerCompanyChanged(ChangeEventArgs e)
+    {
+        _pickerCompanyId = ParseId(e);
+        _formCompanyId   = _pickerCompanyId;
+        _pickerPlantId   = null; _pickerSectionId = null;
+        _pickerPlants    = []; _pickerSections = []; _pickerEquipment = [];
+        _formEquipmentId = null; _formPlantId = null;
+        if (_pickerCompanyId.HasValue)
+            _pickerPlants = await PlantService.GetPlantsByCompanyAsync(_pickerCompanyId.Value);
+    }
+    private async Task OnPickerPlantChanged(ChangeEventArgs e)
+    {
+        _pickerPlantId   = ParseId(e);
+        _formPlantId     = _pickerPlantId;
+        _pickerSectionId = null;
+        _pickerSections  = []; _pickerEquipment = [];
+        _formEquipmentId = null;
+        if (_pickerPlantId.HasValue)
+            _pickerSections = await SectionService.GetSectionsByPlantAsync(_pickerPlantId.Value);
+    }
+    private async Task OnPickerSectionChanged(ChangeEventArgs e)
+    {
+        _pickerSectionId = ParseId(e);
+        _pickerEquipment = [];
+        _formEquipmentId = null;
+        if (_pickerSectionId.HasValue)
+            _pickerEquipment = await EquipmentService.GetEquipmentBySectionAsync(_pickerSectionId.Value);
+    }
+    private static int? ParseId(ChangeEventArgs e) =>
+        int.TryParse(e.Value?.ToString(), out var v) && v > 0 ? v : null;
+
+    // Helpers
+    private static string CategoryIcon(NoteCategory c) => c switch
+    {
+        NoteCategory.Safety      => "fa-shield-halved",
+        NoteCategory.Maintenance => "fa-screwdriver-wrench",
+        NoteCategory.Observation => "fa-eye",
+        NoteCategory.Compliance  => "fa-clipboard-check",
+        _                        => "fa-memo"
+    };
+
+    private static string PriorityIcon(NotePriority p) => p switch
+    {
+        NotePriority.Urgent    => "fa-siren-on",
+        NotePriority.Important => "fa-arrow-up",
+        _                      => "fa-minus"
+    };
+
+    private static string TruncateText(string text, int maxLen) =>
+        text.Length > maxLen ? text[..maxLen] + "…" : text;
+}
