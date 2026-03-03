@@ -6,6 +6,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SafetyCompliance.Application.Services;
 
+/// <summary>
+/// All queries use SELECT projections instead of Include() chains to avoid
+/// SqlNullValueException on non-nullable C# properties that contain NULL in
+/// legacy database rows (e.g. CreatedById, Name fields inserted manually).
+/// </summary>
 public class ReportService(ApplicationDbContext db) : IReportService
 {
     // ── Summary ─────────────────────────────────────────────────────────────────
@@ -14,14 +19,20 @@ public class ReportService(ApplicationDbContext db) : IReportService
         int? companyId = null,
         CancellationToken ct = default)
     {
-        var now           = DateOnly.FromDateTime(DateTime.Today);
-        var firstOfMonth  = new DateOnly(now.Year, now.Month, 1);
-        var lastOfMonth   = firstOfMonth.AddMonths(1).AddDays(-1);
+        var now          = DateOnly.FromDateTime(DateTime.Today);
+        var firstOfMonth = new DateOnly(now.Year, now.Month, 1);
+        var lastOfMonth  = firstOfMonth.AddMonths(1).AddDays(-1);
 
+        // Project only the fields we need — avoids null reads on CreatedById etc.
         var plants = await db.Plants
-            .Include(p => p.Company)
             .Where(p => p.IsActive && (companyId == null || p.CompanyId == companyId))
-            .OrderBy(p => p.Company.Name).ThenBy(p => p.Name)
+            .Select(p => new
+            {
+                p.Id,
+                Name        = (string?)(p.Name)        ?? "",
+                CompanyName = (string?)(p.Company.Name) ?? "",
+            })
+            .OrderBy(p => p.CompanyName).ThenBy(p => p.Name)
             .ToListAsync(ct);
 
         var result = new List<PlantReportSummaryDto>();
@@ -34,22 +45,25 @@ public class ReportService(ApplicationDbContext db) : IReportService
             var totalEquip = await db.Equipment
                 .CountAsync(e => e.Section.PlantId == pid && e.IsActive, ct);
 
-            // This-month inspection rounds
-            var rounds = await db.InspectionRounds
+            // This-month rounds — project only Id, Status, Date
+            var monthRounds = await db.InspectionRounds
                 .Where(r => r.PlantId == pid
                          && r.InspectionDate >= firstOfMonth
                          && r.InspectionDate <= lastOfMonth)
+                .Select(r => new { r.Id, r.Status, r.InspectionDate })
                 .ToListAsync(ct);
 
-            var roundIds  = rounds.Select(r => r.Id).ToList();
-            var completed = rounds.Count(r =>
+            var roundIds  = monthRounds.Select(r => r.Id).ToList();
+            var completed = monthRounds.Count(r =>
                 r.Status == InspectionStatus.Completed ||
                 r.Status == InspectionStatus.CompletedWithIssues ||
                 r.Status == InspectionStatus.Reviewed);
 
-            var lastDate = rounds.Count > 0 ? rounds.Max(r => r.InspectionDate) : (DateOnly?)null;
+            var lastDate = monthRounds.Count > 0
+                ? monthRounds.Max(r => r.InspectionDate)
+                : (DateOnly?)null;
 
-            // Distinct equipment inspected and marked complete
+            // Distinct equipment inspected and marked complete this month
             var equipInspected = roundIds.Count > 0
                 ? await db.EquipmentInspections
                     .Where(ei => roundIds.Contains(ei.InspectionRoundId) && ei.IsComplete)
@@ -72,7 +86,7 @@ public class ReportService(ApplicationDbContext db) : IReportService
                 ? (int)Math.Round(respStats.Passed * 100.0 / respStats.Total)
                 : 100;
 
-            // All-time round IDs for this plant (for issue FK lookups)
+            // All-time round IDs for this plant (issue FK lookups)
             var allRoundIds = await db.InspectionRounds
                 .Where(r => r.PlantId == pid)
                 .Select(r => r.Id)
@@ -92,22 +106,22 @@ public class ReportService(ApplicationDbContext db) : IReportService
                     i.Priority == IssuePriority.Critical &&
                     (i.Status == IssueStatus.Open || i.Status == IssueStatus.InProgress), ct);
 
-            // Active service bookings for this plant's equipment
+            // Active service bookings
             var activeServices = await db.ServiceBookings
                 .CountAsync(b =>
                     b.Equipment.Section.PlantId == pid &&
                     (b.Status == ServiceBookingStatus.Sent ||
                      b.Status == ServiceBookingStatus.InService), ct);
 
-            // Notes count for this plant
+            // Notes count
             var notesCount = await db.Notes
                 .CountAsync(n =>
                     n.PlantId == pid ||
                     (n.Equipment != null && n.Equipment.Section.PlantId == pid), ct);
 
             result.Add(new PlantReportSummaryDto(
-                pid, plant.Name, plant.Company.Name,
-                completed, rounds.Count,
+                pid, plant.Name, plant.CompanyName,
+                completed, monthRounds.Count,
                 equipInspected, totalEquip,
                 openIncidents, criticalIncidents,
                 activeServices, notesCount,
@@ -123,93 +137,136 @@ public class ReportService(ApplicationDbContext db) : IReportService
         int plantId, int year, int month,
         CancellationToken ct = default)
     {
+        // Project plant — avoids null reads on AuditableEntity fields
         var plant = await db.Plants
-            .Include(p => p.Company)
-            .FirstOrDefaultAsync(p => p.Id == plantId, ct);
+            .Where(p => p.Id == plantId)
+            .Select(p => new
+            {
+                p.Id,
+                Name         = (string?)(p.Name)         ?? "",
+                CompanyName  = (string?)(p.Company.Name)  ?? "",
+                p.ContactName,
+                p.ContactPhone,
+            })
+            .FirstOrDefaultAsync(ct);
 
         if (plant is null) return null;
 
         var firstOfMonth = new DateOnly(year, month, 1);
         var lastOfMonth  = firstOfMonth.AddMonths(1).AddDays(-1);
 
-        // Total active equipment in plant
+        // Total active equipment
         var totalEquip = await db.Equipment
             .CountAsync(e => e.Section.PlantId == plantId && e.IsActive, ct);
 
-        // ── Inspection rounds for the month with full detail ──
-        var rounds = await db.InspectionRounds
-            .Include(r => r.EquipmentInspections)
-                .ThenInclude(ei => ei.Equipment)
-                    .ThenInclude(e => e.EquipmentType)
-            .Include(r => r.EquipmentInspections)
-                .ThenInclude(ei => ei.Equipment)
-                    .ThenInclude(e => e.Section)
-            .Include(r => r.EquipmentInspections)
-                .ThenInclude(ei => ei.Responses)
-                    .ThenInclude(resp => resp.ChecklistItemTemplate)
+        // ── Inspection rounds — projection (counts computed in SQL) ──
+        var roundProj = await db.InspectionRounds
             .Where(r => r.PlantId == plantId
                      && r.InspectionDate >= firstOfMonth
                      && r.InspectionDate <= lastOfMonth)
+            .Select(r => new
+            {
+                r.Id,
+                r.InspectionDate,
+                r.Status,
+                r.InspectedById,
+                r.CompletedAt,
+                TotalEquipment     = r.EquipmentInspections.Count,
+                CompletedEquipment = r.EquipmentInspections.Count(ei => ei.IsComplete),
+                FailedChecks       = r.EquipmentInspections
+                                      .SelectMany(ei => ei.Responses)
+                                      .Count(resp => resp.Response == false),
+                TotalChecks        = r.EquipmentInspections
+                                      .SelectMany(ei => ei.Responses)
+                                      .Count(resp => resp.Response.HasValue),
+            })
             .OrderBy(r => r.InspectionDate)
             .ToListAsync(ct);
 
-        // Resolve inspector display names from ASP.NET Identity users
-        var inspectorIds = rounds.Select(r => r.InspectedById).Distinct().ToList();
+        var roundIds = roundProj.Select(r => r.Id).ToList();
+
+        // Resolve inspector display names
+        var inspectorIds = roundProj.Select(r => r.InspectedById).Distinct().ToList();
         var userNames = await db.Users
             .Where(u => inspectorIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, u => u.UserName ?? u.Email ?? u.Id, ct);
+            .Select(u => new { u.Id, DisplayName = (string?)u.UserName ?? (string?)u.Email ?? u.Id })
+            .ToDictionaryAsync(u => u.Id!, u => u.DisplayName ?? "", ct);
 
-        // Build round rows + equipment rows
-        var roundRows = new List<ReportRoundRowDto>();
-        var equipRows = new List<ReportEquipmentRowDto>();
+        var roundRows = roundProj.Select(r => new ReportRoundRowDto(
+            r.Id,
+            r.InspectionDate,
+            r.Status.ToString(),
+            userNames.GetValueOrDefault(r.InspectedById ?? "", r.InspectedById ?? ""),
+            r.CompletedEquipment,
+            r.TotalEquipment,
+            r.FailedChecks,
+            r.TotalChecks,
+            r.CompletedAt)).ToList();
 
-        foreach (var r in rounds)
-        {
-            var inspectorName = userNames.GetValueOrDefault(r.InspectedById, r.InspectedById);
-            var failedChecks  = r.EquipmentInspections.Sum(ei => ei.Responses.Count(resp => resp.Response == false));
-            var totalChecks   = r.EquipmentInspections.Sum(ei => ei.Responses.Count(resp => resp.Response.HasValue));
-
-            roundRows.Add(new ReportRoundRowDto(
-                r.Id, r.InspectionDate, r.Status.ToString(), inspectorName,
-                r.EquipmentInspections.Count(ei => ei.IsComplete),
-                r.EquipmentInspections.Count,
-                failedChecks, totalChecks, r.CompletedAt));
-
-            foreach (var ei in r.EquipmentInspections
-                         .OrderBy(x => x.Equipment.Section.SortOrder)
-                         .ThenBy(x => x.Equipment.SortOrder))
-            {
-                var pass   = ei.Responses.Count(resp => resp.Response == true);
-                var fail   = ei.Responses.Count(resp => resp.Response == false);
-                var failed = ei.Responses
-                    .Where(resp => resp.Response == false)
-                    .Select(resp => resp.ChecklistItemTemplate?.ItemName ?? "—")
-                    .ToList();
-
-                equipRows.Add(new ReportEquipmentRowDto(
-                    r.Id,
+        // ── Equipment inspections — projection with pass/fail counts ──
+        var equipProj = roundIds.Count > 0
+            ? await db.EquipmentInspections
+                .Where(ei => roundIds.Contains(ei.InspectionRoundId))
+                .Select(ei => new
+                {
+                    ei.Id,
+                    ei.InspectionRoundId,
                     ei.EquipmentId,
-                    ei.Equipment.Identifier,
-                    ei.Equipment.EquipmentType.Name,
-                    ei.Equipment.Section.Name,
+                    Identifier   = (string?)(ei.Equipment.Identifier)           ?? "",
+                    TypeName     = (string?)(ei.Equipment.EquipmentType.Name)    ?? "",
+                    SectionName  = (string?)(ei.Equipment.Section.Name)          ?? "",
+                    SectionSort  = ei.Equipment.Section.SortOrder,
+                    EquipSort    = ei.Equipment.SortOrder,
                     ei.IsComplete,
-                    pass, fail, failed,
-                    ei.Comments));
-            }
+                    ei.Comments,
+                    PassChecks   = ei.Responses.Count(r => r.Response == true),
+                    FailChecks   = ei.Responses.Count(r => r.Response == false),
+                })
+                .OrderBy(ei => ei.SectionSort).ThenBy(ei => ei.EquipSort)
+                .ToListAsync(ct)
+            : [];
+
+        // Fetch failed checklist item names in one query (only for rows with failures)
+        var equipIdsWithFails = equipProj.Where(e => e.FailChecks > 0).Select(e => e.Id).ToList();
+        Dictionary<int, List<string>> failedItemsMap = [];
+        if (equipIdsWithFails.Count > 0)
+        {
+            var failedRows = await db.InspectionResponses
+                .Where(r => equipIdsWithFails.Contains(r.EquipmentInspectionId)
+                         && r.Response == false)
+                .Select(r => new
+                {
+                    r.EquipmentInspectionId,
+                    ItemName = (string?)(r.ChecklistItemTemplate.ItemName) ?? "—"
+                })
+                .ToListAsync(ct);
+
+            failedItemsMap = failedRows
+                .GroupBy(r => r.EquipmentInspectionId)
+                .ToDictionary(g => g.Key, g => g.Select(r => r.ItemName).ToList());
         }
 
-        // Overall compliance % for the month
-        var totalPassed       = equipRows.Sum(e => e.PassChecks);
-        var totalChecksMonth  = equipRows.Sum(e => e.PassChecks + e.FailChecks);
-        var compliancePct     = totalChecksMonth > 0
+        var equipRows = equipProj.Select(ei => new ReportEquipmentRowDto(
+            ei.InspectionRoundId,
+            ei.EquipmentId,
+            ei.Identifier,
+            ei.TypeName,
+            ei.SectionName,
+            ei.IsComplete,
+            ei.PassChecks,
+            ei.FailChecks,
+            failedItemsMap.GetValueOrDefault(ei.Id, []),
+            ei.Comments)).ToList();
+
+        // Overall compliance %
+        var totalPassed      = equipRows.Sum(e => e.PassChecks);
+        var totalChecksMonth = equipRows.Sum(e => e.PassChecks + e.FailChecks);
+        var compliancePct    = totalChecksMonth > 0
             ? (int)Math.Round(totalPassed * 100.0 / totalChecksMonth)
             : 100;
 
-        var roundIds = rounds.Select(r => r.Id).ToList();
-
-        // ── Issues: linked to rounds in this month OR to plant equipment ──
-        var issues = await db.Issues
-            .Include(i => i.Equipment)
+        // ── Issues — projection ──
+        var issueRows = await db.Issues
             .Where(i =>
                 (roundIds.Count > 0 && i.InspectionRoundId.HasValue
                     && roundIds.Contains(i.InspectionRoundId.Value)) ||
@@ -217,19 +274,20 @@ public class ReportService(ApplicationDbContext db) : IReportService
             .OrderBy(i => i.Status)
             .ThenByDescending(i => i.Priority)
             .ThenByDescending(i => i.CreatedAt)
+            .Select(i => new ReportIssueRowDto(
+                i.Id,
+                (string?)(i.Title)             ?? "",
+                i.Priority.ToString(),
+                i.Status.ToString(),
+                i.AssignedTo,
+                i.DueDate,
+                (string?)(i.Equipment != null ? i.Equipment.Identifier : null),
+                i.CreatedAt,
+                i.ResolvedAt))
             .ToListAsync(ct);
 
-        var issueRows = issues
-            .Select(i => new ReportIssueRowDto(
-                i.Id, i.Title, i.Priority.ToString(), i.Status.ToString(),
-                i.AssignedTo, i.DueDate, i.Equipment?.Identifier,
-                i.CreatedAt, i.ResolvedAt))
-            .ToList();
-
-        // ── Service bookings: sent/returned this month OR currently active ──
-        var bookings = await db.ServiceBookings
-            .Include(b => b.Equipment).ThenInclude(e => e.EquipmentType)
-            .Include(b => b.Equipment).ThenInclude(e => e.Section)
+        // ── Service bookings — projection ──
+        var bookingRows = await db.ServiceBookings
             .Where(b =>
                 b.Equipment.Section.PlantId == plantId &&
                 ((b.SentDate >= firstOfMonth && b.SentDate <= lastOfMonth) ||
@@ -238,42 +296,40 @@ public class ReportService(ApplicationDbContext db) : IReportService
                  b.Status == ServiceBookingStatus.InService))
             .OrderBy(b => b.Status)
             .ThenByDescending(b => b.SentDate)
-            .ToListAsync(ct);
-
-        var bookingRows = bookings
             .Select(b => new ReportServiceRowDto(
                 b.Id,
-                b.Equipment.Identifier,
-                b.Equipment.EquipmentType.Name,
-                b.Equipment.Section.Name,
-                b.ServiceProvider, b.Reason,
+                (string?)(b.Equipment.Identifier)        ?? "",
+                (string?)(b.Equipment.EquipmentType.Name) ?? "",
+                (string?)(b.Equipment.Section.Name)       ?? "",
+                (string?)(b.ServiceProvider)              ?? "",
+                (string?)(b.Reason)                       ?? "",
                 b.Status.ToString(),
                 b.SentDate,
                 b.ExpectedReturnDate,
                 b.ActualReturnDate))
-            .ToList();
+            .ToListAsync(ct);
 
-        // ── Notes: linked to this plant or its equipment ──
-        var notes = await db.Notes
-            .Include(n => n.Equipment)
+        // ── Notes — projection ──
+        var noteRows = await db.Notes
             .Where(n =>
                 n.PlantId == plantId ||
                 (n.Equipment != null && n.Equipment.Section.PlantId == plantId))
             .OrderByDescending(n => n.IsPinned)
             .ThenByDescending(n => n.Priority)
             .ThenByDescending(n => n.CreatedAt)
+            .Select(n => new ReportNoteRowDto(
+                n.Id,
+                (string?)(n.Title)   ?? "",
+                (string?)(n.Content) ?? "",
+                n.Category.ToString(),
+                n.Priority.ToString(),
+                n.IsPinned,
+                (string?)(n.Equipment != null ? n.Equipment.Identifier : null),
+                n.CreatedAt))
             .ToListAsync(ct);
 
-        var noteRows = notes
-            .Select(n => new ReportNoteRowDto(
-                n.Id, n.Title, n.Content,
-                n.Category.ToString(), n.Priority.ToString(),
-                n.IsPinned, n.Equipment?.Identifier,
-                n.CreatedAt))
-            .ToList();
-
         return new MonthlyReportDto(
-            plant.Id, plant.Name, plant.Company.Name,
+            plant.Id, plant.Name, plant.CompanyName,
             plant.ContactName, plant.ContactPhone,
             year, month,
             totalEquip, compliancePct,
