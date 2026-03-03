@@ -307,58 +307,90 @@ INSERT INTO [dbo].[Companies] ([Name], [Code]) VALUES ('Majesty Oil Mills TVP', 
 GO
 
 -- Equipment Types
-INSERT INTO [dbo].[EquipmentTypes] ([Name], [Description]) VALUES ('Fire Extinguisher', 'Portable fire suppression device')
-INSERT INTO [dbo].[EquipmentTypes] ([Name], [Description]) VALUES ('Fire Hose Reel', 'Wall-mounted fire hose reel')
-INSERT INTO [dbo].[EquipmentTypes] ([Name], [Description]) VALUES ('Emergency Light', 'Battery-backed emergency lighting')
-INSERT INTO [dbo].[EquipmentTypes] ([Name], [Description]) VALUES ('Fire Alarm', 'Fire detection and alarm system')
-INSERT INTO [dbo].[EquipmentTypes] ([Name], [Description]) VALUES ('First Aid Kit', 'Emergency first aid supplies')
+INSERT INTO [dbo].[EquipmentTypes] ([Name], [Description]) VALUES ('Fire Extinguishers', 'Portable fire suppression device')
+INSERT INTO [dbo].[EquipmentTypes] ([Name], [Description]) VALUES ('Lay Flat Hose Box', 'Lay-flat hose in a wall-mounted cabinet')
+INSERT INTO [dbo].[EquipmentTypes] ([Name], [Description]) VALUES ('Hose Reels', 'Wall-mounted hose reel unit')
+INSERT INTO [dbo].[EquipmentTypes] ([Name], [Description]) VALUES ('Fire Hydrants', 'Fire hydrant point')
+INSERT INTO [dbo].[EquipmentTypes] ([Name], [Description]) VALUES ('Emergency Horns', 'Emergency sound horn station')
 GO
 
--- Sub-Types for Fire Extinguisher (sizes — set Description field to agent type e.g. DCP, CO2, Foam, Water)
-INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '1.5kg')
-INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '2.5kg')
-INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '4.5kg')
-INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '9kg')
-INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '2.0kg CO2')
-INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '4.5kg CO2')
-INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '9L Foam')
-INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '9L Water')
+-- Sub-Types for Fire Extinguishers (Type 1)
+INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '9Kg DCP')
+INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '5Kg CO2')
+INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '50L Foam Trolleys')
 GO
 
--- Checklist for Fire Extinguisher (Type 1)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (1, 'Is the extinguisher accessible and not blocked?', 1)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (1, 'Is the pressure gauge in the green zone?', 2)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (1, 'Is the safety pin and tamper seal intact?', 3)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (1, 'Is the extinguisher clean and free of damage?', 4)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (1, 'Is the nozzle/hose in good condition?', 5)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (1, 'Is the mounting bracket secure?', 6)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (1, 'Is the inspection tag up to date?', 7)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (1, 'Is the operating instructions label legible?', 8)
+-- Checklist for Fire Extinguishers - 9Kg DCP (Type 1, SubType 1)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 1, 'Accessibility?', 1)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 1, 'Fire Extinguisher Sign in Place and Clean?', 2)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 1, 'Fire Extinguisher Arrow in Place and Clean?', 3)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 1, 'Demarcation?', 4)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 1, 'Seal in Place?', 5)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 1, 'Nozzle Clean and Hose?', 6)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 1, 'Pressure Gauge?', 7)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 1, 'Fire Extinguisher Cover in Place?', 8)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 1, 'Service still up to Date?', 9)
 GO
 
--- Checklist for Fire Hose Reel (Type 2)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (2, 'Is the hose reel accessible?', 1)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (2, 'Is the hose in good condition (no cracks/leaks)?', 2)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (2, 'Does the nozzle operate correctly?', 3)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (2, 'Is the valve operational?', 4)
+-- Checklist for Fire Extinguishers - 5Kg CO2 (Type 1, SubType 2)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 2, 'Accessibility?', 1)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 2, 'Fire Extinguisher Sign in Place and Clean?', 2)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 2, 'Fire Extinguisher Arrow in Place and Clean?', 3)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 2, 'Demarcation?', 4)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 2, 'Seal in Place?', 5)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 2, 'Nozzle Clean and Hose?', 6)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 2, 'Fire Extinguisher Cover in Place?', 7)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 2, 'Service still up to Date?', 8)
 GO
 
--- Checklist for Emergency Light (Type 3)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (3, 'Does the light turn on during power test?', 1)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (3, 'Is the unit clean and undamaged?', 2)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (3, 'Is the battery charge indicator showing normal?', 3)
+-- Checklist for Fire Extinguishers - 50L Foam Trolleys (Type 1, SubType 3)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 3, 'Accessibility?', 1)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 3, 'Fire Extinguisher Sign in Place and Clean?', 2)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 3, 'Fire Extinguisher Arrow in Place and Clean?', 3)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 3, 'Demarcation?', 4)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 3, 'Seal in Place?', 5)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 3, 'Nozzle Clean and Hose?', 6)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 3, 'Fire Extinguisher Cover in Place?', 7)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [EquipmentSubTypeId], [ItemName], [SortOrder]) VALUES (1, 3, 'Service still up to Date?', 8)
 GO
 
--- Checklist for Fire Alarm (Type 4)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (4, 'Is the alarm panel showing normal status?', 1)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (4, 'Are all call points accessible?', 2)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (4, 'Is the sounders/strobe test successful?', 3)
+-- Checklist for Lay Flat Hose Box (Type 2, no sub-type)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (2, 'Lay Flat Hose Sign in Place and Clean?', 1)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (2, 'Direction Arrow in Place and Clean?', 2)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (2, 'Lay Flat Hose Cabinet in Place?', 3)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (2, 'Lay Flat Hose Cabinet Seal in Place?', 4)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (2, '2 x Lay Flat Hoses in Cabinet?', 5)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (2, '1 x Branch Nozel in Place?', 6)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (2, 'Lay Flat Hose Cabinet Damaged?', 7)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (2, 'Lay Flat Hose Cabinet free from Obstruction?', 8)
 GO
 
--- Checklist for First Aid Kit (Type 5)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (5, 'Is the kit accessible and clearly marked?', 1)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (5, 'Are all items present and within expiry date?', 2)
-INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (5, 'Is the container clean and sealed?', 3)
+-- Checklist for Hose Reels (Type 3, no sub-type)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (3, 'Hose Reel Sign in Place and Clean?', 1)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (3, 'Direction Arrow in Place and Clean?', 2)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (3, 'Hose Reel Cover in Place?', 3)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (3, 'Hose Reel Nozzle in Place?', 4)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (3, 'Hose Reel Valve in Place?', 5)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (3, 'Hose Reel Seal in place?', 6)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (3, 'All clean?', 7)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (3, 'Hose Reel free from Obstruction?', 8)
+GO
+
+-- Checklist for Fire Hydrants (Type 4, no sub-type)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (4, 'Fire Hydrant Sign in Place and Clean?', 1)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (4, 'Direction Arrow in Place and Clean?', 2)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (4, 'All clean?', 3)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (4, 'Fire Hydrant free from Obstruction?', 4)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (4, 'Fire Hydrant wheel in place?', 5)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (4, 'Fire Hydrant Cap in place?', 6)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (4, 'Fire Hydrant seal in place?', 7)
+GO
+
+-- Checklist for Emergency Horns (Type 5, no sub-type)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (5, 'Sound Horn Sign in Place and Clean?', 1)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (5, 'Direction Arrow in Place and Clean?', 2)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (5, 'Sound Horn Cabinet in Place?', 3)
+INSERT INTO [dbo].[ChecklistItemTemplates] ([EquipmentTypeId], [ItemName], [SortOrder]) VALUES (5, 'Sound Horn Cabinet Seal in Place?', 4)
 GO
 
 -- ============================================================
@@ -392,5 +424,5 @@ LEFT JOIN [dbo].[EquipmentSubTypes] est ON e.[EquipmentSubTypeId] = est.[Id]
 GO
 
 PRINT 'SafetyCompliance database created successfully.'
-PRINT 'Seeded: 2 companies, 5 equipment types, 4 fire extinguisher sub-types, 21 checklist items'
+PRINT 'Seeded: 2 companies, 5 equipment types, 3 fire extinguisher sub-types, 52 checklist items'
 GO
