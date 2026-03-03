@@ -38,7 +38,7 @@
                     <h2 class="rpt-summary-title">Plant Overview</h2>
                     <p class="rpt-summary-sub">Current month &mdash; @DateTime.Today.ToString("MMMM yyyy")</p>
                 </div>
-                <button class="btn btn-outline rpt-export-btn"
+                <button class="rpt-excel-btn"
                         @onclick="ExportSummaryExcel"
                         disabled="@(_exportingAll || _summaries.Count == 0)">
                     @if (_exportingAll)
@@ -79,9 +79,32 @@
                                         <span class="rpt-plant-last rpt-plant-never">No inspections yet</span>
                                     }
                                 </div>
-                                <div class="rpt-compliance-ring @GetComplianceClass(s.CompliancePct)">
-                                    <span class="rpt-compliance-pct">@s.CompliancePct<small>%</small></span>
-                                    <span class="rpt-compliance-lbl">compliance</span>
+                                @{
+                                    var _rc = 2 * Math.PI * 28;
+                                    var _hi = s.InspectionsTotal > 0;
+                                    var _ro = _hi ? _rc * (1.0 - s.CompliancePct / 100.0) : _rc;
+                                    var _rk = _hi ? GetComplianceClass(s.CompliancePct) : "none";
+                                    var _cs = _rc.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+                                    var _os = _ro.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+                                }
+                                <div class="rpt-compliance-ring">
+                                    <svg viewBox="0 0 72 72" width="72" height="72" aria-hidden="true">
+                                        <circle cx="36" cy="36" r="28" class="rpt-ring-track"/>
+                                        <circle cx="36" cy="36" r="28" class="rpt-ring-fill rpt-ring-fill-@_rk"
+                                                style="stroke-dasharray:@_cs;stroke-dashoffset:@_os"/>
+                                    </svg>
+                                    <div class="rpt-ring-inner">
+                                        @if (!_hi)
+                                        {
+                                            <span class="rpt-ring-na">N/A</span>
+                                            <span class="rpt-ring-lbl">no data</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="rpt-ring-pct">@s.CompliancePct<small>%</small></span>
+                                            <span class="rpt-ring-lbl">compliance</span>
+                                        }
+                                    </div>
                                 </div>
                             </div>
 
@@ -217,7 +240,7 @@
                         <i class="fa-light fa-chart-line"></i><span>Generate Report</span>
                     }
                 </button>
-                <button class="btn btn-outline rpt-export-btn" @onclick="ExportMonthlyExcel"
+                <button class="rpt-excel-btn" @onclick="ExportMonthlyExcel"
                         disabled="@(_report == null || _exportingMonthly)">
                     @if (_exportingMonthly)
                     {
