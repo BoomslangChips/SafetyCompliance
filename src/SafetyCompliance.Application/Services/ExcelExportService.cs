@@ -388,7 +388,7 @@ public class ExcelExportService : IExcelExportService
         {
             ws.Cell(row, 1).Value  = b.Id;
             ws.Cell(row, 2).Value  = b.EquipmentIdentifier;
-            ws.Cell(row, 3).Value  = b.TypeName;
+            ws.Cell(row, 3).Value  = b.SubTypeName != null ? $"{b.TypeName} ({b.SubTypeName})" : b.TypeName;
             ws.Cell(row, 4).Value  = b.SectionName;
             ws.Cell(row, 5).Value  = b.Provider;
             ws.Cell(row, 6).Value  = b.Reason;

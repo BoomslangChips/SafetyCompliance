@@ -292,11 +292,15 @@ INSERT INTO [dbo].[EquipmentTypes] ([Name], [Description]) VALUES ('Fire Alarm',
 INSERT INTO [dbo].[EquipmentTypes] ([Name], [Description]) VALUES ('First Aid Kit', 'Emergency first aid supplies')
 GO
 
--- Sub-Types for Fire Extinguisher
-INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, 'DCP (Dry Chemical Powder)')
-INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, 'CO2 (Carbon Dioxide)')
-INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, 'Foam')
-INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, 'Water')
+-- Sub-Types for Fire Extinguisher (sizes — set Description field to agent type e.g. DCP, CO2, Foam, Water)
+INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '1.5kg')
+INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '2.5kg')
+INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '4.5kg')
+INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '9kg')
+INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '2.0kg CO2')
+INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '4.5kg CO2')
+INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '9L Foam')
+INSERT INTO [dbo].[EquipmentSubTypes] ([EquipmentTypeId], [Name]) VALUES (1, '9L Water')
 GO
 
 -- Checklist for Fire Extinguisher (Type 1)

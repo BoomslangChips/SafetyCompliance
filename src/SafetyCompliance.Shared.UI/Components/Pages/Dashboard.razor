@@ -283,7 +283,7 @@
                         <div class="db-service-row @(svcOd ? "db-service-overdue" : "")" @onclick='() => Navigation.NavigateTo("/service")'>
                             <div class="db-service-left">
                                 <div class="db-service-equip">@svc.EquipmentIdentifier</div>
-                                <div class="db-service-type">@svc.EquipmentTypeName</div>
+                                <div class="db-service-type">@svc.EquipmentTypeName@(svc.EquipmentSubTypeName != null ? $" · {svc.EquipmentSubTypeName}" : "")</div>
                                 <div class="db-service-loc"><i class="fa-light fa-building"></i> @svc.PlantName · @svc.SectionName</div>
                                 <div class="db-service-prov"><i class="fa-light fa-wrench"></i> @svc.ServiceProvider</div>
                             </div>

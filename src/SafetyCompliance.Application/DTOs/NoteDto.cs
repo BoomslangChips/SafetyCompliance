@@ -12,6 +12,7 @@ public record NoteDto(
     int?         EquipmentId,
     string?      EquipmentIdentifier,
     string?      EquipmentTypeName,
+    string?      EquipmentSubTypeName,
     int?         CompanyId,
     string?      CompanyName,
     int?         PlantId,

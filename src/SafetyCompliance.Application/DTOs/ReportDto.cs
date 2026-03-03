@@ -61,6 +61,7 @@ public record ReportServiceRowDto(
     int       Id,
     string    EquipmentIdentifier,
     string    TypeName,
+    string?   SubTypeName,
     string    SectionName,
     string    Provider,
     string    Reason,

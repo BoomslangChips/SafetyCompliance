@@ -140,7 +140,7 @@
                                 }
                                 @if (iss.EquipmentIdentifier is not null)
                                 {
-                                    <span class="inc-meta-tag equip"><i class="fa-light fa-gear"></i> @iss.EquipmentIdentifier — @iss.EquipmentTypeName</span>
+                                    <span class="inc-meta-tag equip"><i class="fa-light fa-gear"></i> @iss.EquipmentIdentifier — @iss.EquipmentTypeName@(iss.EquipmentSubTypeName != null ? $" ({iss.EquipmentSubTypeName})" : "")</span>
                                 }
                                 @if (iss.AssignedTo is not null)
                                 {
@@ -258,14 +258,14 @@
                             <option value="">— Equipment —</option>
                             @foreach (var eq in _pickerEquipment)
                             {
-                                <option value="@eq.Id">@eq.Identifier — @eq.EquipmentTypeName</option>
+                                <option value="@eq.Id">@eq.Identifier — @eq.EquipmentTypeName@(eq.SubTypeName != null ? $" ({eq.SubTypeName})" : "")@(!string.IsNullOrEmpty(eq.Description) ? $" · {eq.Description}" : "")</option>
                             }
                         </select>
                     </div>
                     @if (_createEquipmentId.HasValue)
                     {
                         var sel = _pickerEquipment.FirstOrDefault(e => e.Id == _createEquipmentId);
-                        <div class="picker-summary"><i class="fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName</div>
+                        <div class="picker-summary"><i class="fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName@(sel?.SubTypeName != null ? $" ({sel.SubTypeName})" : "")@(!string.IsNullOrEmpty(sel?.Description) ? $" · {sel!.Description}" : "")</div>
                     }
                 </div>
                 <div class="form-row">

@@ -7,6 +7,7 @@ public record IssueDto(
     string? AssignedTo, DateOnly? DueDate, DateTime? ResolvedAt, string? ResolvedByName,
     int? InspectionRoundId, int? EquipmentInspectionId, int? EquipmentId,
     string? EquipmentIdentifier, string? EquipmentTypeName,
+    string? EquipmentSubTypeName,
     string? PhotoBase64, string? PhotoFileName,
     string CreatedByName, DateTime CreatedAt, int CommentCount,
     string? PlantName = null, string? SectionName = null);

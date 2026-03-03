@@ -22,12 +22,14 @@ public record ActiveServiceBookingDto(
 
 public record ServiceBookingOverviewDto(
     int Id, int EquipmentId, string EquipmentIdentifier, string EquipmentTypeName,
+    string? EquipmentSubTypeName,
     string PlantName, string SectionName,
     string ServiceProvider, string Reason, ServiceBookingStatus Status,
     DateOnly SentDate, DateOnly? ExpectedReturnDate);
 
 public record ServiceBookingFullDto(
     int Id, int EquipmentId, string EquipmentIdentifier, string EquipmentTypeName,
+    string? EquipmentSubTypeName,
     string PlantName, string SectionName,
     string ServiceProvider, string Reason, ServiceBookingStatus Status,
     DateOnly SentDate, DateOnly? ExpectedReturnDate, DateOnly? ActualReturnDate,

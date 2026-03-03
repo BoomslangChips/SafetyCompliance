@@ -300,6 +300,7 @@ public class ReportService(ApplicationDbContext db) : IReportService
                 b.Id,
                 (string?)(b.Equipment.Identifier)        ?? "",
                 (string?)(b.Equipment.EquipmentType.Name) ?? "",
+                b.Equipment.EquipmentSubType != null ? b.Equipment.EquipmentSubType.Name : null,
                 (string?)(b.Equipment.Section.Name)       ?? "",
                 (string?)(b.ServiceProvider)              ?? "",
                 (string?)(b.Reason)                       ?? "",

@@ -34,7 +34,7 @@ else
                     <span class="priority-badge priority-@_issue.Priority.ToString().ToLower()">@_issue.Priority</span>
                     @if (_issue.EquipmentIdentifier is not null)
                     {
-                        <span class="issue-equipment">@_issue.EquipmentIdentifier - @_issue.EquipmentTypeName</span>
+                        <span class="issue-equipment">@_issue.EquipmentIdentifier — @_issue.EquipmentTypeName@(_issue.EquipmentSubTypeName != null ? $" ({_issue.EquipmentSubTypeName})" : "")</span>
                     }
                 </div>
 
