@@ -590,9 +590,8 @@
                                     <tr>
                                         <th>Identifier</th>
                                         <th>Type</th>
-                                        <th>Sub-Type</th>
-                                        <th>Description</th>
-                                        <th>Size</th>
+                                        <th>Spec</th>
+                                        <th>Notes</th>
                                         <th>Status</th>
                                         <th>Actions</th>
                                     </tr>
@@ -603,9 +602,21 @@
                                         <tr class="@(!eq.IsActive ? "row-inactive" : "")">
                                             <td><strong>@eq.Identifier</strong></td>
                                             <td>@eq.EquipmentTypeName</td>
-                                            <td>@(eq.SubTypeName ?? "—")</td>
-                                            <td>@(eq.Description ?? "—")</td>
-                                            <td>@(eq.Size ?? "—")</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(eq.SubTypeName))
+                                                {
+                                                    <span class="badge-spec">@eq.SubTypeName</span>
+                                                }
+                                                else if (!string.IsNullOrEmpty(eq.Size))
+                                                {
+                                                    @eq.Size
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">—</span>
+                                                }
+                                            </td>
+                                            <td class="col-notes">@(string.IsNullOrEmpty(eq.Description) ? "—" : eq.Description)</td>
                                             <td>
                                                 @if (eq.IsActive)
                                                 {
@@ -687,17 +698,25 @@
                     }
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Description</label>
-                            <InputText @bind-Value="_equipmentCreate.Description" class="form-control" />
-                        </div>
-                        <div class="form-group">
-                            <label>Size</label>
-                            <InputText @bind-Value="_equipmentCreate.Size" class="form-control" />
+                            <label>Size / Spec</label>
+                            @if (_equipmentCreate.EquipmentSubTypeId.HasValue)
+                            {
+                                <input type="text" class="form-control form-control-muted" readonly value="@_equipmentCreate.Size" />
+                                <small class="form-hint">Auto-set from sub-type</small>
+                            }
+                            else
+                            {
+                                <InputText @bind-Value="_equipmentCreate.Size" class="form-control" placeholder="e.g. 9kg, 30m, 500ml" />
+                            }
                         </div>
                         <div class="form-group">
                             <label>Serial Number</label>
                             <InputText @bind-Value="_equipmentCreate.SerialNumber" class="form-control" />
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes <span class="text-muted">(optional)</span></label>
+                        <InputText @bind-Value="_equipmentCreate.Description" class="form-control" placeholder="e.g. Main entrance, Left wall" />
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Save Equipment</button>
@@ -746,17 +765,25 @@
                     }
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Description</label>
-                            <InputText @bind-Value="_equipmentEdit.Description" class="form-control" />
-                        </div>
-                        <div class="form-group">
-                            <label>Size</label>
-                            <InputText @bind-Value="_equipmentEdit.Size" class="form-control" />
+                            <label>Size / Spec</label>
+                            @if (_equipmentEdit.EquipmentSubTypeId.HasValue)
+                            {
+                                <input type="text" class="form-control form-control-muted" readonly value="@_equipmentEdit.Size" />
+                                <small class="form-hint">Auto-set from sub-type</small>
+                            }
+                            else
+                            {
+                                <InputText @bind-Value="_equipmentEdit.Size" class="form-control" placeholder="e.g. 9kg, 30m, 500ml" />
+                            }
                         </div>
                         <div class="form-group">
                             <label>Serial Number</label>
                             <InputText @bind-Value="_equipmentEdit.SerialNumber" class="form-control" />
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Notes <span class="text-muted">(optional)</span></label>
+                        <InputText @bind-Value="_equipmentEdit.Description" class="form-control" placeholder="e.g. Main entrance, Left wall" />
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Update Equipment</button>
@@ -1439,8 +1466,9 @@
     {
         if (int.TryParse(e.Value?.ToString(), out var typeId))
         {
-            _equipmentCreate.EquipmentTypeId = typeId;
+            _equipmentCreate.EquipmentTypeId    = typeId;
             _equipmentCreate.EquipmentSubTypeId = null;
+            _equipmentCreate.Size               = string.Empty;
             _createSubTypes = typeId > 0
                 ? await EquipmentService.GetSubTypesByTypeAsync(typeId)
                 : [];
@@ -1451,8 +1479,9 @@
     {
         if (int.TryParse(e.Value?.ToString(), out var typeId))
         {
-            _equipmentEdit.EquipmentTypeId = typeId;
+            _equipmentEdit.EquipmentTypeId    = typeId;
             _equipmentEdit.EquipmentSubTypeId = null;
+            _equipmentEdit.Size               = string.Empty;
             _editSubTypes = typeId > 0
                 ? await EquipmentService.GetSubTypesByTypeAsync(typeId)
                 : [];
