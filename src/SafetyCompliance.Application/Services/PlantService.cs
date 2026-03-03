@@ -10,26 +10,65 @@ public class PlantService(ApplicationDbContext context) : IPlantService
 {
     public async Task<List<PlantDto>> GetPlantsByCompanyAsync(int companyId, CancellationToken ct = default)
     {
-        return await context.Plants
+        var plants = await context.Plants
             .Where(p => p.CompanyId == companyId && p.IsActive)
-            .Select(p => new PlantDto(
-                p.Id, p.CompanyId, p.Company.Name, p.Name, p.Description, p.ContactName, p.ContactPhone, p.ContactEmail, p.IsActive,
-                p.Sections.Count(s => s.IsActive),
-                p.Sections.Where(s => s.IsActive).SelectMany(s => s.Equipment.Where(e => e.IsActive)).Count(),
-                p.PhotoBase64, p.PhotoFileName))
+            .Select(p => new
+            {
+                p.Id, p.CompanyId, CompanyName = p.Company.Name,
+                p.Name, p.Description, p.ContactName, p.ContactPhone, p.ContactEmail,
+                p.IsActive, p.PhotoBase64, p.PhotoFileName
+            })
             .ToListAsync(ct);
+
+        if (plants.Count == 0) return [];
+
+        var plantIds = plants.Select(p => p.Id).ToList();
+
+        var sectionCounts = await context.Sections
+            .Where(s => s.IsActive && plantIds.Contains(s.PlantId))
+            .GroupBy(s => s.PlantId)
+            .Select(g => new { PlantId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.PlantId, g => g.Count, ct);
+
+        var equipCounts = await context.Equipment
+            .Where(e => e.IsActive && e.Section.IsActive && plantIds.Contains(e.Section.PlantId))
+            .GroupBy(e => e.Section.PlantId)
+            .Select(g => new { PlantId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.PlantId, g => g.Count, ct);
+
+        return plants.Select(p => new PlantDto(
+            p.Id, p.CompanyId, p.CompanyName, p.Name, p.Description,
+            p.ContactName, p.ContactPhone, p.ContactEmail, p.IsActive,
+            sectionCounts.GetValueOrDefault(p.Id),
+            equipCounts.GetValueOrDefault(p.Id),
+            p.PhotoBase64, p.PhotoFileName)).ToList();
     }
 
     public async Task<PlantDto?> GetPlantByIdAsync(int id, CancellationToken ct = default)
     {
-        return await context.Plants
+        var plant = await context.Plants
             .Where(p => p.Id == id)
-            .Select(p => new PlantDto(
-                p.Id, p.CompanyId, p.Company.Name, p.Name, p.Description, p.ContactName, p.ContactPhone, p.ContactEmail, p.IsActive,
-                p.Sections.Count(s => s.IsActive),
-                p.Sections.Where(s => s.IsActive).SelectMany(s => s.Equipment.Where(e => e.IsActive)).Count(),
-                p.PhotoBase64, p.PhotoFileName))
+            .Select(p => new
+            {
+                p.Id, p.CompanyId, CompanyName = p.Company.Name,
+                p.Name, p.Description, p.ContactName, p.ContactPhone, p.ContactEmail,
+                p.IsActive, p.PhotoBase64, p.PhotoFileName
+            })
             .FirstOrDefaultAsync(ct);
+
+        if (plant is null) return null;
+
+        var sectionCount = await context.Sections
+            .CountAsync(s => s.PlantId == id && s.IsActive, ct);
+
+        var equipCount = await context.Equipment
+            .CountAsync(e => e.IsActive && e.Section.IsActive && e.Section.PlantId == id, ct);
+
+        return new PlantDto(
+            plant.Id, plant.CompanyId, plant.CompanyName, plant.Name, plant.Description,
+            plant.ContactName, plant.ContactPhone, plant.ContactEmail, plant.IsActive,
+            sectionCount, equipCount,
+            plant.PhotoBase64, plant.PhotoFileName);
     }
 
     public async Task<PlantDto> CreatePlantAsync(PlantCreateDto dto, string userId, CancellationToken ct = default)

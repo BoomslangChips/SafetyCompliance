@@ -72,7 +72,11 @@ CREATE TABLE [dbo].[Plants] (
 )
 GO
 
-CREATE NONCLUSTERED INDEX [IX_Plants_CompanyId] ON [dbo].[Plants]([CompanyId])
+CREATE NONCLUSTERED INDEX [IX_Plants_CompanyId]          ON [dbo].[Plants]([CompanyId])
+GO
+CREATE NONCLUSTERED INDEX [IX_Plants_CompanyId_IsActive]  ON [dbo].[Plants]([CompanyId], [IsActive])
+GO
+CREATE NONCLUSTERED INDEX [IX_Plants_IsActive]            ON [dbo].[Plants]([IsActive]) INCLUDE ([CompanyId])
 GO
 
 -- ============================================================
@@ -93,6 +97,12 @@ CREATE TABLE [dbo].[Sections] (
     CONSTRAINT [FK_Sections_Plants] FOREIGN KEY ([PlantId])
         REFERENCES [dbo].[Plants]([Id])
 )
+GO
+CREATE NONCLUSTERED INDEX [IX_Sections_PlantId]           ON [dbo].[Sections]([PlantId])
+GO
+CREATE NONCLUSTERED INDEX [IX_Sections_PlantId_IsActive]  ON [dbo].[Sections]([PlantId], [IsActive])
+GO
+CREATE NONCLUSTERED INDEX [IX_Sections_IsActive]          ON [dbo].[Sections]([IsActive]) INCLUDE ([PlantId])
 GO
 
 -- ============================================================
@@ -171,6 +181,14 @@ CREATE TABLE [dbo].[Equipment] (
     CONSTRAINT [FK_Equipment_SubTypes] FOREIGN KEY ([EquipmentSubTypeId])
         REFERENCES [dbo].[EquipmentSubTypes]([Id])
 )
+GO
+CREATE NONCLUSTERED INDEX [IX_Equipment_SectionId]           ON [dbo].[Equipment]([SectionId])
+GO
+CREATE NONCLUSTERED INDEX [IX_Equipment_SectionId_IsActive]  ON [dbo].[Equipment]([SectionId], [IsActive])
+GO
+CREATE NONCLUSTERED INDEX [IX_Equipment_IsActive]            ON [dbo].[Equipment]([IsActive]) INCLUDE ([SectionId])
+GO
+CREATE NONCLUSTERED INDEX [IX_Equipment_TypeId]              ON [dbo].[Equipment]([EquipmentTypeId])
 GO
 
 -- ============================================================
