@@ -8,6 +8,8 @@ namespace SafetyCompliance.Application.Services;
 
 public class EquipmentService(ApplicationDbContext context) : IEquipmentService
 {
+    // ── Equipment ─────────────────────────────────────────────────────────────
+
     public async Task<List<EquipmentDto>> GetEquipmentBySectionAsync(int sectionId, bool includeInactive = false, CancellationToken ct = default)
     {
         return await context.Equipment
@@ -37,22 +39,21 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
     {
         var equipment = new Equipment
         {
-            SectionId = dto.SectionId,
-            EquipmentTypeId = dto.EquipmentTypeId,
+            SectionId          = dto.SectionId,
+            EquipmentTypeId    = dto.EquipmentTypeId,
             EquipmentSubTypeId = dto.EquipmentSubTypeId,
-            Identifier = dto.Identifier,
-            Description = dto.Description,
-            Size = dto.Size,
-            SerialNumber = dto.SerialNumber,
-            InstallDate = dto.InstallDate,
-            NextServiceDate = dto.NextServiceDate,
-            SortOrder = dto.SortOrder,
-            CreatedById = userId
+            Identifier         = dto.Identifier,
+            Description        = dto.Description,
+            Size               = dto.Size,
+            SerialNumber       = dto.SerialNumber,
+            InstallDate        = dto.InstallDate,
+            NextServiceDate    = dto.NextServiceDate,
+            SortOrder          = dto.SortOrder,
+            CreatedById        = userId
         };
 
         context.Equipment.Add(equipment);
         await context.SaveChangesAsync(ct);
-
         return (await GetEquipmentByIdAsync(equipment.Id, ct))!;
     }
 
@@ -61,25 +62,27 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
         var equipment = await context.Equipment.FindAsync([dto.Id], ct)
             ?? throw new InvalidOperationException($"Equipment {dto.Id} not found");
 
-        equipment.EquipmentTypeId = dto.EquipmentTypeId;
+        equipment.EquipmentTypeId    = dto.EquipmentTypeId;
         equipment.EquipmentSubTypeId = dto.EquipmentSubTypeId;
-        equipment.Identifier = dto.Identifier;
-        equipment.Description = dto.Description;
-        equipment.Size = dto.Size;
-        equipment.SerialNumber = dto.SerialNumber;
-        equipment.NextServiceDate = dto.NextServiceDate;
-        equipment.SortOrder = dto.SortOrder;
-        equipment.IsActive = dto.IsActive;
-        equipment.ModifiedAt = DateTime.UtcNow;
-        equipment.ModifiedById = userId;
+        equipment.Identifier         = dto.Identifier;
+        equipment.Description        = dto.Description;
+        equipment.Size               = dto.Size;
+        equipment.SerialNumber       = dto.SerialNumber;
+        equipment.NextServiceDate    = dto.NextServiceDate;
+        equipment.SortOrder          = dto.SortOrder;
+        equipment.IsActive           = dto.IsActive;
+        equipment.ModifiedAt         = DateTime.UtcNow;
+        equipment.ModifiedById       = userId;
 
         await context.SaveChangesAsync(ct);
     }
 
-    public async Task<List<EquipmentTypeDto>> GetEquipmentTypesAsync(CancellationToken ct = default)
+    // ── Equipment Types ───────────────────────────────────────────────────────
+
+    public async Task<List<EquipmentTypeDto>> GetEquipmentTypesAsync(bool includeInactive = false, CancellationToken ct = default)
     {
         return await context.EquipmentTypes
-            .Where(et => et.IsActive)
+            .Where(et => includeInactive || et.IsActive)
             .Select(et => new EquipmentTypeDto(et.Id, et.Name, et.Description, et.IsActive,
                 et.ChecklistItemTemplates.Count(c => c.IsActive),
                 et.SubTypes.Count(s => s.IsActive)))
@@ -98,15 +101,9 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
 
     public async Task<EquipmentTypeDto> CreateEquipmentTypeAsync(EquipmentTypeCreateDto dto, CancellationToken ct = default)
     {
-        var equipmentType = new EquipmentType
-        {
-            Name = dto.Name,
-            Description = dto.Description
-        };
-
+        var equipmentType = new EquipmentType { Name = dto.Name, Description = dto.Description };
         context.EquipmentTypes.Add(equipmentType);
         await context.SaveChangesAsync(ct);
-
         return new EquipmentTypeDto(equipmentType.Id, equipmentType.Name, equipmentType.Description, equipmentType.IsActive, 0, 0);
     }
 
@@ -114,41 +111,106 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
     {
         var et = await context.EquipmentTypes.FindAsync([dto.Id], ct)
             ?? throw new InvalidOperationException($"EquipmentType {dto.Id} not found");
-
-        et.Name = dto.Name;
+        et.Name        = dto.Name;
         et.Description = dto.Description;
-        et.IsActive = dto.IsActive;
-
+        et.IsActive    = dto.IsActive;
         await context.SaveChangesAsync(ct);
     }
 
-    public async Task<List<EquipmentSubTypeDto>> GetSubTypesByTypeAsync(int equipmentTypeId, CancellationToken ct = default)
+    public async Task<DeleteResult> DeleteOrDeactivateEquipmentTypeAsync(int id, CancellationToken ct = default)
+    {
+        var hasEquipment = await context.Equipment.AnyAsync(e => e.EquipmentTypeId == id, ct);
+        if (!hasEquipment)
+        {
+            // Truly unused — remove everything linked to it
+            var templates = await context.ChecklistItemTemplates.Where(t => t.EquipmentTypeId == id).ToListAsync(ct);
+            context.ChecklistItemTemplates.RemoveRange(templates);
+            var subTypes = await context.EquipmentSubTypes.Where(s => s.EquipmentTypeId == id).ToListAsync(ct);
+            context.EquipmentSubTypes.RemoveRange(subTypes);
+            var et = await context.EquipmentTypes.FindAsync([id], ct);
+            if (et != null) context.EquipmentTypes.Remove(et);
+            await context.SaveChangesAsync(ct);
+            return new DeleteResult(DeleteOutcome.Deleted, "Equipment type permanently deleted.");
+        }
+
+        // In use — check if any active inspection is running with this type
+        var inActiveRound = await context.EquipmentInspections
+            .AnyAsync(ei => ei.Equipment.EquipmentTypeId == id
+                         && (ei.InspectionRound.Status == InspectionStatus.InProgress
+                             || ei.InspectionRound.Status == InspectionStatus.Draft), ct);
+
+        if (inActiveRound)
+            return new DeleteResult(DeleteOutcome.Blocked,
+                "Cannot disable: this equipment type is currently part of an active inspection round.");
+
+        var type = await context.EquipmentTypes.FindAsync([id], ct);
+        if (type != null) { type.IsActive = false; await context.SaveChangesAsync(ct); }
+        return new DeleteResult(DeleteOutcome.Deactivated,
+            "Equipment type disabled. Existing equipment is unaffected but it will no longer appear in selection lists.");
+    }
+
+    // ── Sub-Types ─────────────────────────────────────────────────────────────
+
+    public async Task<List<EquipmentSubTypeDto>> GetSubTypesByTypeAsync(int equipmentTypeId, bool includeInactive = false, CancellationToken ct = default)
     {
         return await context.EquipmentSubTypes
-            .Where(st => st.EquipmentTypeId == equipmentTypeId && st.IsActive)
+            .Where(st => st.EquipmentTypeId == equipmentTypeId && (includeInactive || st.IsActive))
             .Select(st => new EquipmentSubTypeDto(st.Id, st.EquipmentTypeId, st.Name, st.IsActive))
             .ToListAsync(ct);
     }
 
     public async Task<EquipmentSubTypeDto> CreateSubTypeAsync(EquipmentSubTypeCreateDto dto, CancellationToken ct = default)
     {
-        var subType = new EquipmentSubType
-        {
-            EquipmentTypeId = dto.EquipmentTypeId,
-            Name = dto.Name
-        };
-
+        var subType = new EquipmentSubType { EquipmentTypeId = dto.EquipmentTypeId, Name = dto.Name };
         context.EquipmentSubTypes.Add(subType);
         await context.SaveChangesAsync(ct);
-
         return new EquipmentSubTypeDto(subType.Id, subType.EquipmentTypeId, subType.Name, subType.IsActive);
     }
 
-    public async Task<List<ChecklistItemTemplateDto>> GetChecklistTemplatesAsync(int equipmentTypeId, CancellationToken ct = default)
+    public async Task UpdateSubTypeAsync(EquipmentSubTypeUpdateDto dto, CancellationToken ct = default)
+    {
+        var st = await context.EquipmentSubTypes.FindAsync([dto.Id], ct)
+            ?? throw new InvalidOperationException($"SubType {dto.Id} not found");
+        st.Name     = dto.Name;
+        st.IsActive = dto.IsActive;
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task<DeleteResult> DeleteOrDeactivateSubTypeAsync(int id, CancellationToken ct = default)
+    {
+        var hasEquipment  = await context.Equipment.AnyAsync(e => e.EquipmentSubTypeId == id, ct);
+        var hasTemplates  = await context.ChecklistItemTemplates.AnyAsync(t => t.EquipmentSubTypeId == id, ct);
+
+        if (!hasEquipment && !hasTemplates)
+        {
+            var st = await context.EquipmentSubTypes.FindAsync([id], ct);
+            if (st != null) context.EquipmentSubTypes.Remove(st);
+            await context.SaveChangesAsync(ct);
+            return new DeleteResult(DeleteOutcome.Deleted, "Sub-type permanently deleted.");
+        }
+
+        var inActiveRound = await context.EquipmentInspections
+            .AnyAsync(ei => ei.Equipment.EquipmentSubTypeId == id
+                         && (ei.InspectionRound.Status == InspectionStatus.InProgress
+                             || ei.InspectionRound.Status == InspectionStatus.Draft), ct);
+
+        if (inActiveRound)
+            return new DeleteResult(DeleteOutcome.Blocked,
+                "Cannot disable: this sub-type is part of an active inspection round.");
+
+        var st2 = await context.EquipmentSubTypes.FindAsync([id], ct);
+        if (st2 != null) { st2.IsActive = false; await context.SaveChangesAsync(ct); }
+        return new DeleteResult(DeleteOutcome.Deactivated,
+            "Sub-type disabled. It won't appear in selection lists; existing equipment is unaffected.");
+    }
+
+    // ── Checklist Templates ───────────────────────────────────────────────────
+
+    public async Task<List<ChecklistItemTemplateDto>> GetChecklistTemplatesAsync(int equipmentTypeId, bool includeInactive = false, CancellationToken ct = default)
     {
         return await context.ChecklistItemTemplates
-            .Where(c => c.EquipmentTypeId == equipmentTypeId && c.IsActive)
-            .OrderBy(c => c.EquipmentSubTypeId == null ? 0 : 1)   // type-level first
+            .Where(c => c.EquipmentTypeId == equipmentTypeId && (includeInactive || c.IsActive))
+            .OrderBy(c => c.EquipmentSubTypeId == null ? 0 : 1)
             .ThenBy(c => c.SortOrder)
             .Select(c => new ChecklistItemTemplateDto(
                 c.Id, c.EquipmentTypeId,
@@ -191,13 +253,37 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
     {
         var template = await context.ChecklistItemTemplates.FindAsync([dto.Id], ct)
             ?? throw new InvalidOperationException($"ChecklistItemTemplate {dto.Id} not found");
-
-        template.ItemName = dto.ItemName;
+        template.ItemName    = dto.ItemName;
         template.Description = dto.Description;
-        template.SortOrder = dto.SortOrder;
-        template.IsRequired = dto.IsRequired;
-        template.IsActive = dto.IsActive;
-
+        template.SortOrder   = dto.SortOrder;
+        template.IsRequired  = dto.IsRequired;
+        template.IsActive    = dto.IsActive;
         await context.SaveChangesAsync(ct);
+    }
+
+    public async Task<DeleteResult> DeleteOrDeactivateChecklistTemplateAsync(int id, CancellationToken ct = default)
+    {
+        var hasResponses = await context.InspectionResponses.AnyAsync(r => r.ChecklistItemTemplateId == id, ct);
+        if (!hasResponses)
+        {
+            var t = await context.ChecklistItemTemplates.FindAsync([id], ct);
+            if (t != null) context.ChecklistItemTemplates.Remove(t);
+            await context.SaveChangesAsync(ct);
+            return new DeleteResult(DeleteOutcome.Deleted, "Checklist item permanently deleted.");
+        }
+
+        var inActiveRound = await context.InspectionResponses
+            .AnyAsync(r => r.ChecklistItemTemplateId == id
+                        && (r.EquipmentInspection.InspectionRound.Status == InspectionStatus.InProgress
+                            || r.EquipmentInspection.InspectionRound.Status == InspectionStatus.Draft), ct);
+
+        if (inActiveRound)
+            return new DeleteResult(DeleteOutcome.Blocked,
+                "Cannot modify: this checklist item is part of an active inspection in progress.");
+
+        var t2 = await context.ChecklistItemTemplates.FindAsync([id], ct);
+        if (t2 != null) { t2.IsActive = false; await context.SaveChangesAsync(ct); }
+        return new DeleteResult(DeleteOutcome.Deactivated,
+            "Checklist item disabled. It won't appear in future inspections; historical data is preserved.");
     }
 }
