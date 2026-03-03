@@ -6554,3 +6554,63 @@ textarea.form-control {
     .rpt-toc             { padding: var(--spacing-md); }
     .rpt-mini-stat       { flex: 1 1 calc(50% - 4px); }
 }
+
+/* ── Excel Export ──────────────────────────────────────────────────────────── */
+.rpt-summary-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+.rpt-export-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.rpt-export-btn i {
+    color: #217346;  /* Excel green */
+}
+.rpt-export-btn:disabled i {
+    color: var(--text-muted);
+}
+
+/* Per-card export icon button (sits next to "View Monthly Report") */
+.rpt-plant-card-footer {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+.rpt-export-card-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    cursor: pointer;
+    color: #217346;
+    font-size: 0.95rem;
+    transition: background 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+}
+.rpt-export-card-btn:hover:not(:disabled) {
+    background: rgba(33, 115, 70, 0.08);
+    border-color: #217346;
+}
+.rpt-export-card-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+[data-theme="dark"] .rpt-export-card-btn {
+    border-color: var(--border-color);
+    color: #4CAF86;
+}
+[data-theme="dark"] .rpt-export-card-btn:hover:not(:disabled) {
+    background: rgba(76, 175, 134, 0.12);
+    border-color: #4CAF86;
+}

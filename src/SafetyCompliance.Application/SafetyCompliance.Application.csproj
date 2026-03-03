@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.102.2" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\SafetyCompliance.Domain\SafetyCompliance.Domain.csproj" />
     <ProjectReference Include="..\SafetyCompliance.Infrastructure\SafetyCompliance.Infrastructure.csproj" />
   </ItemGroup>

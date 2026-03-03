@@ -41,6 +41,14 @@
         function setSidebarCollapsed(val) {
             localStorage.setItem('safecheck-sidebar-collapsed', val ? 'true' : 'false');
         }
+        function downloadExcel(filename, base64) {
+            var a = document.createElement('a');
+            a.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + base64;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
     </script>
     <script src="_framework/blazor.web.js"></script>
 </body>
