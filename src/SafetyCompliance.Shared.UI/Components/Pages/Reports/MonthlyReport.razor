@@ -4,6 +4,7 @@
 @inject IReportService ReportService
 @inject ICompanyService CompanyService
 @inject IPlantService PlantService
+@inject IExcelExportService ExcelExportService
 @inject IJSRuntime JS
 
 <div class="rpt-page">
@@ -33,8 +34,22 @@
         @if (_tab == RptTab.Summary)
         {
             <div class="rpt-summary-header ov-fadeIn">
-                <h2 class="rpt-summary-title">Plant Overview</h2>
-                <p class="rpt-summary-sub">Current month &mdash; @DateTime.Today.ToString("MMMM yyyy")</p>
+                <div>
+                    <h2 class="rpt-summary-title">Plant Overview</h2>
+                    <p class="rpt-summary-sub">Current month &mdash; @DateTime.Today.ToString("MMMM yyyy")</p>
+                </div>
+                <button class="btn btn-outline rpt-export-btn"
+                        @onclick="ExportSummaryExcel"
+                        disabled="@(_exportingAll || _summaries.Count == 0)">
+                    @if (_exportingAll)
+                    {
+                        <i class="fa-light fa-spinner-third fa-spin"></i><span>Exporting&hellip;</span>
+                    }
+                    else
+                    {
+                        <i class="fa-light fa-file-excel"></i><span>Export Summary</span>
+                    }
+                </button>
             </div>
 
             @if (_summaries.Count == 0)
@@ -124,6 +139,19 @@
                                 <button class="btn btn-sm btn-outline rpt-view-btn" @onclick="() => ViewMonthlyReport(s.PlantId)">
                                     <i class="fa-light fa-chart-line"></i> View Monthly Report
                                 </button>
+                                <button class="rpt-export-card-btn"
+                                        title="Export monthly report to Excel"
+                                        @onclick="() => ExportCardExcel(s.PlantId)"
+                                        disabled="@(_exportingCard && _exportingCardId == s.PlantId)">
+                                    @if (_exportingCard && _exportingCardId == s.PlantId)
+                                    {
+                                        <i class="fa-light fa-spinner-third fa-spin"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="fa-light fa-file-excel"></i>
+                                    }
+                                </button>
                             </div>
                         </div>
                     }
@@ -187,6 +215,17 @@
                     else
                     {
                         <i class="fa-light fa-chart-line"></i><span>Generate Report</span>
+                    }
+                </button>
+                <button class="btn btn-outline rpt-export-btn" @onclick="ExportMonthlyExcel"
+                        disabled="@(_report == null || _exportingMonthly)">
+                    @if (_exportingMonthly)
+                    {
+                        <i class="fa-light fa-spinner-third fa-spin"></i><span>Exporting&hellip;</span>
+                    }
+                    else
+                    {
+                        <i class="fa-light fa-file-excel"></i><span>Export Excel</span>
                     }
                 </button>
             </div>
@@ -678,6 +717,12 @@
     // Generated report
     private MonthlyReportDto? _report;
 
+    // Excel export state
+    private bool _exportingAll     = false;
+    private bool _exportingMonthly = false;
+    private bool _exportingCard    = false;
+    private int  _exportingCardId  = 0;
+
     protected override async Task OnInitializedAsync()
     {
         _companies = await CompanyService.GetAllCompaniesAsync();
@@ -724,6 +769,75 @@
         StateHasChanged();
         _report           = await ReportService.GetMonthlyReportAsync(_filterPlantId, _filterYear, _filterMonth);
         _generatingReport = false;
+    }
+
+    // ── Excel export ──────────────────────────────────────────────────────────
+
+    /// <summary>Exports the all-plant summary grid to a single-sheet Excel file.</summary>
+    private async Task ExportSummaryExcel()
+    {
+        if (_exportingAll || _summaries.Count == 0) return;
+        _exportingAll = true;
+        StateHasChanged();
+        try
+        {
+            var period = DateTime.Today.ToString("MMMM yyyy");
+            var bytes  = ExcelExportService.ExportSummary(_summaries, period);
+            var base64 = Convert.ToBase64String(bytes);
+            var name   = $"MIS-Plant-Summary-{DateTime.Today:MMMM-yyyy}.xlsx";
+            await JS.InvokeVoidAsync("downloadExcel", name, base64);
+        }
+        finally
+        {
+            _exportingAll = false;
+        }
+    }
+
+    /// <summary>Fetches the current-month report for a plant card and downloads it.</summary>
+    private async Task ExportCardExcel(int plantId)
+    {
+        if (_exportingCard) return;
+        _exportingCard   = true;
+        _exportingCardId = plantId;
+        StateHasChanged();
+        try
+        {
+            var today  = DateTime.Today;
+            var report = await ReportService.GetMonthlyReportAsync(plantId, today.Year, today.Month);
+            if (report is not null)
+            {
+                var bytes  = ExcelExportService.ExportMonthlyReport(report);
+                var base64 = Convert.ToBase64String(bytes);
+                var period = new DateTime(report.Year, report.Month, 1).ToString("MMM-yyyy");
+                var plant  = report.PlantName.Replace(" ", "-");
+                await JS.InvokeVoidAsync("downloadExcel", $"MIS-{plant}-{period}.xlsx", base64);
+            }
+        }
+        finally
+        {
+            _exportingCard   = false;
+            _exportingCardId = 0;
+        }
+    }
+
+    /// <summary>Exports the currently loaded monthly report.</summary>
+    private async Task ExportMonthlyExcel()
+    {
+        if (_report is null || _exportingMonthly) return;
+        _exportingMonthly = true;
+        StateHasChanged();
+        try
+        {
+            var bytes  = ExcelExportService.ExportMonthlyReport(_report);
+            var base64 = Convert.ToBase64String(bytes);
+            var period = new DateTime(_report.Year, _report.Month, 1).ToString("MMM-yyyy");
+            var plant  = _report.PlantName.Replace(" ", "-");
+            await JS.InvokeVoidAsync("downloadExcel", $"MIS-{plant}-{period}.xlsx", base64);
+        }
+        finally
+        {
+            _exportingMonthly = false;
+        }
     }
 
     private ValueTask ScrollTo(string id) =>

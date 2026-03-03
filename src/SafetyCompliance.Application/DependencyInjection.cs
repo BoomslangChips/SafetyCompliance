@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IServiceBookingService, ServiceBookingService>();
         services.AddScoped<INoteService, NoteService>();
         services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IExcelExportService, ExcelExportService>();
 
         return services;
     }
