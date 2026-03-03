@@ -6,6 +6,10 @@ public record EquipmentTypeUpdateDto(int Id, string Name, string? Description, b
 
 public record EquipmentSubTypeDto(int Id, int EquipmentTypeId, string Name, bool IsActive);
 public record EquipmentSubTypeCreateDto(int EquipmentTypeId, string Name);
+public record EquipmentSubTypeUpdateDto(int Id, string Name, bool IsActive);
+
+public enum DeleteOutcome { Deleted, Deactivated, Blocked }
+public record DeleteResult(DeleteOutcome Outcome, string Message);
 
 public record ChecklistItemTemplateDto(int Id, int EquipmentTypeId, int? EquipmentSubTypeId, string? EquipmentSubTypeName, string ItemName, string? Description, int SortOrder, bool IsRequired, bool IsActive);
 public record ChecklistItemTemplateCreateDto(int EquipmentTypeId, string ItemName, string? Description, int SortOrder, bool IsRequired, int? EquipmentSubTypeId = null);
