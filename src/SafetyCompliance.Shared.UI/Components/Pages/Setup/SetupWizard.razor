@@ -1,4 +1,5 @@
 @page "/setup"
+@page "/setup/{Step:int}"
 @inject ICompanyService CompanyService
 @inject IPlantService PlantService
 @inject ISectionService SectionService
@@ -828,8 +829,11 @@
 </div>
 
 @code {
+    [Parameter] public int Step { get; set; }
+
     private readonly string[] _stepNames = ["Company", "Plants", "Sections", "Equipment", "Review"];
     private int _currentStep;
+    private bool _initialized;
     private string? _errorMessage;
 
     // Step 0: Company
@@ -873,33 +877,45 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _companies = await CompanyService.GetAllCompaniesAsync();
+        _currentStep = Math.Clamp(Step, 0, _stepNames.Length - 1);
+        _companies   = await CompanyService.GetAllCompaniesAsync();
         _equipmentTypes = await EquipmentService.GetEquipmentTypesAsync();
+        await OnStepEntered();
+        _initialized = true;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Respond to browser back/forward or direct URL navigation
+        if (_initialized)
+        {
+            var target = Math.Clamp(Step, 0, _stepNames.Length - 1);
+            if (target != _currentStep)
+            {
+                _currentStep  = target;
+                _errorMessage = null;
+                await OnStepEntered();
+            }
+        }
     }
 
     // ==================== Navigation ====================
 
-    private async Task GoToStep(int step)
+    private void GoToStep(int step)
     {
-        if (step >= _currentStep) return;
-        _currentStep = step;
-        _errorMessage = null;
-        await OnStepEntered();
+        if (step >= _currentStep) return;   // can only jump backwards in UI
+        Navigation.NavigateTo($"/setup/{step}");
     }
 
-    private async Task NextStep()
+    private void NextStep()
     {
         if (!ValidateCurrentStep()) return;
-        _currentStep++;
-        _errorMessage = null;
-        await OnStepEntered();
+        Navigation.NavigateTo($"/setup/{_currentStep + 1}");
     }
 
-    private async Task PreviousStep()
+    private void PreviousStep()
     {
-        _currentStep--;
-        _errorMessage = null;
-        await OnStepEntered();
+        Navigation.NavigateTo($"/setup/{Math.Max(0, _currentStep - 1)}");
     }
 
     private async Task OnStepEntered()
