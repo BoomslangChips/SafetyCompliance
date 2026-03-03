@@ -6,14 +6,20 @@ namespace SafetyCompliance.Web.Services;
 /// <summary>
 /// Stores inspection photos in wwwroot/uploads/inspections/{id}/ so they are
 /// served automatically by app.UseStaticFiles().
+/// Falls back to ContentRootPath/wwwroot if WebRootPath is null (no wwwroot folder at startup).
 /// </summary>
 public class LocalPhotoStorageService(IWebHostEnvironment env) : IPhotoStorageService
 {
+    // WebRootPath is null when there is no wwwroot folder present at startup.
+    // We resolve it ourselves so the first upload also creates the folder.
+    private string WebRoot => env.WebRootPath
+        ?? Path.Combine(env.ContentRootPath, "wwwroot");
+
     public async Task<string> SavePhotoAsync(Stream stream, string originalFileName, int equipmentInspectionId)
     {
         var ext      = Path.GetExtension(originalFileName).ToLowerInvariant();
         var fileName = $"{Guid.NewGuid():N}{ext}";
-        var folder   = Path.Combine(env.WebRootPath, "uploads", "inspections", equipmentInspectionId.ToString());
+        var folder   = Path.Combine(WebRoot, "uploads", "inspections", equipmentInspectionId.ToString());
         Directory.CreateDirectory(folder);
 
         var physicalPath = Path.Combine(folder, fileName);
@@ -26,7 +32,7 @@ public class LocalPhotoStorageService(IWebHostEnvironment env) : IPhotoStorageSe
     public Task DeletePhotoAsync(string webPath)
     {
         var physical = Path.Combine(
-            env.WebRootPath,
+            WebRoot,
             webPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
 
         if (File.Exists(physical))
