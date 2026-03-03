@@ -473,6 +473,97 @@ public class ExcelExportService : IExcelExportService
         ws.Column(7).Width = 60; // Content column
     }
 
+    // ── Sheet 7: Plant Contacts ──────────────────────────────────────────────
+
+    private static readonly XLColor ContactCatFill = XLColor.FromHtml("#D6E4F0");
+    private static readonly XLColor ContactCatFont = XLColor.FromHtml("#1A3A5C");
+
+    private static void AddContactsSheet(XLWorkbook wb, MonthlyReportDto r, string title)
+    {
+        var ws = wb.Worksheets.Add("Plant Contacts");
+        AddSheetTitle(ws, $"Plant Contacts — {title}", 7);
+
+        var headers = new[]
+        {
+            "Category", "Name", "Role / Title",
+            "Phone", "Email", "Primary?", "Notes"
+        };
+        WriteHeaderRow(ws, 2, headers);
+
+        int row = 3;
+
+        if (r.Contacts.Count == 0)
+        {
+            ws.Cell(row, 1).Value = "No contacts have been added for this plant.";
+            ws.Cell(row, 1).Style.Font.Italic = true;
+            ws.Cell(row, 1).Style.Font.FontColor = XLColor.FromHtml("#888888");
+        }
+        else
+        {
+            var groups = r.Contacts
+                .OrderBy(c => c.Category)
+                .ThenByDescending(c => c.IsPrimary)
+                .ThenBy(c => c.Name)
+                .GroupBy(c => c.Category);
+
+            foreach (var group in groups)
+            {
+                // Category sub-header row — spans all 7 columns
+                ws.Range(row, 1, row, 7).Merge();
+                ws.Cell(row, 1).Value = group.Key.ToUpperInvariant();
+                ws.Row(row).Style.Font.Bold = true;
+                ws.Row(row).Style.Font.FontSize = 10;
+                ws.Row(row).Style.Fill.BackgroundColor = ContactCatFill;
+                ws.Row(row).Style.Font.FontColor = ContactCatFont;
+                ws.Row(row).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+                ws.Row(row).Style.Alignment.Indent = 1;
+                ws.Row(row).Height = 16;
+                row++;
+
+                foreach (var c in group)
+                {
+                    ws.Cell(row, 1).Value = c.Category;
+                    ws.Cell(row, 2).Value = c.Name;
+                    ws.Cell(row, 3).Value = c.Role  ?? "—";
+                    ws.Cell(row, 4).Value = c.Phone ?? "—";
+                    ws.Cell(row, 5).Value = c.Email ?? "—";
+                    ws.Cell(row, 6).Value = c.IsPrimary ? "✓ Primary" : "";
+                    ws.Cell(row, 7).Value = c.Notes ?? "—";
+
+                    // Bold name, subtle category
+                    ws.Cell(row, 2).Style.Font.Bold = true;
+                    ws.Cell(row, 1).Style.Font.FontColor = XLColor.FromHtml("#6b7280");
+
+                    // Primary badge
+                    if (c.IsPrimary)
+                    {
+                        ws.Cell(row, 6).Style.Fill.BackgroundColor = GreenFill;
+                        ws.Cell(row, 6).Style.Font.FontColor        = GreenFont;
+                        ws.Cell(row, 6).Style.Font.Bold             = true;
+                    }
+
+                    // Phone / email — keep as text
+                    ws.Cell(row, 4).Style.NumberFormat.Format = "@";
+                    ws.Cell(row, 5).Style.NumberFormat.Format = "@";
+
+                    row++;
+                }
+            }
+        }
+
+        FinaliseSheet(ws, row - 1, headers.Length);
+
+        // Column tweaks
+        ws.Column(1).Width = 18;  // Category
+        ws.Column(2).Width = 24;  // Name
+        ws.Column(3).Width = 26;  // Role
+        ws.Column(4).Width = 18;  // Phone
+        ws.Column(5).Width = 28;  // Email
+        ws.Column(6).Width = 12;  // Primary?
+        ws.Column(7).Style.Alignment.WrapText = true;
+        ws.Column(7).Width = 40;  // Notes
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     //  HELPERS
     // ═══════════════════════════════════════════════════════════════════════════
