@@ -74,4 +74,75 @@ public class PlantService(ApplicationDbContext context) : IPlantService
 
         await context.SaveChangesAsync(ct);
     }
+
+    // ── Plant Contacts ────────────────────────────────────────────────────
+
+    public async Task<List<PlantContactDto>> GetContactsAsync(int plantId, CancellationToken ct = default)
+    {
+        return await context.PlantContacts
+            .Where(c => c.PlantId == plantId)
+            .OrderBy(c => c.Category)
+            .ThenBy(c => c.SortOrder)
+            .ThenBy(c => c.Name)
+            .Select(c => new PlantContactDto(
+                c.Id, c.PlantId, c.Category, c.Name, c.Role,
+                c.Phone, c.Email, c.Notes, c.IsPrimary, c.SortOrder))
+            .ToListAsync(ct);
+    }
+
+    public async Task<PlantContactDto> AddContactAsync(PlantContactCreateDto dto, string userId, CancellationToken ct = default)
+    {
+        var maxOrder = await context.PlantContacts
+            .Where(c => c.PlantId == dto.PlantId && c.Category == dto.Category)
+            .Select(c => (int?)c.SortOrder)
+            .MaxAsync(ct) ?? 0;
+
+        var contact = new PlantContact
+        {
+            PlantId   = dto.PlantId,
+            Category  = dto.Category.Trim(),
+            Name      = dto.Name.Trim(),
+            Role      = dto.Role?.Trim(),
+            Phone     = dto.Phone?.Trim(),
+            Email     = dto.Email?.Trim(),
+            Notes     = dto.Notes?.Trim(),
+            IsPrimary = dto.IsPrimary,
+            SortOrder = maxOrder + 1,
+            CreatedById = userId
+        };
+
+        context.PlantContacts.Add(contact);
+        await context.SaveChangesAsync(ct);
+
+        return new PlantContactDto(contact.Id, contact.PlantId, contact.Category, contact.Name,
+            contact.Role, contact.Phone, contact.Email, contact.Notes, contact.IsPrimary, contact.SortOrder);
+    }
+
+    public async Task UpdateContactAsync(PlantContactUpdateDto dto, string userId, CancellationToken ct = default)
+    {
+        var contact = await context.PlantContacts.FindAsync([dto.Id], ct)
+            ?? throw new InvalidOperationException($"PlantContact {dto.Id} not found");
+
+        contact.Category  = dto.Category.Trim();
+        contact.Name      = dto.Name.Trim();
+        contact.Role      = dto.Role?.Trim();
+        contact.Phone     = dto.Phone?.Trim();
+        contact.Email     = dto.Email?.Trim();
+        contact.Notes     = dto.Notes?.Trim();
+        contact.IsPrimary = dto.IsPrimary;
+        contact.ModifiedAt   = DateTime.UtcNow;
+        contact.ModifiedById = userId;
+
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteContactAsync(int contactId, CancellationToken ct = default)
+    {
+        var contact = await context.PlantContacts.FindAsync([contactId], ct);
+        if (contact is not null)
+        {
+            context.PlantContacts.Remove(contact);
+            await context.SaveChangesAsync(ct);
+        }
+    }
 }

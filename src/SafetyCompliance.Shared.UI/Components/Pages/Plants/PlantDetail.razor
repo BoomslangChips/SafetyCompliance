@@ -6,24 +6,27 @@
 
 @if (_plant is null)
 {
-    <p>Loading...</p>
+    <div class="plt-loading">
+        <i class="fa-sharp fa-regular fa-spinner fa-spin"></i>
+        <span>Loading plant details...</span>
+    </div>
 }
 else
 {
     <div class="page-header">
         <div>
-            <button class="btn btn-link" @onclick="GoBack">&larr; Back</button>
+            <button class="btn btn-link" @onclick="GoBack">
+                <i class="fa-sharp fa-regular fa-arrow-left"></i> Back
+            </button>
             <h1>@_plant.Name</h1>
             @if (_plant.Description is not null)
             {
                 <p class="card-subtitle">@_plant.Description</p>
             }
-            @if (_plant.ContactName is not null)
-            {
-                <p class="card-subtitle">Contact: @_plant.ContactName @(_plant.ContactPhone is not null ? $"- {_plant.ContactPhone}" : "") @(_plant.ContactEmail is not null ? $"- {_plant.ContactEmail}" : "")</p>
-            }
         </div>
-        <button class="btn btn-primary" @onclick="() => _showCreateSection = true">Add Section</button>
+        <button class="btn btn-primary" @onclick="() => _showCreateSection = true">
+            <i class="fa-sharp fa-solid fa-plus"></i> Add Section
+        </button>
     </div>
 
     @if (_plant.PhotoBase64 is not null)
@@ -32,6 +35,326 @@ else
             <img src="@($"data:image/jpeg;base64,{_plant.PhotoBase64}")" alt="@_plant.Name" />
         </div>
     }
+
+    @* ═══════════════════════════════════════════════════════
+       PLANT CONTACTS SECTION
+       ═══════════════════════════════════════════════════════ *@
+    <div class="plt-contacts-section">
+        <div class="plt-contacts-header">
+            <div class="plt-contacts-header-left">
+                <div class="plt-contacts-title-wrap">
+                    <span class="plt-contacts-icon"><i class="fa-sharp fa-solid fa-address-book"></i></span>
+                    <h2 class="plt-contacts-title">Plant Contacts</h2>
+                </div>
+                @if (_contacts.Any())
+                {
+                    <span class="plt-contacts-badge">@_contacts.Count</span>
+                }
+            </div>
+            <button class="btn btn-primary plt-add-contact-btn" @onclick="ShowAddContact">
+                <i class="fa-sharp fa-solid fa-user-plus"></i>
+                Add Contact
+            </button>
+        </div>
+
+        @if (!_contacts.Any())
+        {
+            <div class="plt-empty-contacts">
+                <div class="plt-empty-icon"><i class="fa-sharp fa-regular fa-address-book"></i></div>
+                <p class="plt-empty-title">No contacts yet</p>
+                <p class="plt-empty-sub">Add emergency contacts, management, firefighters or specialist contacts for this plant.</p>
+                <button class="btn btn-primary" @onclick="ShowAddContact">
+                    <i class="fa-sharp fa-solid fa-plus"></i> Add First Contact
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="plt-categories-wrap">
+                @foreach (var group in _contacts.GroupBy(c => c.Category).OrderBy(g => g.Key))
+                {
+                    <div class="plt-category-group">
+                        <div class="plt-category-header">
+                            <div class="plt-category-header-left">
+                                <span class="plt-cat-emoji">@GetCategoryEmoji(group.Key)</span>
+                                <h3 class="plt-category-name">@group.Key</h3>
+                            </div>
+                            <span class="plt-category-count">@group.Count() @(group.Count() == 1 ? "contact" : "contacts")</span>
+                        </div>
+                        <div class="plt-contacts-grid">
+                            @foreach (var c in group.OrderByDescending(x => x.IsPrimary).ThenBy(x => x.SortOrder))
+                            {
+                                <div class="plt-contact-card @(c.IsPrimary ? "plt-contact-card--primary" : "")">
+                                    <div class="plt-contact-avatar" style="--plt-av-bg:@GetCategoryColor(group.Key)">
+                                        @GetInitials(c.Name)
+                                    </div>
+                                    <div class="plt-contact-body">
+                                        <div class="plt-contact-top">
+                                            <span class="plt-contact-name">@c.Name</span>
+                                            @if (c.IsPrimary)
+                                            {
+                                                <span class="plt-primary-badge">
+                                                    <i class="fa-sharp fa-solid fa-star"></i> Primary
+                                                </span>
+                                            }
+                                        </div>
+                                        @if (c.Role is not null)
+                                        {
+                                            <p class="plt-contact-role">@c.Role</p>
+                                        }
+                                        <div class="plt-contact-details">
+                                            @if (c.Phone is not null)
+                                            {
+                                                <a href="tel:@c.Phone" class="plt-contact-detail plt-detail-phone">
+                                                    <i class="fa-sharp fa-regular fa-phone"></i>
+                                                    <span>@c.Phone</span>
+                                                </a>
+                                            }
+                                            @if (c.Email is not null)
+                                            {
+                                                <a href="mailto:@c.Email" class="plt-contact-detail plt-detail-email">
+                                                    <i class="fa-sharp fa-regular fa-envelope"></i>
+                                                    <span>@c.Email</span>
+                                                </a>
+                                            }
+                                        </div>
+                                        @if (c.Notes is not null)
+                                        {
+                                            <p class="plt-contact-notes">@c.Notes</p>
+                                        }
+                                    </div>
+                                    <div class="plt-contact-actions">
+                                        <button class="plt-action-btn" title="Edit contact" @onclick="() => StartEditContact(c)">
+                                            <i class="fa-sharp fa-regular fa-pen"></i>
+                                        </button>
+                                        <button class="plt-action-btn plt-action-btn--danger" title="Delete contact" @onclick="() => _deleteContactId = c.Id">
+                                            <i class="fa-sharp fa-regular fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    @* ─── Add Contact Modal ─── *@
+    @if (_showAddContact)
+    {
+        <div class="modal-overlay" @onclick="() => _showAddContact = false">
+            <div class="modal plt-contact-modal" @onclick:stopPropagation>
+                <div class="plt-modal-header">
+                    <div class="plt-modal-title">
+                        <span class="plt-modal-icon plt-modal-icon--add"><i class="fa-sharp fa-solid fa-user-plus"></i></span>
+                        <h2>Add Contact</h2>
+                    </div>
+                    <button class="modal-close-btn" @onclick="() => _showAddContact = false">
+                        <i class="fa-sharp fa-regular fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="plt-modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Category <span class="form-required">*</span></label>
+                        <div class="plt-category-chips">
+                            @foreach (var cat in _predefinedCategories)
+                            {
+                                <button type="button"
+                                        class="plt-chip @(_contactCreate.Category == cat ? "plt-chip--active" : "")"
+                                        @onclick="() => _contactCreate.Category = cat">
+                                    @GetCategoryEmoji(cat) @cat
+                                </button>
+                            }
+                        </div>
+                        <input class="form-control plt-category-custom"
+                               placeholder="Or type a custom category…"
+                               value="@_contactCreate.Category"
+                               @oninput="e => _contactCreate.Category = e.Value?.ToString() ?? string.Empty" />
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Full Name <span class="form-required">*</span></label>
+                            <input class="form-control"
+                                   placeholder="e.g. John Smith"
+                                   value="@_contactCreate.Name"
+                                   @oninput="e => _contactCreate.Name = e.Value?.ToString() ?? string.Empty" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Role / Title</label>
+                            <input class="form-control"
+                                   placeholder="e.g. Fire Captain, Safety Officer"
+                                   value="@_contactCreate.Role"
+                                   @oninput="e => _contactCreate.Role = e.Value?.ToString()" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Phone</label>
+                            <input class="form-control" type="tel"
+                                   placeholder="+27 82 000 0000"
+                                   value="@_contactCreate.Phone"
+                                   @oninput="e => _contactCreate.Phone = e.Value?.ToString()" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input class="form-control" type="email"
+                                   placeholder="name@company.com"
+                                   value="@_contactCreate.Email"
+                                   @oninput="e => _contactCreate.Email = e.Value?.ToString()" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" rows="2"
+                                  placeholder="Additional information, availability hours, etc."
+                                  value="@_contactCreate.Notes"
+                                  @oninput="e => _contactCreate.Notes = e.Value?.ToString()"></textarea>
+                    </div>
+
+                    <label class="plt-toggle-label">
+                        <input type="checkbox"
+                               checked="@_contactCreate.IsPrimary"
+                               @onchange="e => _contactCreate.IsPrimary = (bool)(e.Value ?? false)" />
+                        <span class="plt-toggle-text">
+                            <strong>Mark as primary contact</strong>
+                            <small>This person is the first point of contact for their category</small>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="plt-modal-footer">
+                    <button class="btn btn-secondary" @onclick="() => _showAddContact = false">Cancel</button>
+                    <button class="btn btn-primary"
+                            disabled="@(string.IsNullOrWhiteSpace(_contactCreate.Name) || string.IsNullOrWhiteSpace(_contactCreate.Category))"
+                            @onclick="CreateContact">
+                        <i class="fa-sharp fa-solid fa-check"></i> Save Contact
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* ─── Edit Contact Modal ─── *@
+    @if (_showEditContact)
+    {
+        <div class="modal-overlay" @onclick="() => _showEditContact = false">
+            <div class="modal plt-contact-modal" @onclick:stopPropagation>
+                <div class="plt-modal-header">
+                    <div class="plt-modal-title">
+                        <span class="plt-modal-icon plt-modal-icon--edit"><i class="fa-sharp fa-solid fa-pen"></i></span>
+                        <h2>Edit Contact</h2>
+                    </div>
+                    <button class="modal-close-btn" @onclick="() => _showEditContact = false">
+                        <i class="fa-sharp fa-regular fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="plt-modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Category <span class="form-required">*</span></label>
+                        <div class="plt-category-chips">
+                            @foreach (var cat in _predefinedCategories)
+                            {
+                                <button type="button"
+                                        class="plt-chip @(_contactEdit.Category == cat ? "plt-chip--active" : "")"
+                                        @onclick="() => _contactEdit.Category = cat">
+                                    @GetCategoryEmoji(cat) @cat
+                                </button>
+                            }
+                        </div>
+                        <input class="form-control plt-category-custom"
+                               placeholder="Or type a custom category…"
+                               value="@_contactEdit.Category"
+                               @oninput="e => _contactEdit.Category = e.Value?.ToString() ?? string.Empty" />
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Full Name <span class="form-required">*</span></label>
+                            <input class="form-control"
+                                   value="@_contactEdit.Name"
+                                   @oninput="e => _contactEdit.Name = e.Value?.ToString() ?? string.Empty" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Role / Title</label>
+                            <input class="form-control"
+                                   value="@_contactEdit.Role"
+                                   @oninput="e => _contactEdit.Role = e.Value?.ToString()" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Phone</label>
+                            <input class="form-control" type="tel"
+                                   value="@_contactEdit.Phone"
+                                   @oninput="e => _contactEdit.Phone = e.Value?.ToString()" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input class="form-control" type="email"
+                                   value="@_contactEdit.Email"
+                                   @oninput="e => _contactEdit.Email = e.Value?.ToString()" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" rows="2"
+                                  value="@_contactEdit.Notes"
+                                  @oninput="e => _contactEdit.Notes = e.Value?.ToString()"></textarea>
+                    </div>
+
+                    <label class="plt-toggle-label">
+                        <input type="checkbox"
+                               checked="@_contactEdit.IsPrimary"
+                               @onchange="e => _contactEdit.IsPrimary = (bool)(e.Value ?? false)" />
+                        <span class="plt-toggle-text">
+                            <strong>Mark as primary contact</strong>
+                            <small>This person is the first point of contact for their category</small>
+                        </span>
+                    </label>
+                </div>
+
+                <div class="plt-modal-footer">
+                    <button class="btn btn-secondary" @onclick="() => _showEditContact = false">Cancel</button>
+                    <button class="btn btn-primary"
+                            disabled="@(string.IsNullOrWhiteSpace(_contactEdit.Name) || string.IsNullOrWhiteSpace(_contactEdit.Category))"
+                            @onclick="UpdateContact">
+                        <i class="fa-sharp fa-solid fa-check"></i> Update Contact
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* ─── Delete Confirm Modal ─── *@
+    @if (_deleteContactId.HasValue)
+    {
+        var victim = _contacts.FirstOrDefault(c => c.Id == _deleteContactId.Value);
+        <div class="modal-overlay" @onclick="() => _deleteContactId = null">
+            <div class="modal modal-sm plt-delete-modal" @onclick:stopPropagation>
+                <div class="plt-delete-icon"><i class="fa-sharp fa-solid fa-triangle-exclamation"></i></div>
+                <h3>Delete Contact?</h3>
+                <p>Are you sure you want to remove <strong>@victim?.Name</strong> from plant contacts? This cannot be undone.</p>
+                <div class="form-actions">
+                    <button class="btn btn-danger" @onclick="ConfirmDeleteContact">
+                        <i class="fa-sharp fa-solid fa-trash"></i> Delete
+                    </button>
+                    <button class="btn btn-secondary" @onclick="() => _deleteContactId = null">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* ═══════════════════════════════════════════════════════
+       SECTIONS & EQUIPMENT
+       ═══════════════════════════════════════════════════════ *@
 
     @* Create Section Modal *@
     @if (_showCreateSection)
@@ -223,7 +546,7 @@ else
 
     @if (!_sections.Any())
     {
-        <p class="empty-state">No sections yet. Add a section to organize your equipment.</p>
+        <p class="empty-state">No sections yet. Add a section to organise your equipment.</p>
     }
 
     @foreach (var sect in _sections)
@@ -323,26 +646,37 @@ else
     private List<EquipmentSubTypeDto> _createSubTypes = [];
     private List<EquipmentSubTypeDto> _editSubTypes = [];
 
-    // Create Section
+    // ── Contacts ──────────────────────────────────────────────────────────
+    private List<PlantContactDto> _contacts = [];
+    private bool _showAddContact;
+    private bool _showEditContact;
+    private int  _editContactId;
+    private int? _deleteContactId;
+    private ContactModel _contactCreate = new();
+    private ContactModel _contactEdit   = new();
+
+    private static readonly string[] _predefinedCategories =
+    [
+        "Firefighters", "Plant Management", "Medical",
+        "Maintenance", "Security", "Contractors", "Other"
+    ];
+
+    // ── Section state ──────────────────────────────────────────────────────
     private bool _showCreateSection;
     private SectionCreateModel _sectionCreate = new();
-
-    // Edit Section
     private bool _showEditSection;
-    private int _editSectionId;
-    private int _editSectionSortOrder;
+    private int  _editSectionId;
+    private int  _editSectionSortOrder;
     private SectionEditModel _sectionEdit = new();
 
-    // Add Equipment
-    private bool _showAddEquipment;
-    private int _addEquipmentSectionId;
+    // ── Equipment state ────────────────────────────────────────────────────
+    private bool   _showAddEquipment;
+    private int    _addEquipmentSectionId;
     private string _addEquipmentSectionName = "";
     private EquipmentCreateModel _equipmentCreate = new();
-
-    // Edit Equipment
-    private bool _showEditEquipment;
-    private int _editEquipmentId;
-    private int _editEquipmentSortOrder;
+    private bool   _showEditEquipment;
+    private int    _editEquipmentId;
+    private int    _editEquipmentSortOrder;
     private EquipmentEditModel _equipmentEdit = new();
 
     protected override async Task OnInitializedAsync()
@@ -353,17 +687,93 @@ else
 
     private async Task LoadData()
     {
-        _plant = await PlantService.GetPlantByIdAsync(PlantId);
+        _plant    = await PlantService.GetPlantByIdAsync(PlantId);
         _sections = await SectionService.GetSectionsByPlantAsync(PlantId);
+        _contacts = await PlantService.GetContactsAsync(PlantId);
 
         _equipmentBySection.Clear();
         foreach (var sect in _sections)
-        {
             _equipmentBySection[sect.Id] = await EquipmentService.GetEquipmentBySectionAsync(sect.Id, includeInactive: true);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // Contacts CRUD
+    // ═══════════════════════════════════════════════════════
+    private void ShowAddContact()
+    {
+        _contactCreate = new();
+        _showAddContact = true;
+    }
+
+    private async Task CreateContact()
+    {
+        if (string.IsNullOrWhiteSpace(_contactCreate.Name) || string.IsNullOrWhiteSpace(_contactCreate.Category)) return;
+
+        var dto = new PlantContactCreateDto(
+            PlantId,
+            _contactCreate.Category,
+            _contactCreate.Name,
+            _contactCreate.Role,
+            _contactCreate.Phone,
+            _contactCreate.Email,
+            _contactCreate.Notes,
+            _contactCreate.IsPrimary);
+
+        await PlantService.AddContactAsync(dto, "current-user");
+        _contacts = await PlantService.GetContactsAsync(PlantId);
+        _showAddContact = false;
+        _contactCreate  = new();
+    }
+
+    private void StartEditContact(PlantContactDto c)
+    {
+        _editContactId = c.Id;
+        _contactEdit   = new ContactModel
+        {
+            Category  = c.Category,
+            Name      = c.Name,
+            Role      = c.Role,
+            Phone     = c.Phone,
+            Email     = c.Email,
+            Notes     = c.Notes,
+            IsPrimary = c.IsPrimary
+        };
+        _showEditContact = true;
+    }
+
+    private async Task UpdateContact()
+    {
+        if (string.IsNullOrWhiteSpace(_contactEdit.Name) || string.IsNullOrWhiteSpace(_contactEdit.Category)) return;
+
+        var dto = new PlantContactUpdateDto(
+            _editContactId,
+            _contactEdit.Category,
+            _contactEdit.Name,
+            _contactEdit.Role,
+            _contactEdit.Phone,
+            _contactEdit.Email,
+            _contactEdit.Notes,
+            _contactEdit.IsPrimary);
+
+        await PlantService.UpdateContactAsync(dto, "current-user");
+        _contacts        = await PlantService.GetContactsAsync(PlantId);
+        _showEditContact = false;
+        _contactEdit     = new();
+    }
+
+    private async Task ConfirmDeleteContact()
+    {
+        if (_deleteContactId.HasValue)
+        {
+            await PlantService.DeleteContactAsync(_deleteContactId.Value);
+            _contacts      = await PlantService.GetContactsAsync(PlantId);
+            _deleteContactId = null;
         }
     }
 
-    // ===== Section CRUD =====
+    // ═══════════════════════════════════════════════════════
+    // Section CRUD
+    // ═══════════════════════════════════════════════════════
     private async Task CreateSection()
     {
         var maxOrder = _sections.Any() ? _sections.Max(s => s.SortOrder) + 1 : 1;
@@ -371,18 +781,18 @@ else
         await SectionService.CreateSectionAsync(dto, "current-user");
         await LoadData();
         _showCreateSection = false;
-        _sectionCreate = new();
+        _sectionCreate     = new();
     }
 
     private void StartEditSection(SectionDto sect)
     {
-        _editSectionId = sect.Id;
+        _editSectionId        = sect.Id;
         _editSectionSortOrder = sect.SortOrder;
         _sectionEdit = new SectionEditModel
         {
-            Name = sect.Name,
+            Name        = sect.Name,
             Description = sect.Description,
-            IsActive = sect.IsActive,
+            IsActive    = sect.IsActive,
             PhotoBase64 = sect.PhotoBase64,
             PhotoFileName = sect.PhotoFileName
         };
@@ -395,7 +805,7 @@ else
         await SectionService.UpdateSectionAsync(dto, "current-user");
         await LoadData();
         _showEditSection = false;
-        _sectionEdit = new();
+        _sectionEdit     = new();
     }
 
     private async Task OnCreateSectionPhotoSelected(InputFileChangeEventArgs e)
@@ -404,7 +814,7 @@ else
         if (file is null) return;
         var buffer = new byte[file.Size];
         await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _sectionCreate.PhotoBase64 = Convert.ToBase64String(buffer);
+        _sectionCreate.PhotoBase64  = Convert.ToBase64String(buffer);
         _sectionCreate.PhotoFileName = file.Name;
     }
 
@@ -414,25 +824,27 @@ else
         if (file is null) return;
         var buffer = new byte[file.Size];
         await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _sectionEdit.PhotoBase64 = Convert.ToBase64String(buffer);
+        _sectionEdit.PhotoBase64  = Convert.ToBase64String(buffer);
         _sectionEdit.PhotoFileName = file.Name;
     }
 
-    // ===== Equipment CRUD =====
+    // ═══════════════════════════════════════════════════════
+    // Equipment CRUD
+    // ═══════════════════════════════════════════════════════
     private void ShowAddEquipment(int sectionId, string sectionName)
     {
-        _addEquipmentSectionId = sectionId;
+        _addEquipmentSectionId   = sectionId;
         _addEquipmentSectionName = sectionName;
-        _equipmentCreate = new();
-        _createSubTypes = [];
-        _showAddEquipment = true;
+        _equipmentCreate         = new();
+        _createSubTypes          = [];
+        _showAddEquipment        = true;
     }
 
     private void CloseAddEquipmentModal()
     {
         _showAddEquipment = false;
-        _equipmentCreate = new();
-        _createSubTypes = [];
+        _equipmentCreate  = new();
+        _createSubTypes   = [];
     }
 
     private async Task OnCreateEquipmentTypeChanged(ChangeEventArgs e)
@@ -475,19 +887,19 @@ else
 
     private async Task StartEditEquipment(EquipmentDto eq)
     {
-        _editEquipmentId = eq.Id;
+        _editEquipmentId        = eq.Id;
         _editEquipmentSortOrder = eq.SortOrder;
         _equipmentEdit = new EquipmentEditModel
         {
-            Identifier = eq.Identifier,
-            EquipmentTypeId = eq.EquipmentTypeId,
+            Identifier       = eq.Identifier,
+            EquipmentTypeId  = eq.EquipmentTypeId,
             EquipmentSubTypeId = eq.EquipmentSubTypeId,
-            Description = eq.Description,
-            Size = eq.Size,
-            SerialNumber = eq.SerialNumber,
-            IsActive = eq.IsActive
+            Description      = eq.Description,
+            Size             = eq.Size,
+            SerialNumber     = eq.SerialNumber,
+            IsActive         = eq.IsActive
         };
-        _editSubTypes = await EquipmentService.GetSubTypesByTypeAsync(eq.EquipmentTypeId);
+        _editSubTypes    = await EquipmentService.GetSubTypesByTypeAsync(eq.EquipmentTypeId);
         _showEditEquipment = true;
     }
 
@@ -530,44 +942,100 @@ else
         await LoadData();
     }
 
+    // ═══════════════════════════════════════════════════════
+    // Helpers
+    // ═══════════════════════════════════════════════════════
     private void GoBack() => Navigation.NavigateTo($"/companies/{_plant?.CompanyId}");
 
-    // ===== Models =====
+    private static string GetInitials(string name)
+    {
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpper()
+            : name.Length >= 2 ? name[..2].ToUpper() : name.ToUpper();
+    }
+
+    private static string GetCategoryEmoji(string category) => category.ToLowerInvariant() switch
+    {
+        var c when c.Contains("fire")                                => "🔥",
+        var c when c.Contains("manage") || c.Contains("exec")
+                || c.Contains("director") || c.Contains("admin")    => "👔",
+        var c when c.Contains("medical") || c.Contains("health")
+                || c.Contains("nurse") || c.Contains("doctor")      => "🏥",
+        var c when c.Contains("maint") || c.Contains("tech")
+                || c.Contains("engin") || c.Contains("mechanic")    => "🔧",
+        var c when c.Contains("secur") || c.Contains("guard")
+                || c.Contains("police")                             => "🛡️",
+        var c when c.Contains("contract") || c.Contains("vendor")
+                || c.Contains("supplier")                           => "🤝",
+        _ => "👤"
+    };
+
+    private static string GetCategoryColor(string category) => category.ToLowerInvariant() switch
+    {
+        var c when c.Contains("fire")                                => "#ef4444",
+        var c when c.Contains("manage") || c.Contains("exec")
+                || c.Contains("director") || c.Contains("admin")    => "#4f46e5",
+        var c when c.Contains("medical") || c.Contains("health")
+                || c.Contains("nurse") || c.Contains("doctor")      => "#059669",
+        var c when c.Contains("maint") || c.Contains("tech")
+                || c.Contains("engin") || c.Contains("mechanic")    => "#d97706",
+        var c when c.Contains("secur") || c.Contains("guard")
+                || c.Contains("police")                             => "#7c3aed",
+        var c when c.Contains("contract") || c.Contains("vendor")
+                || c.Contains("supplier")                           => "#0891b2",
+        _ => "#6b7280"
+    };
+
+    // ═══════════════════════════════════════════════════════
+    // View Models
+    // ═══════════════════════════════════════════════════════
+    private class ContactModel
+    {
+        public string  Category  { get; set; } = string.Empty;
+        public string  Name      { get; set; } = string.Empty;
+        public string? Role      { get; set; }
+        public string? Phone     { get; set; }
+        public string? Email     { get; set; }
+        public string? Notes     { get; set; }
+        public bool    IsPrimary { get; set; }
+    }
+
     private class SectionCreateModel
     {
-        public string Name { get; set; } = string.Empty;
+        public string  Name        { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public string? PhotoBase64 { get; set; }
+        public string? PhotoBase64  { get; set; }
         public string? PhotoFileName { get; set; }
     }
 
     private class SectionEditModel
     {
-        public string Name { get; set; } = string.Empty;
+        public string  Name        { get; set; } = string.Empty;
         public string? Description { get; set; }
-        public bool IsActive { get; set; } = true;
-        public string? PhotoBase64 { get; set; }
+        public bool    IsActive    { get; set; } = true;
+        public string? PhotoBase64  { get; set; }
         public string? PhotoFileName { get; set; }
     }
 
     private class EquipmentCreateModel
     {
-        public string Identifier { get; set; } = string.Empty;
-        public int EquipmentTypeId { get; set; }
-        public int? EquipmentSubTypeId { get; set; }
-        public string? Description { get; set; }
-        public string? Size { get; set; }
-        public string? SerialNumber { get; set; }
+        public string  Identifier       { get; set; } = string.Empty;
+        public int     EquipmentTypeId  { get; set; }
+        public int?    EquipmentSubTypeId { get; set; }
+        public string? Description      { get; set; }
+        public string? Size             { get; set; }
+        public string? SerialNumber     { get; set; }
     }
 
     private class EquipmentEditModel
     {
-        public string Identifier { get; set; } = string.Empty;
-        public int EquipmentTypeId { get; set; }
-        public int? EquipmentSubTypeId { get; set; }
-        public string? Description { get; set; }
-        public string? Size { get; set; }
-        public string? SerialNumber { get; set; }
-        public bool IsActive { get; set; } = true;
+        public string  Identifier       { get; set; } = string.Empty;
+        public int     EquipmentTypeId  { get; set; }
+        public int?    EquipmentSubTypeId { get; set; }
+        public string? Description      { get; set; }
+        public string? Size             { get; set; }
+        public string? SerialNumber     { get; set; }
+        public bool    IsActive         { get; set; } = true;
     }
 }

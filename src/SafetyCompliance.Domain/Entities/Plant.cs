@@ -17,4 +17,5 @@ public class Plant : AuditableEntity
     public Company Company { get; set; } = null!;
     public ICollection<Section> Sections { get; set; } = [];
     public ICollection<InspectionRound> InspectionRounds { get; set; } = [];
+    public ICollection<PlantContact> Contacts { get; set; } = [];
 }

@@ -8,4 +8,10 @@ public interface IPlantService
     Task<PlantDto?> GetPlantByIdAsync(int id, CancellationToken ct = default);
     Task<PlantDto> CreatePlantAsync(PlantCreateDto dto, string userId, CancellationToken ct = default);
     Task UpdatePlantAsync(PlantUpdateDto dto, string userId, CancellationToken ct = default);
+
+    // ── Contacts ──────────────────────────────────────────────────────────
+    Task<List<PlantContactDto>> GetContactsAsync(int plantId, CancellationToken ct = default);
+    Task<PlantContactDto> AddContactAsync(PlantContactCreateDto dto, string userId, CancellationToken ct = default);
+    Task UpdateContactAsync(PlantContactUpdateDto dto, string userId, CancellationToken ct = default);
+    Task DeleteContactAsync(int contactId, CancellationToken ct = default);
 }
