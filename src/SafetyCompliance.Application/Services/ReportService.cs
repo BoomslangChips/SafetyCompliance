@@ -328,6 +328,24 @@ public class ReportService(ApplicationDbContext db) : IReportService
                 n.CreatedAt))
             .ToListAsync(ct);
 
+        // ── Contacts — all contacts for this plant ──
+        var contactRows = await db.PlantContacts
+            .Where(c => c.PlantId == plantId)
+            .OrderBy(c => c.Category)
+            .ThenByDescending(c => c.IsPrimary)
+            .ThenBy(c => c.SortOrder)
+            .ThenBy(c => c.Name)
+            .Select(c => new ReportContactRowDto(
+                c.Id,
+                (string?)(c.Category) ?? "",
+                (string?)(c.Name)     ?? "",
+                c.Role,
+                c.Phone,
+                c.Email,
+                c.Notes,
+                c.IsPrimary))
+            .ToListAsync(ct);
+
         return new MonthlyReportDto(
             plant.Id, plant.Name, plant.CompanyName,
             plant.ContactName, plant.ContactPhone,
@@ -335,6 +353,7 @@ public class ReportService(ApplicationDbContext db) : IReportService
             totalEquip, compliancePct,
             roundRows, equipRows,
             issueRows, bookingRows, noteRows,
+            contactRows,
             DateTime.Now);
     }
 }

@@ -133,6 +133,7 @@ public class ExcelExportService : IExcelExportService
         AddIssuesSheet(wb, report, title);
         AddServiceSheet(wb, report, title);
         AddNotesSheet(wb, report, title);
+        AddContactsSheet(wb, report, title);
 
         return ToBytes(wb);
     }

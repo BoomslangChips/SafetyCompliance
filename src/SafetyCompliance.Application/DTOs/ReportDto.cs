@@ -79,6 +79,16 @@ public record ReportNoteRowDto(
     string?  EquipmentIdentifier,
     DateTime CreatedAt);
 
+public record ReportContactRowDto(
+    int     Id,
+    string  Category,
+    string  Name,
+    string? Role,
+    string? Phone,
+    string? Email,
+    string? Notes,
+    bool    IsPrimary);
+
 public record MonthlyReportDto(
     int     PlantId,
     string  PlantName,
@@ -94,4 +104,5 @@ public record MonthlyReportDto(
     List<ReportIssueRowDto>     Issues,
     List<ReportServiceRowDto>   ServiceBookings,
     List<ReportNoteRowDto>      Notes,
+    List<ReportContactRowDto>   Contacts,
     DateTime GeneratedAt);
