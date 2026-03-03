@@ -7432,3 +7432,203 @@ textarea.form-control {
 @media (max-width: 400px) {
     .plt-contacts-header { flex-direction: column; align-items: flex-start; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UPLOAD ZONE  —  styled file-input drop zone (used in Setup & Company pages)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.upload-zone {
+    position: relative;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+    min-height: 100px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 0.2s, background 0.2s;
+}
+.upload-zone:hover {
+    border-color: var(--color-primary);
+    background: var(--color-tint-blue, rgba(59,130,246,0.04));
+}
+.upload-zone--has-file {
+    border-style: solid;
+    border-color: var(--color-primary);
+}
+
+/* Invisible file input layered over the whole zone */
+.upload-zone__input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+}
+
+/* Empty state  */
+.upload-zone__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: var(--spacing-lg) var(--spacing-md);
+    color: var(--color-text-secondary);
+    pointer-events: none;
+}
+.upload-zone__empty i {
+    font-size: 1.75rem;
+    color: var(--color-primary);
+    opacity: 0.7;
+}
+.upload-zone__empty span {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.upload-zone__empty small {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+/* Preview state */
+.upload-zone__preview {
+    position: relative;
+    width: 100%;
+    height: 160px;
+}
+.upload-zone__preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.upload-zone__remove {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    transition: background 0.15s;
+}
+.upload-zone__remove:hover { background: rgba(239,68,68,0.85); }
+.upload-zone__preview-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    padding: 4px 8px 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPANY DETAIL  —  cmpd-* (contacts per plant modal)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.cmpd-contacts-modal {
+    width: min(680px, 95vw);
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+.cmpd-contacts-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+.cmpd-contacts-modal-header h2 { font-size: 1.1rem; font-weight: 700; margin: 0; }
+.cmpd-contacts-modal-header .card-subtitle { margin: 2px 0 0; font-size: 0.8rem; }
+
+/* Inline add/edit form inside the modal */
+.cmpd-contact-form {
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--border-color);
+    padding: var(--spacing-md) var(--spacing-lg);
+    flex-shrink: 0;
+}
+.cmpd-contact-form-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Contacts button on plant cards */
+.cmpd-contacts-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: var(--color-text);
+    transition: background 0.15s, border-color 0.15s;
+}
+.cmpd-contacts-btn:hover { background: var(--color-tint-blue, rgba(59,130,246,0.06)); border-color: var(--color-primary); }
+.cmpd-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SETUP WIZARD  —  sw-* (plant card actions row + contact badge)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.sw-plant-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    margin-top: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+.sw-contact-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 700;
+    margin-left: 2px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+    .upload-zone__preview { height: 120px; }
+    .cmpd-contacts-modal { width: 100vw; border-radius: var(--radius-md) var(--radius-md) 0 0; max-height: 92vh; }
+    .sw-plant-actions { flex-direction: column; }
+    .sw-plant-actions .btn { width: 100%; }
+}

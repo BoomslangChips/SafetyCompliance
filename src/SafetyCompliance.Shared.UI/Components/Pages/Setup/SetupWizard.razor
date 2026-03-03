@@ -112,14 +112,27 @@
                     </div>
                     <div class="form-group">
                         <label>Photo</label>
-                        <InputFile OnChange="OnCreateCompanyPhotoSelected" class="form-control" accept="image/*" />
-                        @if (_companyCreate.PhotoBase64 is not null)
-                        {
-                            <div class="photo-preview">
-                                <img src="@($"data:image/jpeg;base64,{_companyCreate.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _companyCreate.PhotoBase64 = null; _companyCreate.PhotoFileName = null; }"><i class="fa-light fa-trash"></i> Remove</button>
-                            </div>
-                        }
+                        <div class="upload-zone @(_companyCreate.PhotoBase64 is not null ? "upload-zone--has-file" : "")">
+                            @if (_companyCreate.PhotoBase64 is not null)
+                            {
+                                <div class="upload-zone__preview">
+                                    <img src="@($"data:image/jpeg;base64,{_companyCreate.PhotoBase64}")" alt="Preview" />
+                                    <button type="button" class="upload-zone__remove" @onclick="() => { _companyCreate.PhotoBase64 = null; _companyCreate.PhotoFileName = null; }" @onclick:stopPropagation>
+                                        <i class="fa-light fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <span class="upload-zone__preview-label">@_companyCreate.PhotoFileName</span>
+                            }
+                            else
+                            {
+                                <div class="upload-zone__empty">
+                                    <i class="fa-light fa-camera"></i>
+                                    <span>Click to upload photo</span>
+                                    <small>JPG, PNG · max 5 MB</small>
+                                </div>
+                            }
+                            <InputFile OnChange="OnCreateCompanyPhotoSelected" class="upload-zone__input" accept="image/*" />
+                        </div>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary"><i class="fa-light fa-check"></i> Save Company</button>
@@ -210,14 +223,27 @@
                     </div>
                     <div class="form-group">
                         <label>Photo</label>
-                        <InputFile OnChange="OnCreatePlantPhotoSelected" class="form-control" accept="image/*" />
-                        @if (_plantCreate.PhotoBase64 is not null)
-                        {
-                            <div class="photo-preview">
-                                <img src="@($"data:image/jpeg;base64,{_plantCreate.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _plantCreate.PhotoBase64 = null; _plantCreate.PhotoFileName = null; }"><i class="fa-light fa-trash"></i> Remove</button>
-                            </div>
-                        }
+                        <div class="upload-zone @(_plantCreate.PhotoBase64 is not null ? "upload-zone--has-file" : "")">
+                            @if (_plantCreate.PhotoBase64 is not null)
+                            {
+                                <div class="upload-zone__preview">
+                                    <img src="@($"data:image/jpeg;base64,{_plantCreate.PhotoBase64}")" alt="Preview" />
+                                    <button type="button" class="upload-zone__remove" @onclick="() => { _plantCreate.PhotoBase64 = null; _plantCreate.PhotoFileName = null; }" @onclick:stopPropagation>
+                                        <i class="fa-light fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <span class="upload-zone__preview-label">@_plantCreate.PhotoFileName</span>
+                            }
+                            else
+                            {
+                                <div class="upload-zone__empty">
+                                    <i class="fa-light fa-camera"></i>
+                                    <span>Click to upload photo</span>
+                                    <small>JPG, PNG · max 5 MB</small>
+                                </div>
+                            }
+                            <InputFile OnChange="OnCreatePlantPhotoSelected" class="upload-zone__input" accept="image/*" />
+                        </div>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary"><i class="fa-light fa-check"></i> Save Plant</button>
@@ -261,14 +287,27 @@
                     </div>
                     <div class="form-group">
                         <label>Photo</label>
-                        <InputFile OnChange="OnEditPlantPhotoSelected" class="form-control" accept="image/*" />
-                        @if (_plantEdit.PhotoBase64 is not null)
-                        {
-                            <div class="photo-preview">
-                                <img src="@($"data:image/jpeg;base64,{_plantEdit.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _plantEdit.PhotoBase64 = null; _plantEdit.PhotoFileName = null; }">Remove</button>
-                            </div>
-                        }
+                        <div class="upload-zone @(_plantEdit.PhotoBase64 is not null ? "upload-zone--has-file" : "")">
+                            @if (_plantEdit.PhotoBase64 is not null)
+                            {
+                                <div class="upload-zone__preview">
+                                    <img src="@($"data:image/jpeg;base64,{_plantEdit.PhotoBase64}")" alt="Preview" />
+                                    <button type="button" class="upload-zone__remove" @onclick="() => { _plantEdit.PhotoBase64 = null; _plantEdit.PhotoFileName = null; }" @onclick:stopPropagation>
+                                        <i class="fa-light fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <span class="upload-zone__preview-label">@_plantEdit.PhotoFileName</span>
+                            }
+                            else
+                            {
+                                <div class="upload-zone__empty">
+                                    <i class="fa-light fa-camera"></i>
+                                    <span>Click to upload photo</span>
+                                    <small>JPG, PNG · max 5 MB</small>
+                                </div>
+                            }
+                            <InputFile OnChange="OnEditPlantPhotoSelected" class="upload-zone__input" accept="image/*" />
+                        </div>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Update Plant</button>
@@ -290,15 +329,24 @@
                     }
                     <div class="card-header-row">
                         <h3>@plant.Name</h3>
-                        <div class="card-edit-btn">
-                            <button class="btn btn-sm btn-secondary" @onclick="() => StartEditPlant(plant)">Edit</button>
-                        </div>
                     </div>
                     <p class="card-subtitle">@(plant.Description ?? "No description")</p>
                     <p class="card-subtitle"><i class="fa-light fa-user"></i> @(plant.ContactName ?? "No contact")</p>
                     <div class="card-stats">
                         <span>@plant.SectionCount sections</span>
                         <span>@plant.EquipmentCount equipment</span>
+                    </div>
+                    <div class="sw-plant-actions">
+                        <button class="btn btn-sm btn-secondary" @onclick="() => StartEditPlant(plant)">
+                            <i class="fa-light fa-pen"></i> Edit
+                        </button>
+                        <button class="btn btn-sm btn-secondary" @onclick="() => OpenContactsModal(plant.Id, plant.Name)">
+                            <i class="fa-light fa-address-book"></i> Contacts
+                            @if (_contactCounts.TryGetValue(plant.Id, out var cnt) && cnt > 0)
+                            {
+                                <span class="sw-contact-badge">@cnt</span>
+                            }
+                        </button>
                     </div>
                 </div>
             }
@@ -372,14 +420,27 @@
                     </div>
                     <div class="form-group">
                         <label>Photo</label>
-                        <InputFile OnChange="OnCreateSectionPhotoSelected" class="form-control" accept="image/*" />
-                        @if (_sectionCreate.PhotoBase64 is not null)
-                        {
-                            <div class="photo-preview">
-                                <img src="@($"data:image/jpeg;base64,{_sectionCreate.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionCreate.PhotoBase64 = null; _sectionCreate.PhotoFileName = null; }"><i class="fa-light fa-trash"></i> Remove</button>
-                            </div>
-                        }
+                        <div class="upload-zone @(_sectionCreate.PhotoBase64 is not null ? "upload-zone--has-file" : "")">
+                            @if (_sectionCreate.PhotoBase64 is not null)
+                            {
+                                <div class="upload-zone__preview">
+                                    <img src="@($"data:image/jpeg;base64,{_sectionCreate.PhotoBase64}")" alt="Preview" />
+                                    <button type="button" class="upload-zone__remove" @onclick="() => { _sectionCreate.PhotoBase64 = null; _sectionCreate.PhotoFileName = null; }" @onclick:stopPropagation>
+                                        <i class="fa-light fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <span class="upload-zone__preview-label">@_sectionCreate.PhotoFileName</span>
+                            }
+                            else
+                            {
+                                <div class="upload-zone__empty">
+                                    <i class="fa-light fa-camera"></i>
+                                    <span>Click to upload photo</span>
+                                    <small>JPG, PNG · max 5 MB</small>
+                                </div>
+                            }
+                            <InputFile OnChange="OnCreateSectionPhotoSelected" class="upload-zone__input" accept="image/*" />
+                        </div>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary"><i class="fa-light fa-check"></i> Save Section</button>
@@ -409,14 +470,27 @@
                     </div>
                     <div class="form-group">
                         <label>Photo</label>
-                        <InputFile OnChange="OnEditSectionPhotoSelected" class="form-control" accept="image/*" />
-                        @if (_sectionEdit.PhotoBase64 is not null)
-                        {
-                            <div class="photo-preview">
-                                <img src="@($"data:image/jpeg;base64,{_sectionEdit.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionEdit.PhotoBase64 = null; _sectionEdit.PhotoFileName = null; }">Remove</button>
-                            </div>
-                        }
+                        <div class="upload-zone @(_sectionEdit.PhotoBase64 is not null ? "upload-zone--has-file" : "")">
+                            @if (_sectionEdit.PhotoBase64 is not null)
+                            {
+                                <div class="upload-zone__preview">
+                                    <img src="@($"data:image/jpeg;base64,{_sectionEdit.PhotoBase64}")" alt="Preview" />
+                                    <button type="button" class="upload-zone__remove" @onclick="() => { _sectionEdit.PhotoBase64 = null; _sectionEdit.PhotoFileName = null; }" @onclick:stopPropagation>
+                                        <i class="fa-light fa-xmark"></i>
+                                    </button>
+                                </div>
+                                <span class="upload-zone__preview-label">@_sectionEdit.PhotoFileName</span>
+                            }
+                            else
+                            {
+                                <div class="upload-zone__empty">
+                                    <i class="fa-light fa-camera"></i>
+                                    <span>Click to upload photo</span>
+                                    <small>JPG, PNG · max 5 MB</small>
+                                </div>
+                            }
+                            <InputFile OnChange="OnEditSectionPhotoSelected" class="upload-zone__input" accept="image/*" />
+                        </div>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Update Section</button>
@@ -784,6 +858,193 @@
     </div>
 }
 
+@* ==================== Contacts Modal (Step 1) ==================== *@
+@if (_showContactsModal)
+{
+    <div class="modal-overlay" @onclick="CloseContactsModal">
+        <div class="modal cmpd-contacts-modal" @onclick:stopPropagation>
+            <div class="cmpd-contacts-modal-header">
+                <div>
+                    <h2><i class="fa-light fa-address-book" style="color:var(--color-primary);margin-right:8px;"></i>@_contactsPlantName</h2>
+                    <p class="card-subtitle">Plant Contacts</p>
+                </div>
+                <button class="btn btn-sm btn-ghost" @onclick="CloseContactsModal"><i class="fa-light fa-xmark"></i></button>
+            </div>
+
+            @if (_showContactForm)
+            {
+                <div class="cmpd-contact-form">
+                    <div class="cmpd-contact-form-title">
+                        @(_editingContactId == 0 ? "Add Contact" : "Edit Contact")
+                    </div>
+
+                    <div style="margin-bottom: var(--spacing-sm);">
+                        <label class="form-label">Category <span class="form-required">*</span></label>
+                        <div class="plt-category-chips">
+                            @foreach (var cat in new[]{"Emergency","Management","Maintenance","Fire & Safety","Specialist","Contractor","Other"})
+                            {
+                                <button type="button" class="plt-chip @(_contactForm.Category == cat ? "plt-chip--active" : "")"
+                                        @onclick="() => _contactForm.Category = cat">@cat</button>
+                            }
+                        </div>
+                        <input class="form-control" style="margin-top:6px;" placeholder="Or type custom category…"
+                               value="@_contactForm.Category"
+                               @oninput="e => _contactForm.Category = e.Value?.ToString() ?? string.Empty" />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Name <span class="form-required">*</span></label>
+                            <input class="form-control" placeholder="Full name"
+                                   value="@_contactForm.Name"
+                                   @oninput="e => _contactForm.Name = e.Value?.ToString() ?? string.Empty" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Role / Title</label>
+                            <input class="form-control" placeholder="e.g. Site Manager"
+                                   value="@_contactForm.Role"
+                                   @oninput="e => _contactForm.Role = e.Value?.ToString()" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Phone</label>
+                            <input class="form-control" placeholder="+1 (555) 000-0000"
+                                   value="@_contactForm.Phone"
+                                   @oninput="e => _contactForm.Phone = e.Value?.ToString()" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <input class="form-control" placeholder="name@example.com"
+                                   value="@_contactForm.Email"
+                                   @oninput="e => _contactForm.Email = e.Value?.ToString()" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" rows="2" placeholder="Additional notes…"
+                                  value="@_contactForm.Notes"
+                                  @oninput="e => _contactForm.Notes = e.Value?.ToString()"></textarea>
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+                        <input type="checkbox" id="sw-primary" checked="@_contactForm.IsPrimary"
+                               @onchange="e => _contactForm.IsPrimary = (bool)(e.Value ?? false)" />
+                        <label for="sw-primary"><strong>Mark as primary contact</strong></label>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-primary" @onclick="SaveContact"
+                                disabled="@(string.IsNullOrWhiteSpace(_contactForm.Name) || string.IsNullOrWhiteSpace(_contactForm.Category))">
+                            <i class="fa-light fa-check"></i> @(_editingContactId == 0 ? "Add Contact" : "Save Changes")
+                        </button>
+                        <button class="btn btn-secondary" @onclick="() => _showContactForm = false">Cancel</button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div style="padding: var(--spacing-md) var(--spacing-md) 0;">
+                    <button class="btn btn-primary btn-sm" @onclick="ShowAddContact">
+                        <i class="fa-light fa-plus"></i> Add Contact
+                    </button>
+                </div>
+            }
+
+            <div class="plt-modal-body" style="padding: var(--spacing-md);">
+                @if (_loadingContacts)
+                {
+                    <div style="text-align:center;padding:var(--spacing-lg);color:var(--color-text-secondary);">
+                        <i class="fa-light fa-spinner fa-spin"></i> Loading contacts…
+                    </div>
+                }
+                else if (!_modalContacts.Any())
+                {
+                    <div class="plt-empty-contacts" style="text-align:center;padding:var(--spacing-lg);">
+                        <i class="fa-light fa-address-book" style="font-size:2rem;color:var(--color-text-secondary);"></i>
+                        <p style="margin-top:var(--spacing-sm);color:var(--color-text-secondary);">No contacts yet. Add the first one above.</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var group in _modalContacts.GroupBy(c => c.Category).OrderBy(g => g.Key))
+                    {
+                        <div class="plt-category-group" style="margin-bottom:var(--spacing-md);">
+                            <div class="plt-category-header">
+                                <span class="plt-category-emoji">@GetCategoryEmoji(group.Key)</span>
+                                <span class="plt-category-name">@group.Key</span>
+                                <span class="plt-category-count">@group.Count() @(group.Count() == 1 ? "contact" : "contacts")</span>
+                            </div>
+                            <div class="plt-contacts-grid">
+                                @foreach (var c in group.OrderByDescending(x => x.IsPrimary))
+                                {
+                                    <div class="plt-contact-card @(c.IsPrimary ? "plt-contact-card--primary" : "")">
+                                        <div class="plt-contact-avatar" style="--plt-av-bg:@GetCategoryColor(group.Key)">
+                                            @GetInitials(c.Name)
+                                        </div>
+                                        <div class="plt-contact-body">
+                                            <div class="plt-contact-top">
+                                                <span class="plt-contact-name">@c.Name</span>
+                                                @if (c.IsPrimary)
+                                                {
+                                                    <span class="plt-primary-badge">Primary</span>
+                                                }
+                                            </div>
+                                            @if (c.Role is not null)
+                                            {
+                                                <p class="plt-contact-role">@c.Role</p>
+                                            }
+                                            <div class="plt-contact-details">
+                                                @if (c.Phone is not null)
+                                                {
+                                                    <a href="tel:@c.Phone" class="plt-contact-detail plt-detail-phone">
+                                                        <i class="fa-light fa-phone"></i>@c.Phone
+                                                    </a>
+                                                }
+                                                @if (c.Email is not null)
+                                                {
+                                                    <a href="mailto:@c.Email" class="plt-contact-detail plt-detail-email">
+                                                        <i class="fa-light fa-envelope"></i>@c.Email
+                                                    </a>
+                                                }
+                                                @if (c.Notes is not null)
+                                                {
+                                                    <p class="plt-contact-notes">@c.Notes</p>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="plt-contact-actions">
+                                            <button class="plt-action-btn" title="Edit" @onclick="() => StartEditContact(c)">
+                                                <i class="fa-light fa-pen"></i>
+                                            </button>
+                                            <button class="plt-action-btn plt-action-btn--danger" title="Delete" @onclick="() => _deleteContactId = c.Id">
+                                                <i class="fa-light fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Delete contact confirm ── *@
+@if (_deleteContactId.HasValue)
+{
+    <div class="modal-overlay" @onclick="() => _deleteContactId = null">
+        <div class="modal plt-delete-modal" @onclick:stopPropagation>
+            <div class="plt-delete-icon"><i class="fa-light fa-trash"></i></div>
+            <h3>Delete Contact?</h3>
+            <p>This contact will be permanently removed.</p>
+            <div class="form-actions" style="justify-content:center;">
+                <button class="btn btn-danger" @onclick="DeleteContact"><i class="fa-light fa-trash"></i> Delete</button>
+                <button class="btn btn-secondary" @onclick="() => _deleteContactId = null">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
 <div class="wizard-actions">
     @if (_currentStep > 0)
     {
@@ -844,6 +1105,18 @@
     // Step 4: Review
     private ReviewData? _reviewData;
 
+    // Step 1: Plant Contacts
+    private bool _showContactsModal;
+    private int  _contactsPlantId;
+    private string _contactsPlantName = "";
+    private bool _loadingContacts;
+    private List<PlantContactDto> _modalContacts = [];
+    private Dictionary<int, int>  _contactCounts = [];
+    private bool _showContactForm;
+    private int  _editingContactId;
+    private int? _deleteContactId;
+    private ContactFormModel _contactForm = new();
+
     protected override async Task OnInitializedAsync()
     {
         _companies = await CompanyService.GetAllCompaniesAsync();
@@ -884,6 +1157,9 @@
         _showEditSection = false;
         _showCreateEquipment = false;
         _showEditEquipment = false;
+        _showContactsModal = false;
+        _showContactForm = false;
+        _deleteContactId = null;
 
         switch (_currentStep)
         {
@@ -941,7 +1217,20 @@
     private async Task LoadPlants()
     {
         if (_selectedCompanyId > 0)
+        {
             _plants = await PlantService.GetPlantsByCompanyAsync(_selectedCompanyId);
+            await LoadContactCounts();
+        }
+    }
+
+    private async Task LoadContactCounts()
+    {
+        _contactCounts.Clear();
+        foreach (var p in _plants)
+        {
+            var contacts = await PlantService.GetContactsAsync(p.Id);
+            _contactCounts[p.Id] = contacts.Count;
+        }
     }
 
     private async Task LoadSections()
@@ -1231,9 +1520,9 @@
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _companyCreate.PhotoBase64 = Convert.ToBase64String(buffer);
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).CopyToAsync(ms);
+        _companyCreate.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
         _companyCreate.PhotoFileName = file.Name;
     }
 
@@ -1241,9 +1530,9 @@
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _plantCreate.PhotoBase64 = Convert.ToBase64String(buffer);
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).CopyToAsync(ms);
+        _plantCreate.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
         _plantCreate.PhotoFileName = file.Name;
     }
 
@@ -1251,9 +1540,9 @@
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _plantEdit.PhotoBase64 = Convert.ToBase64String(buffer);
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).CopyToAsync(ms);
+        _plantEdit.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
         _plantEdit.PhotoFileName = file.Name;
     }
 
@@ -1261,9 +1550,9 @@
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _sectionCreate.PhotoBase64 = Convert.ToBase64String(buffer);
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).CopyToAsync(ms);
+        _sectionCreate.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
         _sectionCreate.PhotoFileName = file.Name;
     }
 
@@ -1271,15 +1560,142 @@
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _sectionEdit.PhotoBase64 = Convert.ToBase64String(buffer);
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).CopyToAsync(ms);
+        _sectionEdit.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
         _sectionEdit.PhotoFileName = file.Name;
     }
 
     // ==================== Navigation ====================
 
     private void Finish() => Navigation.NavigateTo("/overview");
+
+    // ==================== Step 1: Plant Contacts ====================
+
+    private async Task OpenContactsModal(int plantId, string plantName)
+    {
+        _contactsPlantId   = plantId;
+        _contactsPlantName = plantName;
+        _showContactForm   = false;
+        _editingContactId  = 0;
+        _contactForm       = new();
+        _deleteContactId   = null;
+        _showContactsModal = true;
+        _loadingContacts   = true;
+        StateHasChanged();
+        _modalContacts = await PlantService.GetContactsAsync(plantId);
+        _loadingContacts = false;
+    }
+
+    private void CloseContactsModal()
+    {
+        _showContactsModal = false;
+        _showContactForm   = false;
+        _deleteContactId   = null;
+        _modalContacts     = [];
+    }
+
+    private void ShowAddContact()
+    {
+        _editingContactId = 0;
+        _contactForm      = new();
+        _showContactForm  = true;
+    }
+
+    private void StartEditContact(PlantContactDto c)
+    {
+        _editingContactId = c.Id;
+        _contactForm = new ContactFormModel
+        {
+            Category  = c.Category,
+            Name      = c.Name,
+            Role      = c.Role,
+            Phone     = c.Phone,
+            Email     = c.Email,
+            Notes     = c.Notes,
+            IsPrimary = c.IsPrimary
+        };
+        _showContactForm = true;
+    }
+
+    private async Task SaveContact()
+    {
+        if (string.IsNullOrWhiteSpace(_contactForm.Name) || string.IsNullOrWhiteSpace(_contactForm.Category))
+            return;
+
+        if (_editingContactId == 0)
+        {
+            var dto = new PlantContactCreateDto(
+                _contactsPlantId,
+                _contactForm.Category,
+                _contactForm.Name,
+                _contactForm.Role,
+                _contactForm.Phone,
+                _contactForm.Email,
+                _contactForm.Notes,
+                _contactForm.IsPrimary);
+            await PlantService.AddContactAsync(dto, "current-user");
+        }
+        else
+        {
+            var dto = new PlantContactUpdateDto(
+                _editingContactId,
+                _contactForm.Category,
+                _contactForm.Name,
+                _contactForm.Role,
+                _contactForm.Phone,
+                _contactForm.Email,
+                _contactForm.Notes,
+                _contactForm.IsPrimary);
+            await PlantService.UpdateContactAsync(dto, "current-user");
+        }
+
+        _modalContacts    = await PlantService.GetContactsAsync(_contactsPlantId);
+        _contactCounts[_contactsPlantId] = _modalContacts.Count;
+        _showContactForm  = false;
+        _editingContactId = 0;
+        _contactForm      = new();
+    }
+
+    private async Task DeleteContact()
+    {
+        if (!_deleteContactId.HasValue) return;
+        await PlantService.DeleteContactAsync(_deleteContactId.Value);
+        _deleteContactId = null;
+        _modalContacts = await PlantService.GetContactsAsync(_contactsPlantId);
+        _contactCounts[_contactsPlantId] = _modalContacts.Count;
+    }
+
+    // ── Contact helper methods ──
+    private static string GetInitials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpper()
+            : name.Length >= 2 ? name[..2].ToUpper() : name.ToUpper();
+    }
+
+    private static string GetCategoryEmoji(string category) => category switch
+    {
+        "Emergency"    => "🚨",
+        "Management"   => "👔",
+        "Maintenance"  => "🔧",
+        "Fire & Safety"=> "🔥",
+        "Specialist"   => "🎓",
+        "Contractor"   => "🏗️",
+        _              => "📋"
+    };
+
+    private static string GetCategoryColor(string category) => category switch
+    {
+        "Emergency"    => "#ef4444",
+        "Management"   => "#3b82f6",
+        "Maintenance"  => "#f59e0b",
+        "Fire & Safety"=> "#f97316",
+        "Specialist"   => "#8b5cf6",
+        "Contractor"   => "#10b981",
+        _              => "#6b7280"
+    };
 
     // ==================== Models ====================
 
@@ -1356,6 +1772,17 @@
         public string? SerialNumber { get; set; }
         public int SortOrder { get; set; }
         public bool IsActive { get; set; } = true;
+    }
+
+    private class ContactFormModel
+    {
+        public string  Category  { get; set; } = string.Empty;
+        public string  Name      { get; set; } = string.Empty;
+        public string? Role      { get; set; }
+        public string? Phone     { get; set; }
+        public string? Email     { get; set; }
+        public string? Notes     { get; set; }
+        public bool    IsPrimary { get; set; }
     }
 
     private class ReviewData
