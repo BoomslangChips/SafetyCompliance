@@ -1461,12 +1461,32 @@
 
     private void OnCreateEquipmentSubTypeChanged(ChangeEventArgs e)
     {
-        _equipmentCreate.EquipmentSubTypeId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        if (int.TryParse(e.Value?.ToString(), out var id))
+        {
+            _equipmentCreate.EquipmentSubTypeId = id;
+            var subType = _createSubTypes.FirstOrDefault(s => s.Id == id);
+            if (subType != null)
+                _equipmentCreate.Size = subType.Name;
+        }
+        else
+        {
+            _equipmentCreate.EquipmentSubTypeId = null;
+        }
     }
 
     private void OnEditEquipmentSubTypeChanged(ChangeEventArgs e)
     {
-        _equipmentEdit.EquipmentSubTypeId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
+        if (int.TryParse(e.Value?.ToString(), out var id))
+        {
+            _equipmentEdit.EquipmentSubTypeId = id;
+            var subType = _editSubTypes.FirstOrDefault(s => s.Id == id);
+            if (subType != null)
+                _equipmentEdit.Size = subType.Name;
+        }
+        else
+        {
+            _equipmentEdit.EquipmentSubTypeId = null;
+        }
     }
 
     private async Task CreateEquipment()

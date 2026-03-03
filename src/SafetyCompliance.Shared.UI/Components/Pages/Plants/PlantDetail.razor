@@ -860,9 +860,16 @@ else
     private void OnCreateSubTypeChanged(ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out var subTypeId))
+        {
             _equipmentCreate.EquipmentSubTypeId = subTypeId;
+            var subType = _createSubTypes.FirstOrDefault(s => s.Id == subTypeId);
+            if (subType != null)
+                _equipmentCreate.Size = subType.Name;
+        }
         else
+        {
             _equipmentCreate.EquipmentSubTypeId = null;
+        }
     }
 
     private async Task CreateEquipment()
@@ -916,9 +923,16 @@ else
     private void OnEditSubTypeChanged(ChangeEventArgs e)
     {
         if (int.TryParse(e.Value?.ToString(), out var subTypeId))
+        {
             _equipmentEdit.EquipmentSubTypeId = subTypeId;
+            var subType = _editSubTypes.FirstOrDefault(s => s.Id == subTypeId);
+            if (subType != null)
+                _equipmentEdit.Size = subType.Name;
+        }
         else
+        {
             _equipmentEdit.EquipmentSubTypeId = null;
+        }
     }
 
     private async Task UpdateEquipment()
