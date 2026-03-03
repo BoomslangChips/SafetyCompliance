@@ -1,5 +1,6 @@
 @page "/inspections/{RoundId:int}"
 @inject IInspectionService InspectionService
+@inject IPhotoStorageService PhotoStorage
 @inject IIssueService IssueService
 @inject IServiceBookingService ServiceBookingService
 @inject ICompanyService CompanyService
@@ -7,6 +8,7 @@
 @inject ISectionService SectionService
 @inject IEquipmentService EquipmentService
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <div class="chk-page">
     @* ── Header ── *@
@@ -111,7 +113,7 @@
 
                                 <div class="chk-equip-card @(insp.IsComplete ? "complete" : "") @(isOutForService ? "out-for-service" : "") @(failedItems.Any() ? "has-failures" : "")">
                                     @* Equipment header row *@
-                                    <div class="chk-equip-header" @onclick="() => ToggleExpand(insp.Id)">
+                                    <div class="chk-equip-header" @onclick="async () => await ToggleExpand(insp.Id)">
                                         <div class="chk-equip-status-dot @(insp.IsComplete ? "done" : answeredCount > 0 ? "partial" : "")"></div>
                                         <div class="chk-equip-name">
                                             <strong>@insp.EquipmentIdentifier</strong>
@@ -133,6 +135,10 @@
                                             @if (failedItems.Any())
                                             {
                                                 <span class="chk-fail-count"><i class="fa-light fa-circle-exclamation"></i> @failedItems.Count</span>
+                                            }
+                                            @if (insp.PhotoCount > 0)
+                                            {
+                                                <span class="chk-photo-badge"><i class="fa-light fa-camera"></i> @insp.PhotoCount</span>
                                             }
                                             <span class="chk-equip-progress-pill @(insp.IsComplete ? "done" : "")">
                                                 @if (insp.IsComplete)
@@ -194,9 +200,12 @@
                                         </div>
                                     }
 
-                                    @* Expandable comment area *@
+                                    @* Expandable comment + photo area *@
                                     @if (isExpanded)
                                     {
+                                        var isUploadingPhoto = _uploadingPhoto.Contains(insp.Id);
+                                        var isLoadingPhotos  = _loadingPhotos.Contains(insp.Id);
+                                        var equipPhotos      = _photos.GetValueOrDefault(insp.Id) ?? [];
                                         <div class="chk-equip-expand ov-fadeIn">
                                             <div class="chk-comment-input">
                                                 <i class="fa-light fa-message"></i>
@@ -204,6 +213,75 @@
                                                           placeholder="Add a note for @insp.EquipmentIdentifier..."
                                                           value="@(_equipmentComments.GetValueOrDefault(insp.Id))"
                                                           @onchange="(e) => OnCommentChanged(insp.Id, e)" />
+                                            </div>
+
+                                            @* ── Photo section ── *@
+                                            <div class="chk-photo-section">
+                                                <div class="chk-photo-header">
+                                                    <span class="chk-photo-title">
+                                                        <i class="fa-light fa-camera"></i> Photos
+                                                        @if (equipPhotos.Count > 0)
+                                                        {
+                                                            <span class="chk-photo-count-badge">@equipPhotos.Count</span>
+                                                        }
+                                                    </span>
+                                                    <div class="chk-photo-actions">
+                                                        <InputFile id="@($"photo-input-{insp.Id}")"
+                                                                   OnChange="async (e) => await HandlePhotoUpload(insp.Id, e)"
+                                                                   accept="image/jpeg,image/png,image/webp,image/heic,image/*"
+                                                                   style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none" />
+                                                        <button class="chk-photo-add-btn @(isUploadingPhoto ? "uploading" : "")"
+                                                                @onclick="async () => await TriggerPhotoInput(insp.Id)"
+                                                                @onclick:stopPropagation="true"
+                                                                disabled="@isUploadingPhoto">
+                                                            @if (isUploadingPhoto)
+                                                            {
+                                                                <i class="fa-light fa-spinner-third fa-spin"></i><span>Uploading&hellip;</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="fa-light fa-camera-plus"></i><span>Add Photo</span>
+                                                            }
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                @if (isLoadingPhotos)
+                                                {
+                                                    <div class="chk-photo-loading">
+                                                        <div class="ov-spinner" style="width:20px;height:20px;border-width:2px"></div>
+                                                        <span>Loading photos&hellip;</span>
+                                                    </div>
+                                                }
+                                                else if (equipPhotos.Count == 0)
+                                                {
+                                                    <div class="chk-photo-empty">
+                                                        <i class="fa-light fa-image-slash"></i>
+                                                        <span>No photos yet — tap <strong>Add Photo</strong> to capture or upload one.</span>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="chk-photo-grid">
+                                                        @for (int _pi = 0; _pi < equipPhotos.Count; _pi++)
+                                                        {
+                                                            var _photo    = equipPhotos[_pi];
+                                                            var _photoIdx = _pi;
+                                                            <div class="chk-photo-thumb">
+                                                                <img src="@_photo.FilePath"
+                                                                     alt="Inspection photo"
+                                                                     class="chk-photo-img"
+                                                                     @onclick="() => OpenLightbox(insp.Id, _photoIdx)"
+                                                                     loading="lazy" />
+                                                                <button class="chk-photo-delete"
+                                                                        title="Delete photo"
+                                                                        @onclick="async () => await DeletePhoto(_photo.Id, insp.Id)"
+                                                                        @onclick:stopPropagation="true">
+                                                                    <i class="fa-light fa-trash"></i>
+                                                                </button>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
                                             </div>
                                         </div>
                                     }
@@ -610,6 +688,31 @@
     </div>
 }
 
+@* ── Photo Lightbox ── *@
+@if (_lightboxPhotos is not null && _lightboxPhotos.Count > 0)
+{
+    var _lb = _lightboxPhotos[_lightboxIndex];
+    <div class="photo-lightbox" @onclick="CloseLightbox">
+        <button class="photo-lb-close" @onclick="CloseLightbox" @onclick:stopPropagation="true" aria-label="Close">
+            <i class="fa-light fa-xmark"></i>
+        </button>
+        <div class="photo-lb-counter">@(_lightboxIndex + 1) / @_lightboxPhotos.Count</div>
+        @if (_lightboxPhotos.Count > 1)
+        {
+            <button class="photo-lb-nav prev" @onclick="LightboxPrev" @onclick:stopPropagation="true" aria-label="Previous">
+                <i class="fa-light fa-chevron-left"></i>
+            </button>
+            <button class="photo-lb-nav next" @onclick="LightboxNext" @onclick:stopPropagation="true" aria-label="Next">
+                <i class="fa-light fa-chevron-right"></i>
+            </button>
+        }
+        <div class="photo-lb-img-wrap" @onclick:stopPropagation="true">
+            <img src="@_lb.FilePath" alt="Photo @(_lightboxIndex + 1)" class="photo-lb-img" />
+        </div>
+        <div class="photo-lb-caption">@_lb.FileName</div>
+    </div>
+}
+
 @* ── Quick Resolve Incident Modal ── *@
 @if (_showQuickResolve)
 {
@@ -706,6 +809,15 @@
     private int _resolveIssueId;
     private string? _resolveNotes;
 
+    // Photos (lazy-loaded per equipment inspection)
+    private Dictionary<int, List<InspectionPhotoDto>> _photos        = new();
+    private HashSet<int>                              _loadingPhotos  = new();
+    private HashSet<int>                              _uploadingPhoto = new();
+
+    // Lightbox
+    private List<InspectionPhotoDto>? _lightboxPhotos;
+    private int                       _lightboxIndex;
+
     private record SectionGroup(int SectionId, string SectionName, List<EquipmentInspectionDto> Items);
 
     protected override async Task OnInitializedAsync()
@@ -743,10 +855,21 @@
     }
 
     private void SetActiveSection(int sectionId) => _activeSectionId = sectionId;
-    private void ToggleExpand(int id)
+
+    private async Task ToggleExpand(int id)
     {
         if (!_expandedEquipment.Remove(id))
+        {
             _expandedEquipment.Add(id);
+            // Lazy-load photos the first time a card is expanded
+            if (!_photos.ContainsKey(id))
+            {
+                _loadingPhotos.Add(id);
+                StateHasChanged();
+                _photos[id] = await InspectionService.GetPhotosAsync(id);
+                _loadingPhotos.Remove(id);
+            }
+        }
     }
 
     private async Task SubmitResponse(int equipmentInspectionId, int checklistItemTemplateId, bool response)
@@ -901,6 +1024,76 @@
     }
 
     private void GoToIncident(int id) => Navigation.NavigateTo($"/issues/{id}");
+
+    // ── Photo upload / delete / lightbox ──────────────────────────────────────
+
+    private async Task TriggerPhotoInput(int equipmentInspectionId)
+        => await JS.InvokeVoidAsync("clickPhotoInput", $"photo-input-{equipmentInspectionId}");
+
+    private async Task HandlePhotoUpload(int equipmentInspectionId, InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+
+        _uploadingPhoto.Add(equipmentInspectionId);
+        StateHasChanged();
+
+        try
+        {
+            const long maxSize = 10L * 1024 * 1024; // 10 MB
+            await using var stream = file.OpenReadStream(maxSize);
+            var webPath = await PhotoStorage.SavePhotoAsync(stream, file.Name, equipmentInspectionId);
+
+            await InspectionService.UploadPhotoAsync(
+                equipmentInspectionId, file.Name, webPath,
+                file.ContentType, file.Size, "current-user");
+
+            _photos[equipmentInspectionId] = await InspectionService.GetPhotosAsync(equipmentInspectionId);
+            var idx = _inspections.FindIndex(i => i.Id == equipmentInspectionId);
+            if (idx >= 0)
+                _inspections[idx] = _inspections[idx] with { PhotoCount = _photos[equipmentInspectionId].Count };
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Photo upload error: {ex.Message}");
+        }
+        finally
+        {
+            _uploadingPhoto.Remove(equipmentInspectionId);
+        }
+    }
+
+    private async Task DeletePhoto(int photoId, int equipmentInspectionId)
+    {
+        var filePath = await InspectionService.DeletePhotoAsync(photoId);
+        if (filePath is not null)
+            await PhotoStorage.DeletePhotoAsync(filePath);
+
+        _photos[equipmentInspectionId] = await InspectionService.GetPhotosAsync(equipmentInspectionId);
+        var idx = _inspections.FindIndex(i => i.Id == equipmentInspectionId);
+        if (idx >= 0)
+            _inspections[idx] = _inspections[idx] with { PhotoCount = _photos[equipmentInspectionId].Count };
+    }
+
+    private void OpenLightbox(int equipmentInspectionId, int index)
+    {
+        _lightboxPhotos = _photos.GetValueOrDefault(equipmentInspectionId);
+        _lightboxIndex  = index;
+    }
+
+    private void CloseLightbox() => _lightboxPhotos = null;
+
+    private void LightboxPrev()
+    {
+        if (_lightboxPhotos is null) return;
+        _lightboxIndex = (_lightboxIndex - 1 + _lightboxPhotos.Count) % _lightboxPhotos.Count;
+    }
+
+    private void LightboxNext()
+    {
+        if (_lightboxPhotos is null) return;
+        _lightboxIndex = (_lightboxIndex + 1) % _lightboxPhotos.Count;
+    }
 
     private static string PriorityIcon(IssuePriority p) => p switch
     {

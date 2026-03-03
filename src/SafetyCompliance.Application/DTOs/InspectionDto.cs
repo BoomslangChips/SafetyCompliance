@@ -26,3 +26,13 @@ public record FailedInspectionItemDto(
     string PlantName, string SectionName,
     DateOnly InspectionDate, string InspectionMonth,
     List<string> FailedChecklistItems);
+
+public record InspectionPhotoDto(
+    int      Id,
+    int      EquipmentInspectionId,
+    string   FileName,
+    string   FilePath,
+    string   ContentType,
+    long     FileSizeBytes,
+    DateTime UploadedAt,
+    string?  UploadedById);

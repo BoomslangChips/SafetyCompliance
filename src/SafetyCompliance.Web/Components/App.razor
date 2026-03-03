@@ -49,6 +49,10 @@
             a.click();
             document.body.removeChild(a);
         }
+        function clickPhotoInput(id) {
+            var el = document.getElementById(id);
+            if (el) { el.value = ''; el.click(); }
+        }
     </script>
     <script src="_framework/blazor.web.js"></script>
 </body>

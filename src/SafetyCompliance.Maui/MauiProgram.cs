@@ -1,5 +1,7 @@
 using SafetyCompliance.Application;
+using SafetyCompliance.Application.Interfaces;
 using SafetyCompliance.Infrastructure;
+using SafetyCompliance.Maui.Services;
 using Microsoft.Extensions.Configuration;
 using System.Reflection;
 
@@ -31,6 +33,7 @@ public static class MauiProgram
 
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddApplication();
+        builder.Services.AddScoped<IPhotoStorageService, MauiPhotoStorageService>();
 
         return builder.Build();
     }

@@ -1,6 +1,8 @@
 using SafetyCompliance.Application;
+using SafetyCompliance.Application.Interfaces;
 using SafetyCompliance.Infrastructure;
 using SafetyCompliance.Web.Components;
+using SafetyCompliance.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +11,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
+builder.Services.AddScoped<IPhotoStorageService, LocalPhotoStorageService>();
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthentication()

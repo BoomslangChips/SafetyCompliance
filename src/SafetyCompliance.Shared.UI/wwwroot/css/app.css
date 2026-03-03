@@ -6099,7 +6099,7 @@ textarea.form-control {
     color: var(--color-text-secondary);
 }
 .rpt-ring-lbl {
-    font-size: 0.52rem; text-transform: uppercase;
+    font-size: 0.32rem; text-transform: uppercase;
     letter-spacing: 0.05em; color: var(--color-text-secondary);
     margin-top: 2px;
 }
@@ -6547,4 +6547,320 @@ textarea.form-control {
     .rpt-toc             { padding: var(--spacing-md); }
     .rpt-plant-stats     { grid-template-columns: 1fr; }
     .rpt-summary-header  { flex-direction: column; align-items: flex-start; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EQUIPMENT PHOTO UPLOAD  —  checklist expand panel
+═══════════════════════════════════════════════════════════════ */
+
+/* Photo badge on equipment header row */
+.chk-photo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(var(--color-primary-rgb, 99, 102, 241), 0.12);
+    color: var(--color-primary);
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+[data-theme="dark"] .chk-photo-badge {
+    background: rgba(var(--color-primary-rgb, 99, 102, 241), 0.18);
+}
+
+/* ── Photo section container ── */
+.chk-photo-section {
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--color-border);
+}
+
+/* header row: "Photos (n)" + Add button */
+.chk-photo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-sm);
+}
+.chk-photo-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.chk-photo-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+.chk-photo-actions {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Add Photo button */
+.chk-photo-add-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s, transform 0.12s;
+    box-shadow: 0 2px 6px rgba(99,102,241,0.30);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+.chk-photo-add-btn:hover:not(:disabled) {
+    background: var(--color-primary-dark, #4f46e5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(99,102,241,0.35);
+}
+.chk-photo-add-btn:active:not(:disabled) { transform: translateY(0); }
+.chk-photo-add-btn:disabled,
+.chk-photo-add-btn.uploading {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+/* Loading state */
+.chk-photo-loading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: var(--spacing-sm) 0;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+}
+
+/* Empty state */
+.chk-photo-empty {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: var(--spacing-md);
+    border: 1.5px dashed var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    background: var(--color-bg);
+}
+.chk-photo-empty i {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    opacity: 0.5;
+}
+
+/* Photo thumbnail grid */
+.chk-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 8px;
+    padding: 2px 0;
+}
+
+/* Individual thumbnail */
+.chk-photo-thumb {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--color-bg-alt, var(--color-surface));
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.chk-photo-thumb:hover {
+    transform: scale(1.03);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.16);
+    z-index: 1;
+}
+.chk-photo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: filter 0.2s;
+}
+.chk-photo-thumb:hover .chk-photo-img { filter: brightness(0.88); }
+
+/* Delete button — revealed on hover */
+.chk-photo-delete {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(220, 38, 38, 0.85);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.15s, transform 0.15s;
+    z-index: 2;
+}
+.chk-photo-thumb:hover .chk-photo-delete,
+.chk-photo-thumb:focus-within .chk-photo-delete {
+    opacity: 1;
+    transform: scale(1);
+}
+/* Always visible on touch devices */
+@media (hover: none) {
+    .chk-photo-delete { opacity: 1; transform: scale(1); }
+}
+.chk-photo-delete:hover { background: rgba(185, 28, 28, 0.95); }
+
+/* ─────────────────────────────────────────────────────────────────
+   PHOTO LIGHTBOX
+───────────────────────────────────────────────────────────────── */
+.photo-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: lb-fadein 0.18s ease;
+}
+@keyframes lb-fadein {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Close button */
+.photo-lb-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.12s;
+    z-index: 10;
+}
+.photo-lb-close:hover { background: rgba(255,255,255,0.22); transform: scale(1.08); }
+
+/* Counter pill */
+.photo-lb-counter {
+    position: absolute;
+    top: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 14px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 20px;
+    color: rgba(255,255,255,0.85);
+    font-size: 0.82rem;
+    font-weight: 600;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+/* Prev / Next navigation */
+.photo-lb-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.10);
+    color: #fff;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.12s;
+    z-index: 10;
+}
+.photo-lb-nav.prev { left: 20px; }
+.photo-lb-nav.next { right: 20px; }
+.photo-lb-nav:hover { background: rgba(255,255,255,0.22); transform: translateY(-50%) scale(1.08); }
+
+/* Main image */
+.photo-lb-img-wrap {
+    max-width: min(92vw, 960px);
+    max-height: calc(100vh - 130px);
+    border-radius: var(--radius-lg, 12px);
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+    animation: lb-zoomin 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes lb-zoomin {
+    from { transform: scale(0.88); opacity: 0.6; }
+    to   { transform: scale(1);    opacity: 1; }
+}
+.photo-lb-img {
+    display: block;
+    max-width: min(92vw, 960px);
+    max-height: calc(100vh - 130px);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+/* Caption at bottom */
+.photo-lb-caption {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 80vw;
+    padding: 5px 16px;
+    background: rgba(0,0,0,0.55);
+    border-radius: 20px;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.78rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
+/* Responsive: tighten nav buttons on small screens */
+@media (max-width: 480px) {
+    .photo-lb-nav { width: 40px; height: 40px; font-size: 0.95rem; }
+    .photo-lb-nav.prev { left: 8px; }
+    .photo-lb-nav.next { right: 8px; }
+    .chk-photo-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; }
 }

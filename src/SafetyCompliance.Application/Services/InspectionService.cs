@@ -248,6 +248,28 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
         return photo.Id;
     }
 
+    public async Task<List<InspectionPhotoDto>> GetPhotosAsync(int equipmentInspectionId, CancellationToken ct = default)
+    {
+        return await context.InspectionPhotos
+            .Where(p => p.EquipmentInspectionId == equipmentInspectionId)
+            .OrderBy(p => p.UploadedAt)
+            .Select(p => new InspectionPhotoDto(
+                p.Id, p.EquipmentInspectionId, p.FileName,
+                p.FilePath, p.ContentType, p.FileSizeBytes,
+                p.UploadedAt, p.UploadedById))
+            .ToListAsync(ct);
+    }
+
+    public async Task<string?> DeletePhotoAsync(int photoId, CancellationToken ct = default)
+    {
+        var photo = await context.InspectionPhotos.FindAsync([photoId], ct);
+        if (photo is null) return null;
+        var filePath = photo.FilePath;
+        context.InspectionPhotos.Remove(photo);
+        await context.SaveChangesAsync(ct);
+        return filePath;
+    }
+
     public async Task<List<InspectionRoundDto>> GetActiveRoundsAsync(CancellationToken ct = default)
     {
         return await context.InspectionRounds
