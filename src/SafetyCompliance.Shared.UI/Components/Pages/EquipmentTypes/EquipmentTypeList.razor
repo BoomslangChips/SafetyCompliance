@@ -10,9 +10,23 @@
             <p class="page-header-sub">Define and manage equipment categories</p>
         </div>
     </div>
-    <button class="btn btn-primary" @onclick="() => _showCreate = true"><i class="fa-light fa-plus"></i> Add Equipment Type</button>
+    <div class="page-header-actions">
+        <label class="toggle-label">
+            <input type="checkbox" @bind="_showInactive" @bind:after="Reload" />
+            Show disabled
+        </label>
+        <button class="btn btn-primary" @onclick="() => { _showCreate = true; _createModel = new(); }">
+            <i class="fa-light fa-plus"></i> Add Equipment Type
+        </button>
+    </div>
 </div>
 
+@if (!string.IsNullOrEmpty(_feedback))
+{
+    <div class="alert @_feedbackClass">@_feedback</div>
+}
+
+@* ── Create modal ── *@
 @if (_showCreate)
 {
     <div class="modal-overlay" @onclick="() => _showCreate = false">
@@ -36,12 +50,76 @@
     </div>
 }
 
+@* ── Edit modal ── *@
+@if (_editingType is not null)
+{
+    <div class="modal-overlay" @onclick="CancelEdit">
+        <div class="modal" @onclick:stopPropagation>
+            <h2>Edit Equipment Type</h2>
+            <EditForm Model="_editModel" OnValidSubmit="SaveEdit">
+                <div class="form-group">
+                    <label>Name</label>
+                    <InputText @bind-Value="_editModel.Name" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <InputText @bind-Value="_editModel.Description" class="form-control" />
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@* ── Delete / disable confirmation ── *@
+@if (_confirmDeleteId.HasValue)
+{
+    <div class="modal-overlay" @onclick="() => _confirmDeleteId = null">
+        <div class="modal" @onclick:stopPropagation>
+            <h2>Remove Equipment Type</h2>
+            <p>Are you sure you want to remove <strong>@_confirmDeleteName</strong>?</p>
+            <p class="text-muted">If this type has never been used it will be permanently deleted.
+               If it has historical equipment records it will be disabled instead.</p>
+            <div class="form-actions">
+                <button class="btn btn-danger" @onclick="ConfirmDelete">Yes, remove</button>
+                <button class="btn btn-secondary" @onclick="() => _confirmDeleteId = null">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
 <div class="card-list">
     @foreach (var eqType in _types)
     {
-        <div class="card clickable" @onclick="() => GoToType(eqType.Id)">
-            <h3>@eqType.Name</h3>
-            <p class="card-subtitle">@(eqType.Description ?? "No description")</p>
+        <div class="card @(!eqType.IsActive ? "card-inactive" : "") clickable"
+             @onclick="() => GoToType(eqType.Id)">
+            <div class="card-header-row">
+                <div>
+                    <h3>
+                        @eqType.Name
+                        @if (!eqType.IsActive)
+                        {
+                            <span class="badge badge-inactive">Disabled</span>
+                        }
+                    </h3>
+                    <p class="card-subtitle">@(eqType.Description ?? "No description")</p>
+                </div>
+                <div class="card-actions" @onclick:stopPropagation>
+                    <button class="btn btn-sm btn-secondary"
+                            @onclick="() => StartEdit(eqType)"
+                            title="Edit">
+                        <i class="fa-light fa-pen"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger"
+                            @onclick="() => { _confirmDeleteId = eqType.Id; _confirmDeleteName = eqType.Name; }"
+                            title="Delete / Disable">
+                        <i class="fa-light fa-trash"></i>
+                    </button>
+                </div>
+            </div>
             <div class="card-stats">
                 <span>@eqType.ChecklistItemCount checklist items</span>
                 <span>@eqType.SubTypeCount sub-types</span>
@@ -57,26 +135,78 @@
 
 @code {
     private List<EquipmentTypeDto> _types = [];
-    private bool _showCreate;
-    private CreateModel _createModel = new();
+    private bool   _showInactive;
+    private bool   _showCreate;
+    private string _feedback      = string.Empty;
+    private string _feedbackClass = "alert-success";
 
-    protected override async Task OnInitializedAsync()
-        => _types = await EquipmentService.GetEquipmentTypesAsync();
+    // create
+    private TypeFormModel _createModel = new();
 
+    // edit
+    private EquipmentTypeDto? _editingType;
+    private TypeFormModel     _editModel = new();
+
+    // delete confirm
+    private int?   _confirmDeleteId;
+    private string _confirmDeleteName = string.Empty;
+
+    protected override async Task OnInitializedAsync() => await Reload();
+
+    private async Task Reload()
+        => _types = await EquipmentService.GetEquipmentTypesAsync(_showInactive);
+
+    private void GoToType(int id) => Navigation.NavigateTo($"/equipment-types/{id}");
+
+    // ── Create ──
     private async Task CreateType()
     {
         var dto = new EquipmentTypeCreateDto(_createModel.Name, _createModel.Description);
         await EquipmentService.CreateEquipmentTypeAsync(dto);
-        _types = await EquipmentService.GetEquipmentTypesAsync();
-        _showCreate = false;
+        await Reload();
+        _showCreate  = false;
         _createModel = new();
+        ShowFeedback("Equipment type created.", true);
     }
 
-    private void GoToType(int id) => Navigation.NavigateTo($"/equipment-types/{id}");
-
-    private class CreateModel
+    // ── Edit ──
+    private void StartEdit(EquipmentTypeDto type)
     {
-        public string Name { get; set; } = string.Empty;
+        _editingType = type;
+        _editModel   = new TypeFormModel { Name = type.Name, Description = type.Description };
+    }
+
+    private void CancelEdit() => _editingType = null;
+
+    private async Task SaveEdit()
+    {
+        if (_editingType is null) return;
+        var dto = new EquipmentTypeUpdateDto(_editingType.Id, _editModel.Name, _editModel.Description, _editingType.IsActive);
+        await EquipmentService.UpdateEquipmentTypeAsync(dto);
+        await Reload();
+        _editingType = null;
+        ShowFeedback("Equipment type updated.", true);
+    }
+
+    // ── Delete / Disable ──
+    private async Task ConfirmDelete()
+    {
+        if (!_confirmDeleteId.HasValue) return;
+        var result = await EquipmentService.DeleteOrDeactivateEquipmentTypeAsync(_confirmDeleteId.Value);
+        _confirmDeleteId = null;
+        await Reload();
+        ShowFeedback(result.Message, result.Outcome != DeleteOutcome.Blocked);
+    }
+
+    private void ShowFeedback(string msg, bool success)
+    {
+        _feedback      = msg;
+        _feedbackClass = success ? "alert-success" : "alert-danger";
+    }
+
+    private class TypeFormModel
+    {
+        public string  Name        { get; set; } = string.Empty;
         public string? Description { get; set; }
     }
 }
