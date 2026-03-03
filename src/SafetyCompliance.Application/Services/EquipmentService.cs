@@ -148,8 +148,13 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
     {
         return await context.ChecklistItemTemplates
             .Where(c => c.EquipmentTypeId == equipmentTypeId && c.IsActive)
-            .OrderBy(c => c.SortOrder)
-            .Select(c => new ChecklistItemTemplateDto(c.Id, c.EquipmentTypeId, c.ItemName, c.Description, c.SortOrder, c.IsRequired, c.IsActive))
+            .OrderBy(c => c.EquipmentSubTypeId == null ? 0 : 1)   // type-level first
+            .ThenBy(c => c.SortOrder)
+            .Select(c => new ChecklistItemTemplateDto(
+                c.Id, c.EquipmentTypeId,
+                c.EquipmentSubTypeId,
+                c.EquipmentSubType != null ? c.EquipmentSubType.Name : null,
+                c.ItemName, c.Description, c.SortOrder, c.IsRequired, c.IsActive))
             .ToListAsync(ct);
     }
 
@@ -157,17 +162,29 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
     {
         var template = new ChecklistItemTemplate
         {
-            EquipmentTypeId = dto.EquipmentTypeId,
-            ItemName = dto.ItemName,
-            Description = dto.Description,
-            SortOrder = dto.SortOrder,
-            IsRequired = dto.IsRequired
+            EquipmentTypeId    = dto.EquipmentTypeId,
+            EquipmentSubTypeId = dto.EquipmentSubTypeId,
+            ItemName           = dto.ItemName,
+            Description        = dto.Description,
+            SortOrder          = dto.SortOrder,
+            IsRequired         = dto.IsRequired
         };
 
         context.ChecklistItemTemplates.Add(template);
         await context.SaveChangesAsync(ct);
 
-        return new ChecklistItemTemplateDto(template.Id, template.EquipmentTypeId, template.ItemName, template.Description, template.SortOrder, template.IsRequired, template.IsActive);
+        var subTypeName = dto.EquipmentSubTypeId.HasValue
+            ? await context.EquipmentSubTypes
+                .Where(s => s.Id == dto.EquipmentSubTypeId.Value)
+                .Select(s => s.Name)
+                .FirstOrDefaultAsync(ct)
+            : null;
+
+        return new ChecklistItemTemplateDto(
+            template.Id, template.EquipmentTypeId,
+            template.EquipmentSubTypeId, subTypeName,
+            template.ItemName, template.Description,
+            template.SortOrder, template.IsRequired, template.IsActive);
     }
 
     public async Task UpdateChecklistTemplateAsync(ChecklistItemTemplateUpdateDto dto, CancellationToken ct = default)

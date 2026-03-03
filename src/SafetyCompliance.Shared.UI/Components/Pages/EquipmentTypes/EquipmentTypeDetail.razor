@@ -76,6 +76,25 @@ else
         {
             <div class="inline-form">
                 <EditForm Model="_checklistModel" OnValidSubmit="CreateChecklistItem">
+                    @if (_subTypes.Any())
+                    {
+                        <div class="form-group">
+                            <label>Applies To</label>
+                            <select class="form-control" @onchange="OnChecklistSubTypeChanged">
+                                <option value="">All sub-types (general)</option>
+                                @foreach (var st in _subTypes)
+                                {
+                                    <option value="@st.Id">@st.Name only</option>
+                                }
+                            </select>
+                            <small class="form-text text-muted">
+                                Choose "All sub-types" for items that apply regardless of size/variant
+                                (e.g. accessibility check). Choose a specific sub-type for items that
+                                only apply to that variant (e.g. pressure gauge for DCP, weight check
+                                for CO2).
+                            </small>
+                        </div>
+                    }
                     <div class="form-group">
                         <label>Item Name</label>
                         <InputText @bind-Value="_checklistModel.ItemName" class="form-control" />
@@ -99,27 +118,63 @@ else
 
         @if (_checklistItems.Any())
         {
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Order</th>
-                        <th>Item</th>
-                        <th>Description</th>
-                        <th>Required</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in _checklistItems)
-                    {
+            @* Group: type-level items (apply to all sub-types) *@
+            var generalItems   = _checklistItems.Where(c => c.EquipmentSubTypeId == null).ToList();
+            var subTypeItems   = _checklistItems.Where(c => c.EquipmentSubTypeId != null)
+                                                .GroupBy(c => c.EquipmentSubTypeName ?? $"Sub-type {c.EquipmentSubTypeId}")
+                                                .ToList();
+
+            @if (generalItems.Any())
+            {
+                <h3 class="checklist-group-header">General — applies to all sub-types</h3>
+                <table class="data-table">
+                    <thead>
                         <tr>
-                            <td>@item.SortOrder</td>
-                            <td>@item.ItemName</td>
-                            <td>@(item.Description ?? "-")</td>
-                            <td>@(item.IsRequired ? "Yes" : "No")</td>
+                            <th>Order</th>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th>Required</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in generalItems)
+                        {
+                            <tr>
+                                <td>@item.SortOrder</td>
+                                <td>@item.ItemName</td>
+                                <td>@(item.Description ?? "-")</td>
+                                <td>@(item.IsRequired ? "Yes" : "No")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+
+            @foreach (var group in subTypeItems)
+            {
+                <h3 class="checklist-group-header">@group.Key — specific checklist</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Item</th>
+                            <th>Description</th>
+                            <th>Required</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in group)
+                        {
+                            <tr>
+                                <td>@item.SortOrder</td>
+                                <td>@item.ItemName</td>
+                                <td>@(item.Description ?? "-")</td>
+                                <td>@(item.IsRequired ? "Yes" : "No")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
         }
         else
         {
@@ -143,8 +198,8 @@ else
 
     private async Task LoadData()
     {
-        _type = await EquipmentService.GetEquipmentTypeByIdAsync(TypeId);
-        _subTypes = await EquipmentService.GetSubTypesByTypeAsync(TypeId);
+        _type          = await EquipmentService.GetEquipmentTypeByIdAsync(TypeId);
+        _subTypes      = await EquipmentService.GetSubTypesByTypeAsync(TypeId);
         _checklistItems = await EquipmentService.GetChecklistTemplatesAsync(TypeId);
     }
 
@@ -157,10 +212,27 @@ else
         _subTypeModel = new();
     }
 
+    private void OnChecklistSubTypeChanged(ChangeEventArgs e)
+    {
+        _checklistModel.EquipmentSubTypeId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
+    }
+
     private async Task CreateChecklistItem()
     {
-        var maxOrder = _checklistItems.Any() ? _checklistItems.Max(c => c.SortOrder) + 1 : 1;
-        var dto = new ChecklistItemTemplateCreateDto(TypeId, _checklistModel.ItemName, _checklistModel.Description, maxOrder, _checklistModel.IsRequired);
+        var scopeItems = _checklistModel.EquipmentSubTypeId.HasValue
+            ? _checklistItems.Where(c => c.EquipmentSubTypeId == _checklistModel.EquipmentSubTypeId).ToList()
+            : _checklistItems.Where(c => c.EquipmentSubTypeId == null).ToList();
+
+        var maxOrder = scopeItems.Any() ? scopeItems.Max(c => c.SortOrder) + 1 : 1;
+
+        var dto = new ChecklistItemTemplateCreateDto(
+            TypeId,
+            _checklistModel.ItemName,
+            _checklistModel.Description,
+            maxOrder,
+            _checklistModel.IsRequired,
+            _checklistModel.EquipmentSubTypeId);
+
         await EquipmentService.CreateChecklistTemplateAsync(dto);
         await LoadData();
         _showAddChecklist = false;
@@ -176,8 +248,9 @@ else
 
     private class ChecklistModel
     {
-        public string ItemName { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public bool IsRequired { get; set; } = true;
+        public string  ItemName           { get; set; } = string.Empty;
+        public string? Description        { get; set; }
+        public bool    IsRequired         { get; set; } = true;
+        public int?    EquipmentSubTypeId { get; set; }
     }
 }

@@ -138,17 +138,21 @@ GO
 -- Checklist Item Templates (per equipment type - dynamic)
 -- ============================================================
 CREATE TABLE [dbo].[ChecklistItemTemplates] (
-    [Id]              INT IDENTITY(1,1) NOT NULL,
-    [EquipmentTypeId] INT NOT NULL,
-    [ItemName]        NVARCHAR(300) NOT NULL,
-    [Description]     NVARCHAR(500) NULL,
-    [SortOrder]       INT NOT NULL DEFAULT 0,
-    [IsRequired]      BIT NOT NULL DEFAULT 1,
-    [IsActive]        BIT NOT NULL DEFAULT 1,
-    [CreatedAt]       DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    [Id]                 INT IDENTITY(1,1) NOT NULL,
+    [EquipmentTypeId]    INT NOT NULL,
+    -- NULL = applies to all sub-types; set = applies only to this sub-type
+    [EquipmentSubTypeId] INT NULL,
+    [ItemName]           NVARCHAR(300) NOT NULL,
+    [Description]        NVARCHAR(500) NULL,
+    [SortOrder]          INT NOT NULL DEFAULT 0,
+    [IsRequired]         BIT NOT NULL DEFAULT 1,
+    [IsActive]           BIT NOT NULL DEFAULT 1,
+    [CreatedAt]          DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
     CONSTRAINT [PK_ChecklistItemTemplates] PRIMARY KEY CLUSTERED ([Id]),
     CONSTRAINT [FK_ChecklistItems_Types] FOREIGN KEY ([EquipmentTypeId])
-        REFERENCES [dbo].[EquipmentTypes]([Id])
+        REFERENCES [dbo].[EquipmentTypes]([Id]),
+    CONSTRAINT [FK_ChecklistItems_SubTypes] FOREIGN KEY ([EquipmentSubTypeId])
+        REFERENCES [dbo].[EquipmentSubTypes]([Id])
 )
 GO
 

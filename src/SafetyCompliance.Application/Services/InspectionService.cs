@@ -71,15 +71,32 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
 
         foreach (var ei in equipmentInspections)
         {
-            var checklistItems = await context.ChecklistItemTemplates
-                .Where(c => c.EquipmentTypeId == ei.Equipment.EquipmentTypeId && c.IsActive)
+            var typeId    = ei.Equipment.EquipmentTypeId;
+            var subTypeId = ei.Equipment.EquipmentSubTypeId;
+
+            // Load both type-level (SubTypeId=null) AND sub-type-specific items in one hit,
+            // then decide in memory which set to use:
+            //   • If sub-type-specific items exist for this equipment's sub-type → use those
+            //   • Otherwise fall back to the type-level (null) items
+            // This lets DCP and CO2 extinguishers share one equipment type but have
+            // completely different inspection checklists.
+            var allCandidates = await context.ChecklistItemTemplates
+                .Where(c => c.EquipmentTypeId == typeId && c.IsActive &&
+                            (c.EquipmentSubTypeId == null || c.EquipmentSubTypeId == subTypeId))
                 .ToListAsync(ct);
+
+            var hasSubTypeSpecific = subTypeId.HasValue &&
+                                     allCandidates.Any(c => c.EquipmentSubTypeId == subTypeId);
+
+            var checklistItems = hasSubTypeSpecific
+                ? allCandidates.Where(c => c.EquipmentSubTypeId == subTypeId).ToList()
+                : allCandidates.Where(c => c.EquipmentSubTypeId == null).ToList();
 
             foreach (var item in checklistItems)
             {
                 context.InspectionResponses.Add(new InspectionResponse
                 {
-                    EquipmentInspectionId = ei.Id,
+                    EquipmentInspectionId   = ei.Id,
                     ChecklistItemTemplateId = item.Id
                 });
             }
