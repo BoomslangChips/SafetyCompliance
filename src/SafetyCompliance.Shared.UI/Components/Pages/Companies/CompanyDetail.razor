@@ -691,13 +691,13 @@ else
 
     private static string GetCategoryColor(string cat) => cat.ToLowerInvariant() switch
     {
-        var c when c.Contains("fire")                             => "#ef4444",
-        var c when c.Contains("manage") || c.Contains("admin")   => "#4f46e5",
-        var c when c.Contains("medical") || c.Contains("health") => "#059669",
-        var c when c.Contains("maint") || c.Contains("tech")     => "#d97706",
-        var c when c.Contains("secur") || c.Contains("guard")    => "#7c3aed",
-        var c when c.Contains("contract") || c.Contains("vendor")=> "#0891b2",
-        _ => "#6b7280"
+        var c when c.Contains("fire")                             => "#C03030",
+        var c when c.Contains("manage") || c.Contains("admin")   => "#2C8880",
+        var c when c.Contains("medical") || c.Contains("health") => "#1A8A50",
+        var c when c.Contains("maint") || c.Contains("tech")     => "#B88A00",
+        var c when c.Contains("secur") || c.Contains("guard")    => "#1A6B63",
+        var c when c.Contains("contract") || c.Contains("vendor")=> "#40A8A0",
+        _ => "#5A7068"
     };
 
     // ── Models ────────────────────────────────────────────────────────────────

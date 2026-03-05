@@ -107,13 +107,15 @@
                             {
                                 var insp = inspection;
                                 var isOutForService = insp.ActiveServiceBooking is not null;
-                                var isExpanded = _expandedEquipment.Contains(insp.Id);
                                 var failedItems = insp.Responses.Where(r => r.Response == false).ToList();
                                 var answeredCount = insp.Responses.Count(r => r.Response.HasValue);
+                                var isUploadingPhoto = _uploadingPhoto.Contains(insp.Id);
+                                var isLoadingPhotos  = _loadingPhotos.Contains(insp.Id);
+                                var equipPhotos      = _photos.GetValueOrDefault(insp.Id) ?? [];
 
                                 <div class="chk-equip-card @(insp.IsComplete ? "complete" : "") @(isOutForService ? "out-for-service" : "") @(failedItems.Any() ? "has-failures" : "")">
                                     @* Equipment header row *@
-                                    <div class="chk-equip-header" @onclick="async () => await ToggleExpand(insp.Id)">
+                                    <div class="chk-equip-header">
                                         <div class="chk-equip-status-dot @(insp.IsComplete ? "done" : answeredCount > 0 ? "partial" : "")"></div>
                                         <div class="chk-equip-name">
                                             <strong>@insp.EquipmentIdentifier</strong>
@@ -150,7 +152,7 @@
                                                     @answeredCount<text>/</text>@insp.Responses.Count
                                                 }
                                             </span>
-                                            <div class="chk-equip-actions" @onclick:stopPropagation="true">
+                                            <div class="chk-equip-actions chk-equip-actions-visible">
                                                 <button class="chk-action-btn flag" @onclick="() => ShowFlagIssue(insp)" title="Flag Issue">
                                                     <i class="fa-light fa-flag"></i>
                                                 </button>
@@ -158,7 +160,6 @@
                                                     <i class="fa-light fa-truck"></i>
                                                 </button>
                                             </div>
-                                            <i class="fa-light @(isExpanded ? "fa-chevron-up" : "fa-chevron-down") chk-expand-icon"></i>
                                         </div>
                                     </div>
 
@@ -172,7 +173,7 @@
                                             {
                                                 <div class="chk-item @(response.Response == true ? "pass" : response.Response == false ? "fail" : "")">
                                                     <span class="chk-item-name">@header.ItemName</span>
-                                                    <div class="chk-toggle" @onclick:stopPropagation="true">
+                                                    <div class="chk-toggle">
                                                         <button class="chk-toggle-pass @(response.Response == true ? "active" : "")"
                                                                 @onclick="() => SubmitResponse(insp.Id, header.ChecklistItemTemplateId, true)">
                                                             <i class="fa-light fa-check"></i> Pass
@@ -200,91 +201,83 @@
                                         </div>
                                     }
 
-                                    @* Expandable comment + photo area *@
-                                    @if (isExpanded)
-                                    {
-                                        var isUploadingPhoto = _uploadingPhoto.Contains(insp.Id);
-                                        var isLoadingPhotos  = _loadingPhotos.Contains(insp.Id);
-                                        var equipPhotos      = _photos.GetValueOrDefault(insp.Id) ?? [];
-                                        <div class="chk-equip-expand ov-fadeIn">
-                                            <div class="chk-comment-input">
-                                                <i class="fa-light fa-message"></i>
-                                                <textarea rows="1"
-                                                          placeholder="Add a note for @insp.EquipmentIdentifier..."
-                                                          value="@(_equipmentComments.GetValueOrDefault(insp.Id))"
-                                                          @onchange="(e) => OnCommentChanged(insp.Id, e)" />
-                                            </div>
-
-                                            @* ── Photo section ── *@
-                                            <div class="chk-photo-section">
-                                                <div class="chk-photo-header">
-                                                    <span class="chk-photo-title">
-                                                        <i class="fa-light fa-camera"></i> Photos
-                                                        @if (equipPhotos.Count > 0)
-                                                        {
-                                                            <span class="chk-photo-count-badge">@equipPhotos.Count</span>
-                                                        }
-                                                    </span>
-                                                    <div class="chk-photo-actions">
-                                                        <InputFile id="@($"photo-input-{insp.Id}")"
-                                                                   OnChange="async (e) => await HandlePhotoUpload(insp.Id, e)"
-                                                                   accept="image/jpeg,image/png,image/webp,image/heic,image/*"
-                                                                   style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none" />
-                                                        <button class="chk-photo-add-btn @(isUploadingPhoto ? "uploading" : "")"
-                                                                @onclick="async () => await TriggerPhotoInput(insp.Id)"
-                                                                @onclick:stopPropagation="true"
-                                                                disabled="@isUploadingPhoto">
-                                                            @if (isUploadingPhoto)
-                                                            {
-                                                                <i class="fa-light fa-spinner-third fa-spin"></i><span>Uploading&hellip;</span>
-                                                            }
-                                                            else
-                                                            {
-                                                                <i class="fa-light fa-camera-plus"></i><span>Add Photo</span>
-                                                            }
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                @if (isLoadingPhotos)
-                                                {
-                                                    <div class="chk-photo-loading">
-                                                        <div class="ov-spinner" style="width:20px;height:20px;border-width:2px"></div>
-                                                        <span>Loading photos&hellip;</span>
-                                                    </div>
-                                                }
-                                                else if (equipPhotos.Count == 0)
-                                                {
-                                                    <div class="chk-photo-empty">
-                                                        <i class="fa-light fa-image-slash"></i>
-                                                        <span>No photos yet — tap <strong>Add Photo</strong> to capture or upload one.</span>
-                                                    </div>
-                                                }
-                                                else
-                                                {
-                                                    <div class="chk-photo-grid">
-                                                        @for (int _pi = 0; _pi < equipPhotos.Count; _pi++)
-                                                        {
-                                                            var _photo    = equipPhotos[_pi];
-                                                            var _photoIdx = _pi;
-                                                            <div class="chk-photo-thumb">
-                                                                <img src="@_photo.FilePath"
-                                                                     alt="Inspection photo"
-                                                                     class="chk-photo-img"
-                                                                     @onclick="() => OpenLightbox(insp.Id, _photoIdx)"
-                                                                     loading="lazy" />
-                                                                <button class="chk-photo-delete"
-                                                                        title="Delete photo"
-                                                                        @onclick="async () => await DeletePhoto(_photo.Id, insp.Id)"
-                                                                        @onclick:stopPropagation="true">
-                                                                    <i class="fa-light fa-trash"></i>
-                                                                </button>
-                                                            </div>
-                                                        }
-                                                    </div>
-                                                }
-                                            </div>
+                                    @* Notes + Photos — always visible *@
+                                    <div class="chk-equip-expand">
+                                        <div class="chk-comment-input">
+                                            <i class="fa-light fa-message"></i>
+                                            <textarea rows="1"
+                                                      placeholder="Add a note for @insp.EquipmentIdentifier..."
+                                                      value="@(_equipmentComments.GetValueOrDefault(insp.Id))"
+                                                      @onchange="(e) => OnCommentChanged(insp.Id, e)" />
                                         </div>
-                                    }
+
+                                        @* ── Photo section ── *@
+                                        <div class="chk-photo-section">
+                                            <div class="chk-photo-header">
+                                                <span class="chk-photo-title">
+                                                    <i class="fa-light fa-camera"></i> Photos
+                                                    @if (equipPhotos.Count > 0)
+                                                    {
+                                                        <span class="chk-photo-count-badge">@equipPhotos.Count</span>
+                                                    }
+                                                </span>
+                                                <div class="chk-photo-actions">
+                                                    <InputFile id="@($"photo-input-{insp.Id}")"
+                                                               OnChange="async (e) => await HandlePhotoUpload(insp.Id, e)"
+                                                               accept="image/jpeg,image/png,image/webp,image/heic,image/*"
+                                                               style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none" />
+                                                    <button class="chk-photo-add-btn @(isUploadingPhoto ? "uploading" : "")"
+                                                            @onclick="async () => await TriggerPhotoInput(insp.Id)"
+                                                            disabled="@isUploadingPhoto">
+                                                        @if (isUploadingPhoto)
+                                                        {
+                                                            <i class="fa-light fa-spinner-third fa-spin"></i><span>Uploading&hellip;</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <i class="fa-light fa-camera-plus"></i><span>Add Photo</span>
+                                                        }
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            @if (isLoadingPhotos)
+                                            {
+                                                <div class="chk-photo-loading">
+                                                    <div class="ov-spinner" style="width:20px;height:20px;border-width:2px"></div>
+                                                    <span>Loading photos&hellip;</span>
+                                                </div>
+                                            }
+                                            else if (equipPhotos.Count == 0)
+                                            {
+                                                <div class="chk-photo-empty">
+                                                    <i class="fa-light fa-image-slash"></i>
+                                                    <span>No photos yet — tap <strong>Add Photo</strong> to capture or upload one.</span>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="chk-photo-grid">
+                                                    @for (int _pi = 0; _pi < equipPhotos.Count; _pi++)
+                                                    {
+                                                        var _photo    = equipPhotos[_pi];
+                                                        var _photoIdx = _pi;
+                                                        <div class="chk-photo-thumb">
+                                                            <img src="@_photo.FilePath"
+                                                                 alt="Inspection photo"
+                                                                 class="chk-photo-img"
+                                                                 @onclick="() => OpenLightbox(insp.Id, _photoIdx)"
+                                                                 loading="lazy" />
+                                                            <button class="chk-photo-delete"
+                                                                    title="Delete photo"
+                                                                    @onclick="async () => await DeletePhoto(_photo.Id, insp.Id)">
+                                                                <i class="fa-light fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
                                 </div>
                             }
                         }
@@ -763,9 +756,6 @@
     private int _activeSectionId;
     private SectionGroup? ActiveSection => _sectionGroups.FirstOrDefault(s => s.SectionId == _activeSectionId);
 
-    // Expanded equipment (for comments)
-    private HashSet<int> _expandedEquipment = new();
-
     // Flag issue modal
     private bool _showFlagIssue;
     private int _flagEquipmentInspectionId;
@@ -851,26 +841,17 @@
         if (_activeSectionId == 0 && _sectionGroups.Any())
             _activeSectionId = _sectionGroups.First().SectionId;
 
+        // Eagerly load photos for all inspections
+        foreach (var insp in _inspections)
+        {
+            if (!_photos.ContainsKey(insp.Id))
+                _photos[insp.Id] = await InspectionService.GetPhotosAsync(insp.Id);
+        }
+
         _loading = false;
     }
 
     private void SetActiveSection(int sectionId) => _activeSectionId = sectionId;
-
-    private async Task ToggleExpand(int id)
-    {
-        if (!_expandedEquipment.Remove(id))
-        {
-            _expandedEquipment.Add(id);
-            // Lazy-load photos the first time a card is expanded
-            if (!_photos.ContainsKey(id))
-            {
-                _loadingPhotos.Add(id);
-                StateHasChanged();
-                _photos[id] = await InspectionService.GetPhotosAsync(id);
-                _loadingPhotos.Remove(id);
-            }
-        }
-    }
 
     private async Task SubmitResponse(int equipmentInspectionId, int checklistItemTemplateId, bool response)
     {

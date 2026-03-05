@@ -274,14 +274,25 @@ else
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Identifier Prefix</label>
-                        <InputText @bind-Value="_addModel.IdentifierPrefix" class="form-control" placeholder="e.g. FE" />
-                        <small class="text-muted">Items will be numbered: FE-001, FE-002, ...</small>
-                    </div>
-                    <div class="form-group">
                         <label>Quantity</label>
                         <InputNumber @bind-Value="_addModel.Quantity" class="form-control" min="1" max="100" />
                     </div>
+                    @if (_addModel.Quantity <= 1)
+                    {
+                        <div class="form-group">
+                            <label>Identifier</label>
+                            <InputText @bind-Value="_addModel.IdentifierPrefix" class="form-control" placeholder="e.g. FE-001" />
+                            <small class="text-muted">Unique identifier for this item</small>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="form-group">
+                            <label>Identifier Prefix</label>
+                            <InputText @bind-Value="_addModel.IdentifierPrefix" class="form-control" placeholder="e.g. FE" />
+                            <small class="text-muted">Items will be numbered: @(_addModel.IdentifierPrefix ?? "FE")-001, @(_addModel.IdentifierPrefix ?? "FE")-002, &hellip;</small>
+                        </div>
+                    }
                 </div>
                 <div class="form-group">
                     <label>Description</label>
@@ -292,14 +303,13 @@ else
                         <label>Size</label>
                         <InputText @bind-Value="_addModel.Size" class="form-control" placeholder="e.g. 9Kg" />
                     </div>
-                    <div class="form-group">
-                        <label>Serial Number</label>
-                        <InputText @bind-Value="_addModel.SerialNumber" class="form-control" />
-                        @if (_addModel.Quantity > 1)
-                        {
-                            <small class="text-muted">Only applies for single items</small>
-                        }
-                    </div>
+                    @if (_addModel.Quantity <= 1)
+                    {
+                        <div class="form-group">
+                            <label>Serial Number</label>
+                            <InputText @bind-Value="_addModel.SerialNumber" class="form-control" />
+                        </div>
+                    }
                 </div>
                 <div class="form-group">
                     <label>Initial Status</label>
@@ -313,8 +323,8 @@ else
                     </select>
                 </div>
 
-                @* Compliance checks section *@
-                @if (_addApplicableChecks.Any())
+                @* Compliance checks section — only for single items *@
+                @if (_addModel.Quantity <= 1 && _addApplicableChecks.Any())
                 {
                     <div class="section-card" style="margin-top: var(--spacing-md); padding: var(--spacing-md);">
                         <h3 style="margin-bottom: var(--spacing-sm);">
@@ -346,6 +356,15 @@ else
                                 }
                             </tbody>
                         </table>
+                    </div>
+                }
+                @if (_addModel.Quantity > 1 && _addApplicableChecks.Any())
+                {
+                    <div class="section-card" style="margin-top: var(--spacing-md); padding: var(--spacing-md); opacity: 0.7;">
+                        <p class="text-muted" style="font-size: 0.82rem; margin: 0;">
+                            <i class="fa-light fa-info-circle"></i>
+                            Compliance check dates, serial numbers, and individual identifiers can be set per item after creation — open each item from the inventory table.
+                        </p>
                     </div>
                 }
 

@@ -24,6 +24,7 @@
     --color-surface: #ffffff;
     --color-text: #0A1E1E;
     --color-text-secondary: #3A6A62;
+    --color-text-muted: #6A9A92;
     --color-border: #C4DCD9;
 
     /* Sidebar */
@@ -94,6 +95,7 @@
     --color-surface: #111315;
     --color-text: #E0EAE8;
     --color-text-secondary: #7A8E8A;
+    --color-text-muted: #5A7068;
     --color-border: #1e2428;
 
     --color-sidebar-bg: #0a0c0e;
@@ -2448,7 +2450,7 @@ select.form-control {
     transition: all 0.2s;
 }
 .cal-stat:hover { box-shadow: var(--shadow-sm); }
-.cal-stat.alert { border-color: rgba(220,38,38,0.2); }
+.cal-stat.alert { border-color: rgba(192,48,48,0.2); }
 .cal-stat-icon {
     width: 36px;
     height: 36px;
@@ -3874,10 +3876,8 @@ textarea.form-control {
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm) var(--spacing-lg);
-    cursor: pointer;
     transition: background 0.15s;
 }
-.chk-equip-header:hover { background: var(--color-tint-gray); }
 
 .chk-equip-status-dot {
     width: 10px; height: 10px;
@@ -3961,14 +3961,9 @@ textarea.form-control {
     opacity: 0;
 }
 .chk-equip-header:hover .chk-action-btn { opacity: 1; }
+.chk-equip-actions-visible .chk-action-btn { opacity: 1; }
 .chk-action-btn.flag:hover { background: var(--color-tint-orange); color: #B88A00; }
 .chk-action-btn.service:hover { background: var(--color-tint-blue); color: #1A6B63; }
-
-.chk-expand-icon {
-    font-size: 0.75rem;
-    color: var(--color-text-secondary);
-    transition: transform 0.2s;
-}
 
 /* Checklist items */
 .chk-items {
@@ -4042,7 +4037,7 @@ textarea.form-control {
 .chk-failed-bar > i { color: var(--color-danger); }
 .chk-failed-bar > span:first-of-type { font-weight: 600; color: var(--color-danger); }
 .chk-failed-tag {
-    background: rgba(220,38,38,0.12);
+    background: var(--color-tint-red);
     color: var(--color-danger);
     padding: 1px 8px;
     border-radius: 999px;
@@ -4559,7 +4554,7 @@ textarea.form-control {
 }
 .insp-fail-card:hover {
     border-color: var(--color-danger);
-    box-shadow: 0 2px 12px rgba(220,38,38,0.08);
+    box-shadow: 0 2px 12px rgba(192,48,48,0.08);
     transform: translateX(4px);
 }
 .insp-fail-indicator {
@@ -6062,7 +6057,7 @@ textarea.form-control {
 }
 .rpt-plant-card-alert {
     border-top: 3px solid var(--color-danger);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(220,38,38,0.08);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(192,48,48,0.08);
 }
 
 /* Card header band */
@@ -6452,10 +6447,10 @@ textarea.form-control {
 
 /* Table row states */
 .rpt-row-warn           { background: rgba(217,119,6, 0.05); }
-.rpt-row-fail           { background: rgba(220,38, 38,0.05); }
+.rpt-row-fail           { background: rgba(192,48,48,0.05); }
 .rpt-row-pass           { }
 .rpt-row-incomplete     { background: rgba(107,114,128,0.05); }
-.rpt-row-critical       { background: rgba(220,38, 38,0.08); }
+.rpt-row-critical       { background: rgba(192,48,48,0.08); }
 .rpt-row-service-active { background: rgba(217,119,6, 0.05); }
 
 /* Table cell helpers */
@@ -6775,7 +6770,7 @@ textarea.form-control {
 @media (hover: none) {
     .chk-photo-delete { opacity: 1; transform: scale(1); }
 }
-.chk-photo-delete:hover { background: rgba(185, 28, 28, 0.95); }
+.chk-photo-delete:hover { background: rgba(154, 32, 32, 0.95); }
 
 /* ─────────────────────────────────────────────────────────────────
    PHOTO LIGHTBOX
@@ -7487,7 +7482,7 @@ textarea.form-control {
 }
 .upload-zone:hover {
     border-color: var(--color-primary);
-    background: var(--color-tint-blue, rgba(59,130,246,0.04));
+    background: var(--color-tint-blue, rgba(44,136,128,0.04));
 }
 .upload-zone--has-file {
     border-style: solid;
@@ -7560,7 +7555,7 @@ textarea.form-control {
     font-size: 0.8rem;
     transition: background 0.15s;
 }
-.upload-zone__remove:hover { background: rgba(239,68,68,0.85); }
+.upload-zone__remove:hover { background: rgba(192,48,48,0.85); }
 .upload-zone__preview-label {
     display: block;
     font-size: 0.75rem;
@@ -7624,7 +7619,7 @@ textarea.form-control {
     color: var(--color-text);
     transition: background 0.15s, border-color 0.15s;
 }
-.cmpd-contacts-btn:hover { background: var(--color-tint-blue, rgba(59,130,246,0.06)); border-color: var(--color-primary); }
+.cmpd-contacts-btn:hover { background: var(--color-tint-blue, rgba(44,136,128,0.06)); border-color: var(--color-primary); }
 .cmpd-count-badge {
     display: inline-flex;
     align-items: center;
@@ -7674,13 +7669,13 @@ textarea.form-control {
 }
 .inv-status-dot.dot-green { background: var(--color-success); }
 .inv-status-dot.dot-red { background: var(--color-danger); }
-.inv-status-dot.dot-orange { background: #ea580c; }
+.inv-status-dot.dot-orange { background: #D07020; }
 .inv-status-dot.dot-amber { background: var(--color-warning); }
 .inv-status-dot.dot-gray { background: var(--color-text-muted); }
 
 /* Row alert highlight for overdue compliance */
 .data-table tbody tr.row-alert { background: var(--color-tint-red); }
-.data-table tbody tr.row-alert:hover { background: #fde8e8; }
+.data-table tbody tr.row-alert:hover { background: rgba(192, 48, 48, 0.08); }
 [data-theme="dark"] .data-table tbody tr.row-alert { background: rgba(192, 48, 48, 0.08); }
 [data-theme="dark"] .data-table tbody tr.row-alert:hover { background: rgba(192, 48, 48, 0.14); }
 
