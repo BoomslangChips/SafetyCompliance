@@ -323,6 +323,7 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
         }
 
         var items = await query
+            .OrderBy(e => e.Identifier)
             .Select(e => new InventoryEquipmentDto(
                 e.Id, e.Identifier, e.Description, e.Size, e.SerialNumber, e.IsActive,
                 e.SectionId,
@@ -337,7 +338,6 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
                 e.CheckRecords.Count(),
                 e.CheckRecords.Count(cr => cr.ExpiryDate != null && cr.ExpiryDate < today),
                 e.CheckRecords.Count(cr => cr.ExpiryDate != null && cr.ExpiryDate >= today && cr.ExpiryDate <= dueSoonDate)))
-            .OrderBy(e => e.Identifier)
             .ToListAsync(ct);
 
         // Post-filter compliance status (cannot be done efficiently in the EF query)
