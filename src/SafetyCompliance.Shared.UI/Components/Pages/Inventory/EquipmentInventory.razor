@@ -366,12 +366,16 @@ else
 {
     <div class="modal-overlay" @onclick="CloseDetail">
         <div class="modal modal-wide" @onclick:stopPropagation>
-            <h2><i class="fa-light fa-clipboard-list"></i> @_detailEquipment.Identifier</h2>
+            <h2><i class="fa-light fa-clipboard-list"></i> Equipment Details</h2>
 
             <div class="form-row">
                 <div class="form-group">
+                    <label>Identifier</label>
+                    <input class="form-control" @bind="_detailEditIdentifier" />
+                </div>
+                <div class="form-group">
                     <label>Type</label>
-                    <p>@_detailEquipment.EquipmentTypeName@(_detailEquipment.SubTypeName != null ? $" / {_detailEquipment.SubTypeName}" : "")</p>
+                    <p style="padding-top:6px;">@_detailEquipment.EquipmentTypeName@(_detailEquipment.SubTypeName != null ? $" / {_detailEquipment.SubTypeName}" : "")</p>
                 </div>
                 <div class="form-group">
                     <label>Status</label>
@@ -386,11 +390,31 @@ else
                 </div>
             </div>
             <div class="form-row">
-                <div class="form-group"><label>Size</label><p>@(_detailEquipment.Size ?? "-")</p></div>
-                <div class="form-group"><label>Serial</label><p>@(_detailEquipment.SerialNumber ?? "-")</p></div>
-                <div class="form-group"><label>Description</label><p>@(_detailEquipment.Description ?? "-")</p></div>
+                <div class="form-group">
+                    <label>Size</label>
+                    <input class="form-control" @bind="_detailEditSize" placeholder="e.g. 9Kg" />
+                </div>
+                <div class="form-group">
+                    <label>Serial Number</label>
+                    <input class="form-control" @bind="_detailEditSerial" placeholder="Enter serial number" />
+                </div>
             </div>
             <div class="form-group">
+                <label>Description</label>
+                <input class="form-control" @bind="_detailEditDescription" placeholder="Equipment description" />
+            </div>
+
+            @if (_detailHasChanges)
+            {
+                <div class="form-actions" style="margin-top: var(--spacing-sm);">
+                    <button class="btn btn-sm btn-primary" @onclick="SaveDetailEquipment">
+                        <i class="fa-light fa-floppy-disk"></i> Save Changes
+                    </button>
+                    <button class="btn btn-sm btn-secondary" @onclick="ResetDetailEdits">Discard</button>
+                </div>
+            }
+
+            <div class="form-group" style="margin-top: var(--spacing-md);">
                 <label>Location</label>
                 @if (_detailEquipment.SectionId.HasValue)
                 {
@@ -437,7 +461,20 @@ else
                             {
                                 <tr>
                                     <td><strong>@check.CheckName</strong></td>
-                                    <td>@(check.IntervalMonths.HasValue ? $"{check.IntervalMonths} months" : "One-time")</td>
+                                    <td>
+                                        @if (check.IntervalMonths.HasValue)
+                                        {
+                                            <span class="eqt-check-type recurring">
+                                                <i class="fa-light fa-repeat"></i> @FormatCheckInterval(check.IntervalMonths.Value)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="eqt-check-type onetime">
+                                                <i class="fa-light fa-calendar-day"></i> One-time
+                                            </span>
+                                        }
+                                    </td>
                                     <td>@(check.DateValue?.ToString("dd MMM yyyy") ?? "-")</td>
                                     <td>@(check.ExpiryDate?.ToString("dd MMM yyyy") ?? "-")</td>
                                     <td>
@@ -586,6 +623,10 @@ else
     // Detail modal
     private EquipmentDetailDto? _detailEquipment;
     private Dictionary<int, DateOnly?> _detailCheckDates = [];
+    private string _detailEditIdentifier = string.Empty;
+    private string _detailEditDescription = string.Empty;
+    private string _detailEditSize = string.Empty;
+    private string _detailEditSerial = string.Empty;
 
     // Assign modal
     private bool _showAssignModal;
@@ -746,9 +787,49 @@ else
     {
         _detailEquipment = await EquipmentService.GetEquipmentDetailAsync(equipmentId);
         _detailCheckDates = [];
+        InitDetailEdits();
     }
 
     private void CloseDetail() => _detailEquipment = null;
+
+    private void InitDetailEdits()
+    {
+        if (_detailEquipment is null) return;
+        _detailEditIdentifier  = _detailEquipment.Identifier;
+        _detailEditDescription = _detailEquipment.Description ?? string.Empty;
+        _detailEditSize        = _detailEquipment.Size ?? string.Empty;
+        _detailEditSerial      = _detailEquipment.SerialNumber ?? string.Empty;
+    }
+
+    private bool _detailHasChanges =>
+        _detailEquipment is not null && (
+            _detailEditIdentifier != _detailEquipment.Identifier ||
+            _detailEditDescription != (_detailEquipment.Description ?? string.Empty) ||
+            _detailEditSize != (_detailEquipment.Size ?? string.Empty) ||
+            _detailEditSerial != (_detailEquipment.SerialNumber ?? string.Empty));
+
+    private void ResetDetailEdits() => InitDetailEdits();
+
+    private async Task SaveDetailEquipment()
+    {
+        if (_detailEquipment is null) return;
+        await EquipmentService.UpdateEquipmentAsync(new EquipmentUpdateDto(
+            _detailEquipment.Id,
+            _detailEquipment.EquipmentTypeId,
+            _detailEquipment.EquipmentSubTypeId,
+            _detailEditIdentifier,
+            string.IsNullOrWhiteSpace(_detailEditDescription) ? null : _detailEditDescription,
+            string.IsNullOrWhiteSpace(_detailEditSize) ? null : _detailEditSize,
+            string.IsNullOrWhiteSpace(_detailEditSerial) ? null : _detailEditSerial,
+            _detailEquipment.NextServiceDate,
+            0,
+            _detailEquipment.IsActive), _userId);
+
+        _detailEquipment = await EquipmentService.GetEquipmentDetailAsync(_detailEquipment.Id);
+        InitDetailEdits();
+        await Reload();
+        ShowFeedback("Equipment updated.", true);
+    }
 
     private async Task OnDetailStatusChanged(ChangeEventArgs e)
     {
@@ -912,6 +993,21 @@ else
         EquipmentStatus.OutOfService => "dot-gray",
         EquipmentStatus.Retired => "dot-gray",
         _ => "dot-gray"
+    };
+
+    private static string FormatCheckInterval(int months) => months switch
+    {
+        1  => "Monthly",
+        2  => "Every 2 months",
+        3  => "Quarterly",
+        6  => "Every 6 months",
+        12 => "Annually",
+        24 => "Every 2 years",
+        36 => "Every 3 years",
+        48 => "Every 4 years",
+        60 => "Every 5 years",
+        _ when months % 12 == 0 => $"Every {months / 12} years",
+        _ => $"Every {months} months"
     };
 
     private static string ComplianceStatusClass(string status) => status switch

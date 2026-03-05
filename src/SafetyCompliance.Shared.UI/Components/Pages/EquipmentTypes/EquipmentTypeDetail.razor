@@ -9,16 +9,23 @@
 else
 {
     <div class="page-header">
-        <div>
-            <button class="btn btn-link" @onclick="GoBack">&larr; Back</button>
-            <h1>
-                @_type.Name
-                @if (!_type.IsActive)
-                {
-                    <span class="badge badge-inactive">Disabled</span>
-                }
-            </h1>
-            <p class="card-subtitle">@(_type.Description ?? "")</p>
+        <div class="page-header-left">
+            <div class="page-header-icon"><i class="fa-light fa-shapes"></i></div>
+            <div class="page-header-info">
+                <h1>
+                    @_type.Name
+                    @if (!_type.IsActive)
+                    {
+                        <span class="badge badge-inactive">Disabled</span>
+                    }
+                </h1>
+                <p class="page-header-sub">@(_type.Description ?? "Equipment type configuration")</p>
+            </div>
+        </div>
+        <div class="page-header-actions">
+            <button class="btn btn-secondary" @onclick="GoBack">
+                <i class="fa-light fa-arrow-left"></i> Back
+            </button>
         </div>
     </div>
 
@@ -27,91 +34,340 @@ else
         <div class="alert @_feedbackClass">@_feedback</div>
     }
 
-    @* ══════════════════════════════════════════════
-       SUB-TYPES
-       ══════════════════════════════════════════════ *@
-    <div class="section-card">
-        <div class="section-header">
-            <h2>Sub-Types</h2>
-            <div class="section-header-actions">
-                <label class="toggle-label">
-                    <input type="checkbox" @bind="_showInactiveSubTypes" @bind:after="ReloadSubTypes" />
-                    Show disabled
-                </label>
-                <button class="btn btn-sm btn-primary" @onclick="() => { _showAddSubType = true; _subTypeModel = new(); }">Add Sub-Type</button>
-            </div>
-        </div>
+    @* ── Tab Bar ── *@
+    <div class="eqt-tab-bar">
+        <button class="eqt-tab @(_activeTab == "subtypes" ? "active" : "")" @onclick='() => _activeTab = "subtypes"'>
+            <i class="fa-light fa-layer-group"></i> Sub-Types
+            <span class="eqt-tab-count">@_subTypes.Count</span>
+        </button>
+        <button class="eqt-tab @(_activeTab == "checklist" ? "active" : "")" @onclick='() => _activeTab = "checklist"'>
+            <i class="fa-light fa-clipboard-list-check"></i> Inspection Checklist
+            <span class="eqt-tab-count">@_checklistItems.Count</span>
+        </button>
+        <button class="eqt-tab @(_activeTab == "compliance" ? "active" : "")" @onclick='() => _activeTab = "compliance"'>
+            <i class="fa-light fa-calendar-check"></i> Compliance Checks
+            <span class="eqt-tab-count">@_checks.Count</span>
+        </button>
+    </div>
 
-        @if (_showAddSubType)
-        {
-            <div class="inline-form">
-                <EditForm Model="_subTypeModel" OnValidSubmit="CreateSubType">
-                    <div class="form-row">
+    @* ══════ SUB-TYPES TAB ══════ *@
+    @if (_activeTab == "subtypes")
+    {
+        <div class="section-card ov-fadeIn">
+            <div class="section-header">
+                <div>
+                    <h2>Sub-Types</h2>
+                    <p class="text-muted" style="font-size: 0.82rem; margin-top: 2px;">
+                        Define variants of this equipment type. For example, a Fire Extinguisher type might have
+                        sub-types like CO2, Dry Powder, and Water. Sub-type-specific checklist items and compliance
+                        checks can be assigned in the other tabs.
+                    </p>
+                </div>
+                <div class="section-header-actions">
+                    <label class="toggle-label">
+                        <input type="checkbox" @bind="_showInactiveSubTypes" @bind:after="ReloadSubTypes" />
+                        Show disabled
+                    </label>
+                    <button class="btn btn-sm btn-primary" @onclick="() => { _showAddSubType = true; _subTypeModel = new(); }">
+                        <i class="fa-light fa-plus"></i> Add Sub-Type
+                    </button>
+                </div>
+            </div>
+
+            @if (_showAddSubType)
+            {
+                <div class="inline-form">
+                    <EditForm Model="_subTypeModel" OnValidSubmit="CreateSubType">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <InputText @bind-Value="_subTypeModel.Name" class="form-control" placeholder="e.g. CO2, Dry Powder, Water" />
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">Add</button>
+                                <button type="button" class="btn btn-secondary" @onclick="() => _showAddSubType = false">Cancel</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </div>
+            }
+
+            @if (_subTypes.Any())
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th style="width:120px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var st in _subTypes)
+                        {
+                            @if (_editingSubTypeId == st.Id)
+                            {
+                                <tr class="editing-row">
+                                    <td>
+                                        <input class="form-control form-control-sm" @bind="_editSubTypeName" />
+                                    </td>
+                                    <td></td>
+                                    <td>
+                                        <button class="btn btn-xs btn-primary" @onclick="() => SaveSubType(st)">Save</button>
+                                        <button class="btn btn-xs btn-secondary" @onclick="CancelSubTypeEdit">Cancel</button>
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                <tr class="@(!st.IsActive ? "row-inactive" : "")">
+                                    <td>@st.Name</td>
+                                    <td>
+                                        <span class="status-badge status-@(st.IsActive ? "active" : "inactive")">
+                                            @(st.IsActive ? "Active" : "Disabled")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-xs btn-secondary" @onclick="() => StartSubTypeEdit(st)" title="Edit">
+                                            <i class="fa-light fa-pen"></i>
+                                        </button>
+                                        <button class="btn btn-xs btn-danger" @onclick="() => { _confirmSubTypeId = st.Id; _confirmSubTypeName = st.Name; }" title="Delete / Disable">
+                                            <i class="fa-light fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="empty-state">No sub-types defined. Add variants of this equipment type if needed.</p>
+            }
+        </div>
+    }
+
+    @* ══════ INSPECTION CHECKLIST TAB ══════ *@
+    @if (_activeTab == "checklist")
+    {
+        <div class="section-card ov-fadeIn">
+            <div class="section-header">
+                <div>
+                    <h2>Inspection Checklist</h2>
+                    <p class="text-muted" style="font-size: 0.82rem; margin-top: 2px;">
+                        Items that inspectors must verify during routine inspections. These are pass/fail checks
+                        performed each time equipment is inspected (e.g. "Check pressure gauge", "Verify safety pin is intact").
+                    </p>
+                </div>
+                <div class="section-header-actions">
+                    <label class="toggle-label">
+                        <input type="checkbox" @bind="_showInactiveChecklist" @bind:after="ReloadChecklist" />
+                        Show disabled
+                    </label>
+                    <button class="btn btn-sm btn-primary" @onclick="() => { _showAddChecklist = true; _checklistModel = new(); }">
+                        <i class="fa-light fa-plus"></i> Add Checklist Item
+                    </button>
+                </div>
+            </div>
+
+            @if (_showAddChecklist)
+            {
+                <div class="inline-form">
+                    <EditForm Model="_checklistModel" OnValidSubmit="CreateChecklistItem">
+                        @if (_allSubTypes.Any())
+                        {
+                            <div class="form-group">
+                                <label>Applies To</label>
+                                <select class="form-control" @onchange="OnChecklistSubTypeChanged">
+                                    <option value="">All sub-types (general)</option>
+                                    @foreach (var st in _allSubTypes)
+                                    {
+                                        <option value="@st.Id">@st.Name only</option>
+                                    }
+                                </select>
+                                <small class="form-text text-muted">
+                                    "All sub-types" means this check applies to every variant.
+                                    Pick a specific sub-type for variant-specific items.
+                                </small>
+                            </div>
+                        }
                         <div class="form-group">
-                            <label>Name</label>
-                            <InputText @bind-Value="_subTypeModel.Name" class="form-control" />
+                            <label>Item Name</label>
+                            <InputText @bind-Value="_checklistModel.ItemName" class="form-control" placeholder="e.g. Check pressure gauge reading" />
+                        </div>
+                        <div class="form-group">
+                            <label>Description <span class="text-muted">(optional)</span></label>
+                            <InputText @bind-Value="_checklistModel.Description" class="form-control" placeholder="Additional instructions for the inspector" />
+                        </div>
+                        <div class="form-group">
+                            <label><InputCheckbox @bind-Value="_checklistModel.IsRequired" /> Required</label>
+                            <small class="form-text text-muted">Required items must be completed for the inspection to pass.</small>
                         </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">Add</button>
-                            <button type="button" class="btn btn-secondary" @onclick="() => _showAddSubType = false">Cancel</button>
+                            <button type="button" class="btn btn-secondary" @onclick="() => _showAddChecklist = false">Cancel</button>
                         </div>
-                    </div>
-                </EditForm>
+                    </EditForm>
+                </div>
+            }
+
+            @if (_checklistItems.Any())
+            {
+                var generalItems = _checklistItems.Where(c => c.EquipmentSubTypeId == null).ToList();
+                var subTypeGroups = _checklistItems.Where(c => c.EquipmentSubTypeId != null)
+                    .GroupBy(c => c.EquipmentSubTypeName ?? $"Sub-type {c.EquipmentSubTypeId}")
+                    .ToList();
+
+                @if (generalItems.Any())
+                {
+                    <h3 class="checklist-group-header">General — applies to all sub-types</h3>
+                    @RenderChecklistTable(generalItems)
+                }
+
+                @foreach (var group in subTypeGroups)
+                {
+                    <h3 class="checklist-group-header">@group.Key — specific checklist</h3>
+                    @RenderChecklistTable(group.ToList())
+                }
+            }
+            else
+            {
+                <p class="empty-state">No checklist items defined. Add items that inspectors will verify during routine inspections.</p>
+            }
+        </div>
+    }
+
+    @* ══════ COMPLIANCE CHECKS TAB ══════ *@
+    @if (_activeTab == "compliance")
+    {
+        <div class="section-card ov-fadeIn">
+            <div class="section-header">
+                <div>
+                    <h2>Compliance Checks</h2>
+                    <p class="text-muted" style="font-size: 0.82rem; margin-top: 2px;">
+                        Date-based compliance requirements that track when equipment was last serviced and when it's next due.
+                        Recurring checks (e.g. Pressure Test every 3 years) automatically calculate the next due date.
+                        One-time checks (e.g. Manufacturing Date) are recorded once and don't expire.
+                    </p>
+                </div>
+                <div class="section-header-actions">
+                    <label class="toggle-label">
+                        <input type="checkbox" @bind="_showInactiveChecks" @bind:after="ReloadChecks" />
+                        Show disabled
+                    </label>
+                    <button class="btn btn-sm btn-primary" @onclick="() => { _showAddCheck = true; _checkModel = new(); }">
+                        <i class="fa-light fa-plus"></i> Add Compliance Check
+                    </button>
+                </div>
             </div>
-        }
 
-        @if (_subTypes.Any())
-        {
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Status</th>
-                        <th style="width:120px"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var st in _subTypes)
-                    {
-                        @if (_editingSubTypeId == st.Id)
+            @if (_showAddCheck)
+            {
+                <div class="inline-form">
+                    <EditForm Model="_checkModel" OnValidSubmit="CreateCheck">
+                        @if (_allSubTypes.Any())
                         {
-                            <tr class="editing-row">
-                                <td>
-                                    <input class="form-control form-control-sm" @bind="_editSubTypeName" />
-                                </td>
-                                <td></td>
-                                <td>
-                                    <button class="btn btn-xs btn-primary" @onclick="() => SaveSubType(st)">Save</button>
-                                    <button class="btn btn-xs btn-secondary" @onclick="CancelSubTypeEdit">Cancel</button>
-                                </td>
-                            </tr>
+                            <div class="form-group">
+                                <label>Applies To</label>
+                                <select class="form-control" @onchange="OnCheckSubTypeChanged">
+                                    <option value="">All sub-types (general)</option>
+                                    @foreach (var st in _allSubTypes)
+                                    {
+                                        <option value="@st.Id">@st.Name only</option>
+                                    }
+                                </select>
+                            </div>
                         }
-                        else
+                        <div class="form-group">
+                            <label>Check Name</label>
+                            <InputText @bind-Value="_checkModel.Name" class="form-control" placeholder="e.g. Pressure Test, Service Date, Manufacturing Date" />
+                        </div>
+                        <div class="form-group">
+                            <label>Description <span class="text-muted">(optional)</span></label>
+                            <InputText @bind-Value="_checkModel.Description" class="form-control" placeholder="What this check verifies or requires" />
+                        </div>
+                        <div class="form-group">
+                            <label>Schedule Type</label>
+                            <div style="display: flex; gap: var(--spacing-md); margin-top: 4px;">
+                                <label class="toggle-label" style="font-weight: 400;">
+                                    <input type="radio" name="checkSchedule" checked="@_checkModel.IsRecurring"
+                                           @onchange="() => { _checkModel.IsRecurring = true; _checkModel.IntervalMonths = 12; }" />
+                                    Recurring
+                                </label>
+                                <label class="toggle-label" style="font-weight: 400;">
+                                    <input type="radio" name="checkSchedule" checked="@(!_checkModel.IsRecurring)"
+                                           @onchange="() => { _checkModel.IsRecurring = false; _checkModel.IntervalMonths = null; }" />
+                                    One-time
+                                </label>
+                            </div>
+                            <small class="form-text text-muted">
+                                @if (_checkModel.IsRecurring)
+                                {
+                                    <text>Recurring checks have a fixed interval and automatically calculate the next due date based on when the check was last performed.</text>
+                                }
+                                else
+                                {
+                                    <text>One-time checks are recorded once and never expire (e.g. Manufacturing Date, Installation Date).</text>
+                                }
+                            </small>
+                        </div>
+                        @if (_checkModel.IsRecurring)
                         {
-                            <tr class="@(!st.IsActive ? "row-inactive" : "")">
-                                <td>@st.Name</td>
-                                <td><span class="status-badge status-@(st.IsActive ? "active" : "inactive")">@(st.IsActive ? "Active" : "Disabled")</span></td>
-                                <td>
-                                    <button class="btn btn-xs btn-secondary" @onclick="() => StartSubTypeEdit(st)" title="Edit">
-                                        <i class="fa-light fa-pen"></i>
-                                    </button>
-                                    <button class="btn btn-xs btn-danger" @onclick="() => { _confirmSubTypeId = st.Id; _confirmSubTypeName = st.Name; }" title="Delete / Disable">
-                                        <i class="fa-light fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
+                            <div class="form-group">
+                                <label>Interval (Months)</label>
+                                <InputNumber @bind-Value="_checkModel.IntervalMonths" class="form-control" min="1" />
+                                <small class="form-text text-muted">
+                                    @if (_checkModel.IntervalMonths.HasValue && _checkModel.IntervalMonths.Value > 0)
+                                    {
+                                        <text>= @FormatInterval(_checkModel.IntervalMonths.Value). Equipment will be flagged as due when approaching this interval.</text>
+                                    }
+                                    else
+                                    {
+                                        <text>How often this check must be performed (e.g. 12 = Annually, 36 = Every 3 years)</text>
+                                    }
+                                </small>
+                            </div>
                         }
-                    }
-                </tbody>
-            </table>
-        }
-        else
-        {
-            <p class="empty-state">No sub-types defined.</p>
-        }
-    </div>
+                        <div class="form-group">
+                            <label><InputCheckbox @bind-Value="_checkModel.IsRequired" /> Required</label>
+                            <small class="form-text text-muted">Required checks must be up-to-date for the equipment to be compliant.</small>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Add</button>
+                            <button type="button" class="btn btn-secondary" @onclick="() => _showAddCheck = false">Cancel</button>
+                        </div>
+                    </EditForm>
+                </div>
+            }
 
-    @* Sub-type delete confirm *@
+            @if (_checks.Any())
+            {
+                var generalChecks = _checks.Where(c => c.EquipmentSubTypeId == null).ToList();
+                var subTypeCheckGroups = _checks.Where(c => c.EquipmentSubTypeId != null)
+                    .GroupBy(c => c.EquipmentSubTypeName ?? $"Sub-type {c.EquipmentSubTypeId}")
+                    .ToList();
+
+                @if (generalChecks.Any())
+                {
+                    <h3 class="checklist-group-header">General — applies to all sub-types</h3>
+                    @RenderCheckTable(generalChecks)
+                }
+
+                @foreach (var group in subTypeCheckGroups)
+                {
+                    <h3 class="checklist-group-header">@group.Key — specific checks</h3>
+                    @RenderCheckTable(group.ToList())
+                }
+            }
+            else
+            {
+                <p class="empty-state">No compliance checks defined. Add date-based checks like Pressure Test, Service Date, etc.</p>
+            }
+        </div>
+    }
+
+    @* ── Delete Confirm Modals ── *@
     @if (_confirmSubTypeId.HasValue)
     {
         <div class="modal-overlay" @onclick="() => _confirmSubTypeId = null">
@@ -127,87 +383,6 @@ else
         </div>
     }
 
-    @* ══════════════════════════════════════════════
-       CHECKLIST ITEMS
-       ══════════════════════════════════════════════ *@
-    <div class="section-card">
-        <div class="section-header">
-            <h2>Checklist Items</h2>
-            <div class="section-header-actions">
-                <label class="toggle-label">
-                    <input type="checkbox" @bind="_showInactiveChecklist" @bind:after="ReloadChecklist" />
-                    Show disabled
-                </label>
-                <button class="btn btn-sm btn-primary" @onclick="() => { _showAddChecklist = true; _checklistModel = new(); }">Add Checklist Item</button>
-            </div>
-        </div>
-
-        @if (_showAddChecklist)
-        {
-            <div class="inline-form">
-                <EditForm Model="_checklistModel" OnValidSubmit="CreateChecklistItem">
-                    @if (_allSubTypes.Any())
-                    {
-                        <div class="form-group">
-                            <label>Applies To</label>
-                            <select class="form-control" @onchange="OnChecklistSubTypeChanged">
-                                <option value="">All sub-types (general)</option>
-                                @foreach (var st in _allSubTypes)
-                                {
-                                    <option value="@st.Id">@st.Name only</option>
-                                }
-                            </select>
-                            <small class="form-text text-muted">
-                                "All sub-types" = shown regardless of variant.
-                                Pick a specific sub-type for variant-specific checks (e.g. weight check for CO2 only).
-                            </small>
-                        </div>
-                    }
-                    <div class="form-group">
-                        <label>Item Name</label>
-                        <InputText @bind-Value="_checklistModel.ItemName" class="form-control" />
-                    </div>
-                    <div class="form-group">
-                        <label>Description</label>
-                        <InputText @bind-Value="_checklistModel.Description" class="form-control" />
-                    </div>
-                    <div class="form-group">
-                        <label><InputCheckbox @bind-Value="_checklistModel.IsRequired" /> Required</label>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Add</button>
-                        <button type="button" class="btn btn-secondary" @onclick="() => _showAddChecklist = false">Cancel</button>
-                    </div>
-                </EditForm>
-            </div>
-        }
-
-        @if (_checklistItems.Any())
-        {
-            var generalItems  = _checklistItems.Where(c => c.EquipmentSubTypeId == null).ToList();
-            var subTypeGroups = _checklistItems.Where(c => c.EquipmentSubTypeId != null)
-                                               .GroupBy(c => c.EquipmentSubTypeName ?? $"Sub-type {c.EquipmentSubTypeId}")
-                                               .ToList();
-
-            @if (generalItems.Any())
-            {
-                <h3 class="checklist-group-header">General — applies to all sub-types</h3>
-                @RenderChecklistTable(generalItems)
-            }
-
-            @foreach (var group in subTypeGroups)
-            {
-                <h3 class="checklist-group-header">@group.Key — specific checklist</h3>
-                @RenderChecklistTable(group.ToList())
-            }
-        }
-        else
-        {
-            <p class="empty-state">No checklist items defined. Add items that inspectors will check during inspections.</p>
-        }
-    </div>
-
-    @* Checklist item delete confirm *@
     @if (_confirmChecklistId.HasValue)
     {
         <div class="modal-overlay" @onclick="() => _confirmChecklistId = null">
@@ -223,88 +398,6 @@ else
         </div>
     }
 
-    @* ══════════════════════════════════════════════
-       COMPLIANCE CHECKS (date-based)
-       ══════════════════════════════════════════════ *@
-    <div class="section-card">
-        <div class="section-header">
-            <h2>Compliance Checks</h2>
-            <div class="section-header-actions">
-                <label class="toggle-label">
-                    <input type="checkbox" @bind="_showInactiveChecks" @bind:after="ReloadChecks" />
-                    Show disabled
-                </label>
-                <button class="btn btn-sm btn-primary" @onclick="() => { _showAddCheck = true; _checkModel = new(); }">Add Compliance Check</button>
-            </div>
-        </div>
-
-        @if (_showAddCheck)
-        {
-            <div class="inline-form">
-                <EditForm Model="_checkModel" OnValidSubmit="CreateCheck">
-                    @if (_allSubTypes.Any())
-                    {
-                        <div class="form-group">
-                            <label>Applies To</label>
-                            <select class="form-control" @onchange="OnCheckSubTypeChanged">
-                                <option value="">All sub-types (general)</option>
-                                @foreach (var st in _allSubTypes)
-                                {
-                                    <option value="@st.Id">@st.Name only</option>
-                                }
-                            </select>
-                        </div>
-                    }
-                    <div class="form-group">
-                        <label>Check Name</label>
-                        <InputText @bind-Value="_checkModel.Name" class="form-control" placeholder="e.g. Pressure Test, Service Date" />
-                    </div>
-                    <div class="form-group">
-                        <label>Description</label>
-                        <InputText @bind-Value="_checkModel.Description" class="form-control" />
-                    </div>
-                    <div class="form-group">
-                        <label>Interval (Months)</label>
-                        <InputNumber @bind-Value="_checkModel.IntervalMonths" class="form-control" />
-                        <small class="form-text text-muted">Leave empty for one-time / no-expiry checks (e.g. Manufacturing Date)</small>
-                    </div>
-                    <div class="form-group">
-                        <label><InputCheckbox @bind-Value="_checkModel.IsRequired" /> Required</label>
-                    </div>
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary">Add</button>
-                        <button type="button" class="btn btn-secondary" @onclick="() => _showAddCheck = false">Cancel</button>
-                    </div>
-                </EditForm>
-            </div>
-        }
-
-        @if (_checks.Any())
-        {
-            var generalChecks = _checks.Where(c => c.EquipmentSubTypeId == null).ToList();
-            var subTypeCheckGroups = _checks.Where(c => c.EquipmentSubTypeId != null)
-                                            .GroupBy(c => c.EquipmentSubTypeName ?? $"Sub-type {c.EquipmentSubTypeId}")
-                                            .ToList();
-
-            @if (generalChecks.Any())
-            {
-                <h3 class="checklist-group-header">General — applies to all sub-types</h3>
-                @RenderCheckTable(generalChecks)
-            }
-
-            @foreach (var group in subTypeCheckGroups)
-            {
-                <h3 class="checklist-group-header">@group.Key — specific checks</h3>
-                @RenderCheckTable(group.ToList())
-            }
-        }
-        else
-        {
-            <p class="empty-state">No compliance checks defined. Add date-based checks like Pressure Test, Service Date, etc.</p>
-        }
-    </div>
-
-    @* Compliance check delete confirm *@
     @if (_confirmCheckId.HasValue)
     {
         <div class="modal-overlay" @onclick="() => _confirmCheckId = null">
@@ -360,7 +453,11 @@ else
                             <td>@item.ItemName</td>
                             <td>@(item.Description ?? "-")</td>
                             <td>@(item.IsRequired ? "Yes" : "No")</td>
-                            <td><span class="status-badge status-@(item.IsActive ? "active" : "inactive")">@(item.IsActive ? "Active" : "Disabled")</span></td>
+                            <td>
+                                <span class="status-badge status-@(item.IsActive ? "active" : "inactive")">
+                                    @(item.IsActive ? "Active" : "Disabled")
+                                </span>
+                            </td>
                             <td>
                                 <button class="btn btn-xs btn-secondary" @onclick="() => StartChecklistEdit(item)" title="Edit">
                                     <i class="fa-light fa-pen"></i>
@@ -388,8 +485,7 @@ else
                 <tr>
                     <th style="width:60px">Order</th>
                     <th>Check Name</th>
-                    <th>Description</th>
-                    <th style="width:120px">Interval</th>
+                    <th>Schedule</th>
                     <th style="width:80px">Required</th>
                     <th style="width:80px">Status</th>
                     <th style="width:120px"></th>
@@ -403,8 +499,19 @@ else
                         <tr class="editing-row">
                             <td><input class="form-control form-control-sm" type="number" @bind="_editCheckModel.SortOrder" style="width:60px" /></td>
                             <td><input class="form-control form-control-sm" @bind="_editCheckModel.Name" /></td>
-                            <td><input class="form-control form-control-sm" @bind="_editCheckModel.Description" /></td>
-                            <td><input class="form-control form-control-sm" type="number" @bind="_editCheckModel.IntervalMonths" placeholder="Empty = one-time" /></td>
+                            <td>
+                                <div style="display:flex; gap:4px; align-items:center;">
+                                    <label class="toggle-label" style="font-size:0.82rem; font-weight:400; white-space:nowrap;">
+                                        <input type="checkbox" @bind="_editCheckModel.IsRecurring" />
+                                        Recurring
+                                    </label>
+                                    @if (_editCheckModel.IsRecurring)
+                                    {
+                                        <input class="form-control form-control-sm" type="number" @bind="_editCheckModel.IntervalMonths"
+                                               placeholder="Months" style="width:80px;" />
+                                    }
+                                </div>
+                            </td>
                             <td><input type="checkbox" @bind="_editCheckModel.IsRequired" /></td>
                             <td></td>
                             <td>
@@ -417,11 +524,33 @@ else
                     {
                         <tr class="@(!item.IsActive ? "row-inactive" : "")">
                             <td>@item.SortOrder</td>
-                            <td>@item.Name</td>
-                            <td>@(item.Description ?? "-")</td>
-                            <td>@(item.IntervalMonths.HasValue ? $"Every {item.IntervalMonths} months" : "One-time")</td>
+                            <td>
+                                @item.Name
+                                @if (!string.IsNullOrEmpty(item.Description))
+                                {
+                                    <br /><small class="text-muted">@item.Description</small>
+                                }
+                            </td>
+                            <td>
+                                @if (item.IntervalMonths.HasValue)
+                                {
+                                    <span class="eqt-check-type recurring">
+                                        <i class="fa-light fa-repeat"></i> @FormatInterval(item.IntervalMonths.Value)
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="eqt-check-type onetime">
+                                        <i class="fa-light fa-calendar-day"></i> One-time
+                                    </span>
+                                }
+                            </td>
                             <td>@(item.IsRequired ? "Yes" : "No")</td>
-                            <td><span class="status-badge status-@(item.IsActive ? "active" : "inactive")">@(item.IsActive ? "Active" : "Disabled")</span></td>
+                            <td>
+                                <span class="status-badge status-@(item.IsActive ? "active" : "inactive")">
+                                    @(item.IsActive ? "Active" : "Disabled")
+                                </span>
+                            </td>
                             <td>
                                 <button class="btn btn-xs btn-secondary" @onclick="() => StartCheckEdit(item)" title="Edit">
                                     <i class="fa-light fa-pen"></i>
@@ -443,9 +572,10 @@ else
 @code {
     [Parameter] public int TypeId { get; set; }
 
+    private string _activeTab = "subtypes";
     private EquipmentTypeDto?              _type;
-    private List<EquipmentSubTypeDto>      _subTypes      = [];
-    private List<EquipmentSubTypeDto>      _allSubTypes   = [];   // for dropdowns (active only)
+    private List<EquipmentSubTypeDto>      _subTypes       = [];
+    private List<EquipmentSubTypeDto>      _allSubTypes    = [];
     private List<ChecklistItemTemplateDto> _checklistItems = [];
     private List<EquipmentCheckDto>        _checks         = [];
     private string _feedback      = string.Empty;
@@ -460,9 +590,9 @@ else
     private bool _showAddSubType;
     private bool _showAddChecklist;
     private bool _showAddCheck;
-    private SubTypeForm    _subTypeModel    = new();
-    private ChecklistForm  _checklistModel  = new();
-    private ComplianceCheckForm _checkModel = new();
+    private SubTypeForm         _subTypeModel   = new();
+    private ChecklistForm       _checklistModel = new();
+    private ComplianceCheckForm _checkModel     = new();
 
     // sub-type edit
     private int?   _editingSubTypeId;
@@ -492,8 +622,8 @@ else
 
     private async Task LoadData()
     {
-        _type          = await EquipmentService.GetEquipmentTypeByIdAsync(TypeId);
-        _allSubTypes   = await EquipmentService.GetSubTypesByTypeAsync(TypeId, includeInactive: false);
+        _type        = await EquipmentService.GetEquipmentTypeByIdAsync(TypeId);
+        _allSubTypes = await EquipmentService.GetSubTypesByTypeAsync(TypeId, includeInactive: false);
         await ReloadSubTypes();
         await ReloadChecklist();
         await ReloadChecks();
@@ -508,7 +638,8 @@ else
     private async Task ReloadChecks()
         => _checks = await EquipmentService.GetEquipmentChecksAsync(TypeId, _showInactiveChecks);
 
-    // ── Sub-type: Add ──
+    // ── Sub-type: CRUD ──
+
     private async Task CreateSubType()
     {
         await EquipmentService.CreateSubTypeAsync(new EquipmentSubTypeCreateDto(TypeId, _subTypeModel.Name));
@@ -519,7 +650,6 @@ else
         ShowFeedback("Sub-type added.", true);
     }
 
-    // ── Sub-type: Edit ──
     private void StartSubTypeEdit(EquipmentSubTypeDto st)
     {
         _editingSubTypeId = st.Id;
@@ -537,7 +667,6 @@ else
         ShowFeedback("Sub-type updated.", true);
     }
 
-    // ── Sub-type: Delete / Disable ──
     private async Task ConfirmSubTypeDelete()
     {
         if (!_confirmSubTypeId.HasValue) return;
@@ -548,7 +677,8 @@ else
         ShowFeedback(result.Message, result.Outcome != DeleteOutcome.Blocked);
     }
 
-    // ── Checklist: Add ──
+    // ── Checklist: CRUD ──
+
     private void OnChecklistSubTypeChanged(ChangeEventArgs e)
         => _checklistModel.EquipmentSubTypeId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
 
@@ -573,13 +703,12 @@ else
         ShowFeedback("Checklist item added.", true);
     }
 
-    // ── Checklist: Edit ──
     private void StartChecklistEdit(ChecklistItemTemplateDto item)
     {
         _editingChecklistId = item.Id;
         _editChecklistModel = new ChecklistForm
         {
-            ItemName   = item.ItemName,
+            ItemName    = item.ItemName,
             Description = item.Description,
             SortOrder   = item.SortOrder,
             IsRequired  = item.IsRequired
@@ -603,7 +732,6 @@ else
         ShowFeedback("Checklist item updated.", true);
     }
 
-    // ── Checklist: Delete / Disable ──
     private async Task ConfirmChecklistDelete()
     {
         if (!_confirmChecklistId.HasValue) return;
@@ -613,7 +741,8 @@ else
         ShowFeedback(result.Message, result.Outcome != DeleteOutcome.Blocked);
     }
 
-    // ── Compliance Check: Add ──
+    // ── Compliance Check: CRUD ──
+
     private void OnCheckSubTypeChanged(ChangeEventArgs e)
         => _checkModel.EquipmentSubTypeId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
 
@@ -626,7 +755,8 @@ else
 
         await EquipmentService.CreateEquipmentCheckAsync(new EquipmentCheckCreateDto(
             TypeId, _checkModel.Name, _checkModel.Description,
-            _checkModel.IntervalMonths, _checkModel.IsRequired, maxOrder,
+            _checkModel.IsRecurring ? _checkModel.IntervalMonths : null,
+            _checkModel.IsRequired, maxOrder,
             _checkModel.EquipmentSubTypeId));
 
         await ReloadChecks();
@@ -635,7 +765,6 @@ else
         ShowFeedback("Compliance check added.", true);
     }
 
-    // ── Compliance Check: Edit ──
     private void StartCheckEdit(EquipmentCheckDto item)
     {
         _editingCheckId = item.Id;
@@ -644,6 +773,7 @@ else
             Name           = item.Name,
             Description    = item.Description,
             IntervalMonths = item.IntervalMonths,
+            IsRecurring    = item.IntervalMonths.HasValue,
             IsRequired     = item.IsRequired,
             SortOrder      = item.SortOrder
         };
@@ -658,7 +788,7 @@ else
             _editingCheckId.Value,
             _editCheckModel.Name,
             _editCheckModel.Description,
-            _editCheckModel.IntervalMonths,
+            _editCheckModel.IsRecurring ? _editCheckModel.IntervalMonths : null,
             _editCheckModel.IsRequired,
             _editCheckModel.SortOrder,
             true));
@@ -667,7 +797,6 @@ else
         ShowFeedback("Compliance check updated.", true);
     }
 
-    // ── Compliance Check: Delete / Disable ──
     private async Task ConfirmCheckDelete()
     {
         if (!_confirmCheckId.HasValue) return;
@@ -677,6 +806,8 @@ else
         ShowFeedback(result.Message, result.Outcome != DeleteOutcome.Blocked);
     }
 
+    // ── Helpers ──
+
     private void ShowFeedback(string msg, bool success)
     {
         _feedback      = msg;
@@ -685,8 +816,24 @@ else
 
     private void GoBack() => Navigation.NavigateTo("/equipment-types");
 
-    private class SubTypeModel { public string Name { get; set; } = string.Empty; }
-    private class SubTypeForm  { public string Name { get; set; } = string.Empty; }
+    private static string FormatInterval(int months) => months switch
+    {
+        1  => "Monthly",
+        2  => "Every 2 months",
+        3  => "Quarterly",
+        6  => "Every 6 months",
+        12 => "Annually",
+        24 => "Every 2 years",
+        36 => "Every 3 years",
+        48 => "Every 4 years",
+        60 => "Every 5 years",
+        _ when months % 12 == 0 => $"Every {months / 12} years",
+        _ => $"Every {months} months"
+    };
+
+    // ── Form Models ──
+
+    private class SubTypeForm { public string Name { get; set; } = string.Empty; }
 
     private class ChecklistForm
     {
@@ -701,7 +848,8 @@ else
     {
         public string  Name               { get; set; } = string.Empty;
         public string? Description        { get; set; }
-        public int?    IntervalMonths     { get; set; }
+        public bool    IsRecurring        { get; set; } = true;
+        public int?    IntervalMonths     { get; set; } = 12;
         public bool    IsRequired         { get; set; } = true;
         public int     SortOrder          { get; set; } = 1;
         public int?    EquipmentSubTypeId { get; set; }

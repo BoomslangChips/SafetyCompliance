@@ -7695,6 +7695,92 @@ textarea.form-control {
 .inv-filter-bar .form-control { min-width: 160px; }
 .inv-filter-bar .search-input { flex: 1; min-width: 220px; max-width: 360px; }
 
+/* ===== Equipment Type Detail Tabs ===== */
+.eqt-tab-bar {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: var(--spacing-lg);
+    overflow-x: auto;
+}
+.eqt-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--color-text-secondary);
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: var(--font-body);
+    white-space: nowrap;
+}
+.eqt-tab:hover { color: var(--color-text); background: var(--color-tint-gray); }
+.eqt-tab.active { color: var(--color-primary); border-bottom-color: var(--color-primary); font-weight: 600; }
+.eqt-tab i { font-size: 0.95rem; }
+.eqt-tab .eqt-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    background: var(--color-tint-gray);
+    color: var(--color-text-secondary);
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+.eqt-tab.active .eqt-tab-count { background: var(--color-tint-indigo); color: var(--color-primary); }
+
+/* Equipment type detail info grid */
+.eqt-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+.eqt-info-item label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    margin-bottom: 2px;
+}
+.eqt-info-item p {
+    margin: 0;
+    font-size: 0.92rem;
+    color: var(--color-text);
+}
+
+/* Compliance check type badge */
+.eqt-check-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+.eqt-check-type.recurring { background: var(--color-tint-blue); color: #1d4ed8; }
+.eqt-check-type.onetime { background: var(--color-tint-gray); color: var(--color-text-secondary); }
+
+/* Edit mode inline fields in detail modal */
+.inv-detail-field {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+.inv-detail-field .form-control { font-size: 0.88rem; }
+.inv-detail-field .btn { flex-shrink: 0; }
+
 /* ── Responsive ── */
 @media (max-width: 600px) {
     .upload-zone__preview { height: 120px; }
