@@ -28,10 +28,11 @@ public class CompanyService(ApplicationDbContext context) : ICompanyService
 
         var equipCounts = await context.Equipment
             .Where(e => e.IsActive
-                     && e.Section.IsActive
+                     && e.SectionId != null
+                     && e.Section!.IsActive
                      && e.Section.Plant.IsActive
                      && ids.Contains(e.Section.Plant.CompanyId))
-            .GroupBy(e => e.Section.Plant.CompanyId)
+            .GroupBy(e => e.Section!.Plant.CompanyId)
             .Select(g => new { CompanyId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.CompanyId, g => g.Count, ct);
 
@@ -84,7 +85,8 @@ public class CompanyService(ApplicationDbContext context) : ICompanyService
 
         var equipCount = await context.Equipment
             .CountAsync(e => e.IsActive
-                          && e.Section.IsActive
+                          && e.SectionId != null
+                          && e.Section!.IsActive
                           && e.Section.Plant.IsActive
                           && e.Section.Plant.CompanyId == id, ct);
 

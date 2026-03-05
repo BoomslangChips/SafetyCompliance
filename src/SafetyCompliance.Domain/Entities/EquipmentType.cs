@@ -11,6 +11,7 @@ public class EquipmentType : BaseEntity
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<ChecklistItemTemplate> ChecklistItemTemplates { get; set; } = [];
+    public ICollection<EquipmentCheck> EquipmentChecks { get; set; } = [];
     public ICollection<EquipmentSubType> SubTypes { get; set; } = [];
     public ICollection<Equipment> Equipment { get; set; } = [];
 }

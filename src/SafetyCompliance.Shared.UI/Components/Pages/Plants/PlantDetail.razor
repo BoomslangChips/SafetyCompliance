@@ -170,6 +170,96 @@ else
         </div>
     }
 
+    @* Compliance Checks Modal *@
+    @if (_showChecksModal)
+    {
+        <div class="modal-overlay" @onclick="() => _showChecksModal = false">
+            <div class="modal modal-wide" @onclick:stopPropagation>
+                <h2>Compliance Checks — @_checksEquipmentName</h2>
+                @if (_checkRecords.Any() || _applicableChecks.Any())
+                {
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Check</th>
+                                <th>Interval</th>
+                                <th>Date</th>
+                                <th>Expiry</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                                <th style="width:80px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var check in _applicableChecks)
+                            {
+                                var record = _checkRecords.FirstOrDefault(r => r.EquipmentCheckId == check.Id);
+                                <tr>
+                                    <td><strong>@check.Name</strong></td>
+                                    <td>@(check.IntervalMonths.HasValue ? $"Every {check.IntervalMonths}mo" : "One-time")</td>
+                                    <td>
+                                        <input type="date" class="form-control form-control-sm"
+                                               value="@(_checkDateValues.GetValueOrDefault(check.Id))"
+                                               @onchange="e => OnCheckDateChanged(check.Id, e)" />
+                                    </td>
+                                    <td>@(record?.ExpiryDate?.ToString("dd MMM yyyy") ?? "—")</td>
+                                    <td>
+                                        @if (record != null)
+                                        {
+                                            var cls = record.ComplianceStatus switch
+                                            {
+                                                "Overdue" => "badge-danger",
+                                                "Due Soon" => "badge-warning",
+                                                _ => "badge-success"
+                                            };
+                                            <span class="badge @cls">@record.ComplianceStatus</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not set</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm" placeholder="Notes..."
+                                               value="@(_checkNoteValues.GetValueOrDefault(check.Id))"
+                                               @onchange="e => _checkNoteValues[check.Id] = e.Value?.ToString()" />
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-xs btn-primary"
+                                                disabled="@(!_checkDateValues.ContainsKey(check.Id) || string.IsNullOrEmpty(_checkDateValues[check.Id]))"
+                                                @onclick="() => SaveCheckRecord(check.Id)">Save</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p class="empty-state">No compliance checks defined for this equipment type.</p>
+                }
+                <div class="form-actions">
+                    <button class="btn btn-secondary" @onclick="() => _showChecksModal = false">Close</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* Unassign confirm *@
+    @if (_unassignId.HasValue)
+    {
+        <div class="modal-overlay" @onclick="() => _unassignId = null">
+            <div class="modal" @onclick:stopPropagation>
+                <h2>Unassign Equipment</h2>
+                <p>Return <strong>@_unassignName</strong> to the inventory pool?</p>
+                <div class="form-actions">
+                    <button class="btn btn-danger" @onclick="ConfirmUnassign">Yes, unassign</button>
+                    <button class="btn btn-secondary" @onclick="() => _unassignId = null">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
+
     @* Edit Equipment Modal *@
     @if (_showEditEquipment)
     {
@@ -277,6 +367,7 @@ else
                             <th>Notes</th>
                             <th>Serial</th>
                             <th>Next Service</th>
+                            <th>Compliance</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -284,6 +375,7 @@ else
                     <tbody>
                         @foreach (var eq in equipment)
                         {
+                            var compStatus = GetComplianceStatus(eq.Id);
                             <tr class="@(!eq.IsActive ? "row-inactive" : "")">
                                 <td><strong>@eq.Identifier</strong></td>
                                 <td>@eq.EquipmentTypeName</td>
@@ -305,6 +397,25 @@ else
                                 <td>@(eq.SerialNumber ?? "—")</td>
                                 <td>@(eq.NextServiceDate?.ToString("dd MMM yyyy") ?? "—")</td>
                                 <td>
+                                    @{
+                                        var cls = compStatus switch
+                                        {
+                                            "Overdue" => "badge-danger",
+                                            "Due Soon" => "badge-warning",
+                                            "OK" => "badge-success",
+                                            _ => ""
+                                        };
+                                    }
+                                    @if (!string.IsNullOrEmpty(compStatus))
+                                    {
+                                        <span class="badge @cls">@compStatus</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
                                     @if (eq.IsActive)
                                     {
                                         <span class="active-badge">Active</span>
@@ -316,7 +427,13 @@ else
                                 </td>
                                 <td>
                                     <div class="action-buttons">
+                                        <button class="btn btn-xs btn-secondary" @onclick="() => OpenChecksModal(eq)" title="Compliance Checks">
+                                            <i class="fa-light fa-calendar-check"></i>
+                                        </button>
                                         <button class="btn btn-xs btn-secondary" @onclick="() => StartEditEquipment(eq)">Edit</button>
+                                        <button class="btn btn-xs btn-secondary" @onclick="() => { _unassignId = eq.Id; _unassignName = eq.Identifier; }" title="Unassign">
+                                            <i class="fa-light fa-link-slash"></i>
+                                        </button>
                                         @if (eq.IsActive)
                                         {
                                             <button class="btn btn-xs btn-warning" @onclick="() => ToggleEquipmentActive(eq)">Deactivate</button>
@@ -372,6 +489,22 @@ else
     private int _editEquipmentSortOrder;
     private EquipmentEditModel _equipmentEdit = new();
 
+    // Compliance Checks Modal
+    private bool _showChecksModal;
+    private int _checksEquipmentId;
+    private string _checksEquipmentName = string.Empty;
+    private List<EquipmentCheckDto> _applicableChecks = [];
+    private List<EquipmentCheckRecordDto> _checkRecords = [];
+    private Dictionary<int, string> _checkDateValues = [];
+    private Dictionary<int, string?> _checkNoteValues = [];
+
+    // Compliance status per equipment
+    private Dictionary<int, List<EquipmentCheckRecordDto>> _complianceByEquipment = [];
+
+    // Unassign
+    private int? _unassignId;
+    private string _unassignName = string.Empty;
+
     protected override async Task OnInitializedAsync()
     {
         _equipmentTypes = await EquipmentService.GetEquipmentTypesAsync();
@@ -384,10 +517,73 @@ else
         _sections = await SectionService.GetSectionsByPlantAsync(PlantId);
 
         _equipmentBySection.Clear();
+        _complianceByEquipment.Clear();
         foreach (var sect in _sections)
         {
-            _equipmentBySection[sect.Id] = await EquipmentService.GetEquipmentBySectionAsync(sect.Id, includeInactive: true);
+            var equipment = await EquipmentService.GetEquipmentBySectionAsync(sect.Id, includeInactive: true);
+            _equipmentBySection[sect.Id] = equipment;
+            foreach (var eq in equipment)
+            {
+                _complianceByEquipment[eq.Id] = await EquipmentService.GetCheckRecordsAsync(eq.Id);
+            }
         }
+    }
+
+    private string? GetComplianceStatus(int equipmentId)
+    {
+        if (!_complianceByEquipment.TryGetValue(equipmentId, out var records) || !records.Any())
+            return null;
+        if (records.Any(r => r.ComplianceStatus == "Overdue")) return "Overdue";
+        if (records.Any(r => r.ComplianceStatus == "Due Soon")) return "Due Soon";
+        return "OK";
+    }
+
+    private async Task OpenChecksModal(EquipmentDto eq)
+    {
+        _checksEquipmentId   = eq.Id;
+        _checksEquipmentName = eq.Identifier;
+        _applicableChecks    = await EquipmentService.GetEquipmentChecksAsync(eq.EquipmentTypeId);
+        _checkRecords        = await EquipmentService.GetCheckRecordsAsync(eq.Id);
+
+        _checkDateValues = [];
+        _checkNoteValues = [];
+        foreach (var check in _applicableChecks)
+        {
+            var record = _checkRecords.FirstOrDefault(r => r.EquipmentCheckId == check.Id);
+            if (record != null)
+            {
+                _checkDateValues[check.Id] = record.DateValue.ToString("yyyy-MM-dd");
+                _checkNoteValues[check.Id] = record.Notes;
+            }
+        }
+
+        _showChecksModal = true;
+    }
+
+    private void OnCheckDateChanged(int checkId, ChangeEventArgs e)
+    {
+        _checkDateValues[checkId] = e.Value?.ToString() ?? "";
+    }
+
+    private async Task SaveCheckRecord(int checkId)
+    {
+        if (!_checkDateValues.TryGetValue(checkId, out var dateStr) || !DateOnly.TryParse(dateStr, out var dateValue))
+            return;
+
+        var result = await EquipmentService.UpsertCheckRecordAsync(
+            new EquipmentCheckRecordUpsertDto(_checksEquipmentId, checkId, dateValue,
+                _checkNoteValues.GetValueOrDefault(checkId)), "current-user");
+
+        _checkRecords = await EquipmentService.GetCheckRecordsAsync(_checksEquipmentId);
+        _complianceByEquipment[_checksEquipmentId] = _checkRecords;
+    }
+
+    private async Task ConfirmUnassign()
+    {
+        if (!_unassignId.HasValue) return;
+        await EquipmentService.UnassignEquipmentAsync(new UnassignEquipmentDto(_unassignId.Value), "current-user");
+        _unassignId = null;
+        await LoadData();
     }
 
     // ===== Section CRUD =====

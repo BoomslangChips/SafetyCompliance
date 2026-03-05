@@ -222,6 +222,103 @@ else
             </div>
         </div>
     }
+
+    @* ══════════════════════════════════════════════
+       COMPLIANCE CHECKS (date-based)
+       ══════════════════════════════════════════════ *@
+    <div class="section-card">
+        <div class="section-header">
+            <h2>Compliance Checks</h2>
+            <div class="section-header-actions">
+                <label class="toggle-label">
+                    <input type="checkbox" @bind="_showInactiveChecks" @bind:after="ReloadChecks" />
+                    Show disabled
+                </label>
+                <button class="btn btn-sm btn-primary" @onclick="() => { _showAddCheck = true; _checkModel = new(); }">Add Compliance Check</button>
+            </div>
+        </div>
+
+        @if (_showAddCheck)
+        {
+            <div class="inline-form">
+                <EditForm Model="_checkModel" OnValidSubmit="CreateCheck">
+                    @if (_allSubTypes.Any())
+                    {
+                        <div class="form-group">
+                            <label>Applies To</label>
+                            <select class="form-control" @onchange="OnCheckSubTypeChanged">
+                                <option value="">All sub-types (general)</option>
+                                @foreach (var st in _allSubTypes)
+                                {
+                                    <option value="@st.Id">@st.Name only</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    <div class="form-group">
+                        <label>Check Name</label>
+                        <InputText @bind-Value="_checkModel.Name" class="form-control" placeholder="e.g. Pressure Test, Service Date" />
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <InputText @bind-Value="_checkModel.Description" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Interval (Months)</label>
+                        <InputNumber @bind-Value="_checkModel.IntervalMonths" class="form-control" />
+                        <small class="form-text text-muted">Leave empty for one-time / no-expiry checks (e.g. Manufacturing Date)</small>
+                    </div>
+                    <div class="form-group">
+                        <label><InputCheckbox @bind-Value="_checkModel.IsRequired" /> Required</label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Add</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _showAddCheck = false">Cancel</button>
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        @if (_checks.Any())
+        {
+            var generalChecks = _checks.Where(c => c.EquipmentSubTypeId == null).ToList();
+            var subTypeCheckGroups = _checks.Where(c => c.EquipmentSubTypeId != null)
+                                            .GroupBy(c => c.EquipmentSubTypeName ?? $"Sub-type {c.EquipmentSubTypeId}")
+                                            .ToList();
+
+            @if (generalChecks.Any())
+            {
+                <h3 class="checklist-group-header">General — applies to all sub-types</h3>
+                @RenderCheckTable(generalChecks)
+            }
+
+            @foreach (var group in subTypeCheckGroups)
+            {
+                <h3 class="checklist-group-header">@group.Key — specific checks</h3>
+                @RenderCheckTable(group.ToList())
+            }
+        }
+        else
+        {
+            <p class="empty-state">No compliance checks defined. Add date-based checks like Pressure Test, Service Date, etc.</p>
+        }
+    </div>
+
+    @* Compliance check delete confirm *@
+    @if (_confirmCheckId.HasValue)
+    {
+        <div class="modal-overlay" @onclick="() => _confirmCheckId = null">
+            <div class="modal" @onclick:stopPropagation>
+                <h2>Remove Compliance Check</h2>
+                <p>Remove <strong>@_confirmCheckName</strong>?</p>
+                <p class="text-muted">If it has no recorded dates it will be permanently deleted; otherwise it will be disabled.</p>
+                <div class="form-actions">
+                    <button class="btn btn-danger" @onclick="ConfirmCheckDelete">Yes, remove</button>
+                    <button class="btn btn-secondary" @onclick="() => _confirmCheckId = null">Cancel</button>
+                </div>
+            </div>
+        </div>
+    }
 }
 
 @* ── Checklist table helper ── *@
@@ -282,6 +379,67 @@ else
     };
 }
 
+@* ── Compliance check table helper ── *@
+@code {
+    private RenderFragment RenderCheckTable(List<EquipmentCheckDto> items) => __builder =>
+    {
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:60px">Order</th>
+                    <th>Check Name</th>
+                    <th>Description</th>
+                    <th style="width:120px">Interval</th>
+                    <th style="width:80px">Required</th>
+                    <th style="width:80px">Status</th>
+                    <th style="width:120px"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in items)
+                {
+                    @if (_editingCheckId == item.Id)
+                    {
+                        <tr class="editing-row">
+                            <td><input class="form-control form-control-sm" type="number" @bind="_editCheckModel.SortOrder" style="width:60px" /></td>
+                            <td><input class="form-control form-control-sm" @bind="_editCheckModel.Name" /></td>
+                            <td><input class="form-control form-control-sm" @bind="_editCheckModel.Description" /></td>
+                            <td><input class="form-control form-control-sm" type="number" @bind="_editCheckModel.IntervalMonths" placeholder="Empty = one-time" /></td>
+                            <td><input type="checkbox" @bind="_editCheckModel.IsRequired" /></td>
+                            <td></td>
+                            <td>
+                                <button class="btn btn-xs btn-primary" @onclick="SaveCheck">Save</button>
+                                <button class="btn btn-xs btn-secondary" @onclick="CancelCheckEdit">Cancel</button>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr class="@(!item.IsActive ? "row-inactive" : "")">
+                            <td>@item.SortOrder</td>
+                            <td>@item.Name</td>
+                            <td>@(item.Description ?? "-")</td>
+                            <td>@(item.IntervalMonths.HasValue ? $"Every {item.IntervalMonths} months" : "One-time")</td>
+                            <td>@(item.IsRequired ? "Yes" : "No")</td>
+                            <td><span class="status-badge status-@(item.IsActive ? "active" : "inactive")">@(item.IsActive ? "Active" : "Disabled")</span></td>
+                            <td>
+                                <button class="btn btn-xs btn-secondary" @onclick="() => StartCheckEdit(item)" title="Edit">
+                                    <i class="fa-light fa-pen"></i>
+                                </button>
+                                <button class="btn btn-xs btn-danger"
+                                        @onclick="() => { _confirmCheckId = item.Id; _confirmCheckName = item.Name; }"
+                                        title="Delete / Disable">
+                                    <i class="fa-light fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>;
+    };
+}
+
 @code {
     [Parameter] public int TypeId { get; set; }
 
@@ -289,18 +447,22 @@ else
     private List<EquipmentSubTypeDto>      _subTypes      = [];
     private List<EquipmentSubTypeDto>      _allSubTypes   = [];   // for dropdowns (active only)
     private List<ChecklistItemTemplateDto> _checklistItems = [];
+    private List<EquipmentCheckDto>        _checks         = [];
     private string _feedback      = string.Empty;
     private string _feedbackClass = "alert-success";
 
     // show-inactive toggles
     private bool _showInactiveSubTypes;
     private bool _showInactiveChecklist;
+    private bool _showInactiveChecks;
 
     // add forms
     private bool _showAddSubType;
     private bool _showAddChecklist;
+    private bool _showAddCheck;
     private SubTypeForm    _subTypeModel    = new();
     private ChecklistForm  _checklistModel  = new();
+    private ComplianceCheckForm _checkModel = new();
 
     // sub-type edit
     private int?   _editingSubTypeId;
@@ -318,6 +480,14 @@ else
     private int?   _confirmChecklistId;
     private string _confirmChecklistName = string.Empty;
 
+    // compliance check edit
+    private int? _editingCheckId;
+    private ComplianceCheckForm _editCheckModel = new();
+
+    // compliance check delete confirm
+    private int?   _confirmCheckId;
+    private string _confirmCheckName = string.Empty;
+
     protected override async Task OnInitializedAsync() => await LoadData();
 
     private async Task LoadData()
@@ -326,6 +496,7 @@ else
         _allSubTypes   = await EquipmentService.GetSubTypesByTypeAsync(TypeId, includeInactive: false);
         await ReloadSubTypes();
         await ReloadChecklist();
+        await ReloadChecks();
     }
 
     private async Task ReloadSubTypes()
@@ -333,6 +504,9 @@ else
 
     private async Task ReloadChecklist()
         => _checklistItems = await EquipmentService.GetChecklistTemplatesAsync(TypeId, _showInactiveChecklist);
+
+    private async Task ReloadChecks()
+        => _checks = await EquipmentService.GetEquipmentChecksAsync(TypeId, _showInactiveChecks);
 
     // ── Sub-type: Add ──
     private async Task CreateSubType()
@@ -439,6 +613,70 @@ else
         ShowFeedback(result.Message, result.Outcome != DeleteOutcome.Blocked);
     }
 
+    // ── Compliance Check: Add ──
+    private void OnCheckSubTypeChanged(ChangeEventArgs e)
+        => _checkModel.EquipmentSubTypeId = int.TryParse(e.Value?.ToString(), out var id) ? id : null;
+
+    private async Task CreateCheck()
+    {
+        var scopeChecks = _checkModel.EquipmentSubTypeId.HasValue
+            ? _checks.Where(c => c.EquipmentSubTypeId == _checkModel.EquipmentSubTypeId && c.IsActive).ToList()
+            : _checks.Where(c => c.EquipmentSubTypeId == null && c.IsActive).ToList();
+        var maxOrder = scopeChecks.Any() ? scopeChecks.Max(c => c.SortOrder) + 1 : 1;
+
+        await EquipmentService.CreateEquipmentCheckAsync(new EquipmentCheckCreateDto(
+            TypeId, _checkModel.Name, _checkModel.Description,
+            _checkModel.IntervalMonths, _checkModel.IsRequired, maxOrder,
+            _checkModel.EquipmentSubTypeId));
+
+        await ReloadChecks();
+        _showAddCheck = false;
+        _checkModel   = new();
+        ShowFeedback("Compliance check added.", true);
+    }
+
+    // ── Compliance Check: Edit ──
+    private void StartCheckEdit(EquipmentCheckDto item)
+    {
+        _editingCheckId = item.Id;
+        _editCheckModel = new ComplianceCheckForm
+        {
+            Name           = item.Name,
+            Description    = item.Description,
+            IntervalMonths = item.IntervalMonths,
+            IsRequired     = item.IsRequired,
+            SortOrder      = item.SortOrder
+        };
+    }
+
+    private void CancelCheckEdit() => _editingCheckId = null;
+
+    private async Task SaveCheck()
+    {
+        if (!_editingCheckId.HasValue) return;
+        await EquipmentService.UpdateEquipmentCheckAsync(new EquipmentCheckUpdateDto(
+            _editingCheckId.Value,
+            _editCheckModel.Name,
+            _editCheckModel.Description,
+            _editCheckModel.IntervalMonths,
+            _editCheckModel.IsRequired,
+            _editCheckModel.SortOrder,
+            true));
+        _editingCheckId = null;
+        await ReloadChecks();
+        ShowFeedback("Compliance check updated.", true);
+    }
+
+    // ── Compliance Check: Delete / Disable ──
+    private async Task ConfirmCheckDelete()
+    {
+        if (!_confirmCheckId.HasValue) return;
+        var result = await EquipmentService.DeleteOrDeactivateEquipmentCheckAsync(_confirmCheckId.Value);
+        _confirmCheckId = null;
+        await ReloadChecks();
+        ShowFeedback(result.Message, result.Outcome != DeleteOutcome.Blocked);
+    }
+
     private void ShowFeedback(string msg, bool success)
     {
         _feedback      = msg;
@@ -454,6 +692,16 @@ else
     {
         public string  ItemName           { get; set; } = string.Empty;
         public string? Description        { get; set; }
+        public bool    IsRequired         { get; set; } = true;
+        public int     SortOrder          { get; set; } = 1;
+        public int?    EquipmentSubTypeId { get; set; }
+    }
+
+    private class ComplianceCheckForm
+    {
+        public string  Name               { get; set; } = string.Empty;
+        public string? Description        { get; set; }
+        public int?    IntervalMonths     { get; set; }
         public bool    IsRequired         { get; set; } = true;
         public int     SortOrder          { get; set; } = 1;
         public int?    EquipmentSubTypeId { get; set; }

@@ -23,13 +23,13 @@ public class NoteService(ApplicationDbContext context) : INoteService
         if (plantId.HasValue)
             query = query.Where(n =>
                 n.PlantId == plantId.Value ||
-                (n.Equipment != null && n.Equipment.Section.PlantId == plantId.Value));
+                (n.Equipment != null && n.Equipment.SectionId != null && n.Equipment.Section!.PlantId == plantId.Value));
 
         if (companyId.HasValue)
             query = query.Where(n =>
                 n.CompanyId == companyId.Value ||
                 (n.Plant != null && n.Plant.CompanyId == companyId.Value) ||
-                (n.Equipment != null && n.Equipment.Section.Plant.CompanyId == companyId.Value));
+                (n.Equipment != null && n.Equipment.SectionId != null && n.Equipment.Section!.Plant.CompanyId == companyId.Value));
 
         if (category.HasValue)
             query = query.Where(n => n.Category == category.Value);
@@ -54,8 +54,8 @@ public class NoteService(ApplicationDbContext context) : INoteService
                 n.PlantId,
                 n.PlantId != null && n.Plant != null
                     ? n.Plant.Name
-                    : (n.Equipment != null ? n.Equipment.Section.Plant.Name : null),
-                n.Equipment != null ? n.Equipment.Section.Name : null,
+                    : (n.Equipment != null && n.Equipment.Section != null ? n.Equipment.Section.Plant.Name : null),
+                n.Equipment != null && n.Equipment.Section != null ? n.Equipment.Section.Name : null,
                 n.CreatedById,
                 n.CreatedAt,
                 n.ModifiedAt))
@@ -82,8 +82,8 @@ public class NoteService(ApplicationDbContext context) : INoteService
                 n.PlantId,
                 n.PlantId != null && n.Plant != null
                     ? n.Plant.Name
-                    : (n.Equipment != null ? n.Equipment.Section.Plant.Name : null),
-                n.Equipment != null ? n.Equipment.Section.Name : null,
+                    : (n.Equipment != null && n.Equipment.Section != null ? n.Equipment.Section.Plant.Name : null),
+                n.Equipment != null && n.Equipment.Section != null ? n.Equipment.Section.Name : null,
                 n.CreatedById,
                 n.CreatedAt,
                 n.ModifiedAt))

@@ -1,0 +1,380 @@
+@page "/inventory"
+@inject IEquipmentService EquipmentService
+@inject ICompanyService CompanyService
+@inject IPlantService PlantService
+@inject ISectionService SectionService
+
+
+<div class="page-header">
+    <div class="page-header-left">
+        <div class="page-header-icon"><i class="fa-light fa-warehouse"></i></div>
+        <div class="page-header-info">
+            <h1>Equipment Inventory</h1>
+            <p class="page-header-sub">Manage equipment pool and assign to locations</p>
+        </div>
+    </div>
+    <div class="page-header-actions">
+        <button class="btn btn-primary" @onclick="async () => { _showAdd = true; _addModel = new(); await LoadEquipmentTypes(); }">
+            <i class="fa-light fa-plus"></i> Add to Inventory
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(_feedback))
+{
+    <div class="alert @_feedbackClass">@_feedback</div>
+}
+
+@* ── Add to inventory modal ── *@
+@if (_showAdd)
+{
+    <div class="modal-overlay" @onclick="() => _showAdd = false">
+        <div class="modal" @onclick:stopPropagation>
+            <h2>Add Equipment to Inventory</h2>
+            <EditForm Model="_addModel" OnValidSubmit="AddEquipment">
+                <div class="form-group">
+                    <label>Equipment Type</label>
+                    <select class="form-control" @onchange="OnAddTypeChanged">
+                        <option value="">— Select type —</option>
+                        @foreach (var t in _equipTypes)
+                        {
+                            <option value="@t.Id">@t.Name</option>
+                        }
+                    </select>
+                </div>
+                @if (_addSubTypes.Any())
+                {
+                    <div class="form-group">
+                        <label>Sub-Type</label>
+                        <select class="form-control" @bind="_addModel.EquipmentSubTypeId">
+                            <option value="">— None —</option>
+                            @foreach (var st in _addSubTypes)
+                            {
+                                <option value="@st.Id">@st.Name</option>
+                            }
+                        </select>
+                    </div>
+                }
+                <div class="form-group">
+                    <label>Identifier</label>
+                    <InputText @bind-Value="_addModel.Identifier" class="form-control" placeholder="e.g. FE-001" />
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <InputText @bind-Value="_addModel.Description" class="form-control" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Size</label>
+                        <InputText @bind-Value="_addModel.Size" class="form-control" placeholder="e.g. 9Kg" />
+                    </div>
+                    <div class="form-group">
+                        <label>Serial Number</label>
+                        <InputText @bind-Value="_addModel.SerialNumber" class="form-control" />
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" disabled="@(_addModel.EquipmentTypeId == 0)">Add</button>
+                    <button type="button" class="btn btn-secondary" @onclick="() => _showAdd = false">Cancel</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@* ── Assign modal (Company → Plant → Section drill-down) ── *@
+@if (_assignEquipmentId.HasValue)
+{
+    <div class="modal-overlay" @onclick="() => _assignEquipmentId = null">
+        <div class="modal" @onclick:stopPropagation>
+            <h2>Assign Equipment</h2>
+            <p>Assigning <strong>@_assignEquipmentName</strong></p>
+
+            <div class="form-group">
+                <label>Company</label>
+                <select class="form-control" @onchange="OnAssignCompanyChanged">
+                    <option value="">— Select company —</option>
+                    @foreach (var c in _assignCompanies)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </div>
+
+            @if (_assignPlants.Any())
+            {
+                <div class="form-group">
+                    <label>Plant</label>
+                    <select class="form-control" @onchange="OnAssignPlantChanged">
+                        <option value="">— Select plant —</option>
+                        @foreach (var p in _assignPlants)
+                        {
+                            <option value="@p.Id">@p.Name</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            @if (_assignSections.Any())
+            {
+                <div class="form-group">
+                    <label>Section</label>
+                    <select class="form-control" @bind="_assignSectionId">
+                        <option value="0">— Select section —</option>
+                        @foreach (var s in _assignSections)
+                        {
+                            <option value="@s.Id">@s.Name</option>
+                        }
+                    </select>
+                </div>
+            }
+
+            <div class="form-actions">
+                <button class="btn btn-primary" disabled="@(_assignSectionId == 0)" @onclick="ConfirmAssign">Assign</button>
+                <button class="btn btn-secondary" @onclick="() => _assignEquipmentId = null">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Unassign confirm ── *@
+@if (_unassignEquipmentId.HasValue)
+{
+    <div class="modal-overlay" @onclick="() => _unassignEquipmentId = null">
+        <div class="modal" @onclick:stopPropagation>
+            <h2>Unassign Equipment</h2>
+            <p>Return <strong>@_unassignEquipmentName</strong> to the inventory pool?</p>
+            <div class="form-actions">
+                <button class="btn btn-danger" @onclick="ConfirmUnassign">Yes, unassign</button>
+                <button class="btn btn-secondary" @onclick="() => _unassignEquipmentId = null">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Inventory groups ── *@
+@if (_groups is null)
+{
+    <p>Loading...</p>
+}
+else if (!_groups.Any())
+{
+    <p class="empty-state">No equipment in inventory. Add some to get started.</p>
+}
+else
+{
+    @foreach (var group in _groups)
+    {
+        <div class="section-card">
+            <div class="section-header clickable" @onclick="() => ToggleGroup(group)">
+                <h2>
+                    @group.EquipmentTypeName
+                    @if (group.SubTypeName != null)
+                    {
+                        <span class="text-muted"> — @group.SubTypeName</span>
+                    }
+                </h2>
+                <div class="card-stats">
+                    <span class="badge badge-total">@group.TotalCount Total</span>
+                    <span class="badge badge-success">@group.AssignedCount Assigned</span>
+                    <span class="badge badge-available">@group.AvailableCount Available</span>
+                </div>
+            </div>
+
+            @if (_expandedGroups.Contains(GroupKey(group)))
+            {
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Identifier</th>
+                            <th>Description</th>
+                            <th>Size</th>
+                            <th>Serial</th>
+                            <th>Location</th>
+                            <th style="width:140px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var eq in group.Equipment)
+                        {
+                            <tr>
+                                <td>@eq.Identifier</td>
+                                <td>@(eq.Description ?? "-")</td>
+                                <td>@(eq.Size ?? "-")</td>
+                                <td>@(eq.SerialNumber ?? "-")</td>
+                                <td>
+                                    @if (eq.SectionId.HasValue)
+                                    {
+                                        <span>@eq.CompanyName / @eq.PlantName / @eq.SectionName</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Available</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (eq.SectionId.HasValue)
+                                    {
+                                        <button class="btn btn-xs btn-secondary" @onclick="() => StartUnassign(eq)" title="Unassign">
+                                            <i class="fa-light fa-link-slash"></i> Unassign
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-xs btn-primary" @onclick="() => StartAssign(eq)" title="Assign">
+                                            <i class="fa-light fa-link"></i> Assign
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    }
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+    private string _userId = string.Empty;
+
+    private List<InventoryGroupDto>? _groups;
+    private HashSet<string> _expandedGroups = [];
+    private string _feedback      = string.Empty;
+    private string _feedbackClass = "alert-success";
+
+    // add modal
+    private bool _showAdd;
+    private AddEquipmentModel _addModel = new();
+    private List<EquipmentTypeDto>    _equipTypes  = [];
+    private List<EquipmentSubTypeDto> _addSubTypes = [];
+
+    // assign modal
+    private int?   _assignEquipmentId;
+    private string _assignEquipmentName = string.Empty;
+    private List<CompanyDto>  _assignCompanies = [];
+    private List<PlantDto>    _assignPlants    = [];
+    private List<SectionDto>  _assignSections  = [];
+    private int _assignSectionId;
+
+    // unassign modal
+    private int?   _unassignEquipmentId;
+    private string _unassignEquipmentName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is not null)
+        {
+            var state = await AuthState;
+            _userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+        }
+        await Reload();
+    }
+
+    private async Task Reload() => _groups = await EquipmentService.GetInventoryAsync();
+
+    private string GroupKey(InventoryGroupDto g) => $"{g.EquipmentTypeId}_{g.EquipmentSubTypeId}";
+
+    private void ToggleGroup(InventoryGroupDto g)
+    {
+        var key = GroupKey(g);
+        if (!_expandedGroups.Remove(key))
+            _expandedGroups.Add(key);
+    }
+
+    // ── Add to inventory ──
+    private async Task LoadEquipmentTypes()
+        => _equipTypes = await EquipmentService.GetEquipmentTypesAsync();
+
+    private async Task OnAddTypeChanged(ChangeEventArgs e)
+    {
+        _addModel.EquipmentTypeId = int.TryParse(e.Value?.ToString(), out var id) ? id : 0;
+        _addModel.EquipmentSubTypeId = null;
+        _addSubTypes = _addModel.EquipmentTypeId > 0
+            ? await EquipmentService.GetSubTypesByTypeAsync(_addModel.EquipmentTypeId)
+            : [];
+    }
+
+    private async Task AddEquipment()
+    {
+        await EquipmentService.CreateInventoryEquipmentAsync(
+            new EquipmentInventoryCreateDto(
+                _addModel.EquipmentTypeId, _addModel.EquipmentSubTypeId,
+                _addModel.Identifier, _addModel.Description,
+                _addModel.Size, _addModel.SerialNumber),
+            _userId);
+        _showAdd = false;
+        await Reload();
+        ShowFeedback("Equipment added to inventory.", true);
+    }
+
+    // ── Assign ──
+    private async Task StartAssign(InventoryEquipmentDto eq)
+    {
+        _assignEquipmentId   = eq.Id;
+        _assignEquipmentName = eq.Identifier;
+        _assignCompanies     = await CompanyService.GetAllCompaniesAsync();
+        _assignPlants        = [];
+        _assignSections      = [];
+        _assignSectionId     = 0;
+    }
+
+    private async Task OnAssignCompanyChanged(ChangeEventArgs e)
+    {
+        var companyId = int.TryParse(e.Value?.ToString(), out var id) ? id : 0;
+        _assignPlants    = companyId > 0 ? await PlantService.GetPlantsByCompanyAsync(companyId) : [];
+        _assignSections  = [];
+        _assignSectionId = 0;
+    }
+
+    private async Task OnAssignPlantChanged(ChangeEventArgs e)
+    {
+        var plantId = int.TryParse(e.Value?.ToString(), out var id) ? id : 0;
+        _assignSections  = plantId > 0 ? await SectionService.GetSectionsByPlantAsync(plantId) : [];
+        _assignSectionId = 0;
+    }
+
+    private async Task ConfirmAssign()
+    {
+        if (!_assignEquipmentId.HasValue || _assignSectionId == 0) return;
+        await EquipmentService.AssignEquipmentAsync(
+            new AssignEquipmentDto(_assignEquipmentId.Value, _assignSectionId), _userId);
+        _assignEquipmentId = null;
+        await Reload();
+        ShowFeedback("Equipment assigned.", true);
+    }
+
+    // ── Unassign ──
+    private void StartUnassign(InventoryEquipmentDto eq)
+    {
+        _unassignEquipmentId   = eq.Id;
+        _unassignEquipmentName = eq.Identifier;
+    }
+
+    private async Task ConfirmUnassign()
+    {
+        if (!_unassignEquipmentId.HasValue) return;
+        await EquipmentService.UnassignEquipmentAsync(
+            new UnassignEquipmentDto(_unassignEquipmentId.Value), _userId);
+        _unassignEquipmentId = null;
+        await Reload();
+        ShowFeedback("Equipment returned to inventory.", true);
+    }
+
+    private void ShowFeedback(string msg, bool success)
+    {
+        _feedback      = msg;
+        _feedbackClass = success ? "alert-success" : "alert-danger";
+    }
+
+    private class AddEquipmentModel
+    {
+        public int    EquipmentTypeId    { get; set; }
+        public int?   EquipmentSubTypeId { get; set; }
+        public string Identifier         { get; set; } = string.Empty;
+        public string? Description       { get; set; }
+        public string? Size              { get; set; }
+        public string? SerialNumber      { get; set; }
+    }
+}

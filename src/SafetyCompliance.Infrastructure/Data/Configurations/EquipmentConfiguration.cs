@@ -16,7 +16,9 @@ public class EquipmentConfiguration : IEntityTypeConfiguration<Equipment>
         builder.Property(x => x.SerialNumber).HasMaxLength(100);
         builder.HasIndex(x => x.SectionId);
         builder.HasIndex(x => x.EquipmentTypeId);
+        builder.HasOne(x => x.Section).WithMany(x => x.Equipment).HasForeignKey(x => x.SectionId).IsRequired(false).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(x => x.EquipmentSubType).WithMany().HasForeignKey(x => x.EquipmentSubTypeId).IsRequired(false);
         builder.HasMany(x => x.EquipmentInspections).WithOne(x => x.Equipment).HasForeignKey(x => x.EquipmentId);
+        builder.HasMany(x => x.CheckRecords).WithOne(x => x.Equipment).HasForeignKey(x => x.EquipmentId);
     }
 }

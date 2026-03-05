@@ -79,8 +79,8 @@ public class ServiceBookingService(ApplicationDbContext context) : IServiceBooki
                 sb.Equipment.Identifier,
                 sb.Equipment.EquipmentType.Name,
                 sb.Equipment.EquipmentSubType != null ? sb.Equipment.EquipmentSubType.Name : null,
-                sb.Equipment.Section.Plant.Name,
-                sb.Equipment.Section.Name,
+                sb.Equipment.Section != null ? sb.Equipment.Section.Plant.Name : "Unassigned",
+                sb.Equipment.Section != null ? sb.Equipment.Section.Name : "Unassigned",
                 sb.ServiceProvider, sb.Reason, sb.Status,
                 sb.SentDate, sb.ExpectedReturnDate))
             .ToListAsync(ct);
@@ -99,8 +99,8 @@ public class ServiceBookingService(ApplicationDbContext context) : IServiceBooki
                 sb.Equipment.Identifier,
                 sb.Equipment.EquipmentType.Name,
                 sb.Equipment.EquipmentSubType != null ? sb.Equipment.EquipmentSubType.Name : null,
-                sb.Equipment.Section.Plant.Name,
-                sb.Equipment.Section.Name,
+                sb.Equipment.Section != null ? sb.Equipment.Section.Plant.Name : "Unassigned",
+                sb.Equipment.Section != null ? sb.Equipment.Section.Name : "Unassigned",
                 sb.ServiceProvider, sb.Reason, sb.Status,
                 sb.SentDate, sb.ExpectedReturnDate, sb.ActualReturnDate,
                 sb.Notes, sb.CreatedAt))

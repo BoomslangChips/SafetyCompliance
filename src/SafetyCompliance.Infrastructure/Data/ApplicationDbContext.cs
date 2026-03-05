@@ -27,6 +27,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IUnitOfW
     public DbSet<ServiceBooking> ServiceBookings => Set<ServiceBooking>();
     public DbSet<Note>          Notes            => Set<Note>();
     public DbSet<PlantContact>  PlantContacts    => Set<PlantContact>();
+    public DbSet<EquipmentCheck>       EquipmentChecks       => Set<EquipmentCheck>();
+    public DbSet<EquipmentCheckRecord> EquipmentCheckRecords => Set<EquipmentCheckRecord>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

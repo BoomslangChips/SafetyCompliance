@@ -31,8 +31,8 @@ public class PlantService(ApplicationDbContext context) : IPlantService
             .ToDictionaryAsync(g => g.PlantId, g => g.Count, ct);
 
         var equipCounts = await context.Equipment
-            .Where(e => e.IsActive && e.Section.IsActive && plantIds.Contains(e.Section.PlantId))
-            .GroupBy(e => e.Section.PlantId)
+            .Where(e => e.IsActive && e.SectionId != null && e.Section!.IsActive && plantIds.Contains(e.Section.PlantId))
+            .GroupBy(e => e.Section!.PlantId)
             .Select(g => new { PlantId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.PlantId, g => g.Count, ct);
 
@@ -62,7 +62,7 @@ public class PlantService(ApplicationDbContext context) : IPlantService
             .CountAsync(s => s.PlantId == id && s.IsActive, ct);
 
         var equipCount = await context.Equipment
-            .CountAsync(e => e.IsActive && e.Section.IsActive && e.Section.PlantId == id, ct);
+            .CountAsync(e => e.IsActive && e.SectionId != null && e.Section!.IsActive && e.Section.PlantId == id, ct);
 
         return new PlantDto(
             plant.Id, plant.CompanyId, plant.CompanyName, plant.Name, plant.Description,

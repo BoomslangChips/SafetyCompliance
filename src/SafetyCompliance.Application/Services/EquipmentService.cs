@@ -16,7 +16,7 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
             .Where(e => e.SectionId == sectionId && (includeInactive || e.IsActive))
             .OrderBy(e => e.SortOrder)
             .Select(e => new EquipmentDto(
-                e.Id, e.SectionId, e.Section.Name, e.EquipmentTypeId, e.EquipmentType.Name,
+                e.Id, e.SectionId, e.Section != null ? e.Section.Name : null, e.EquipmentTypeId, e.EquipmentType.Name,
                 e.EquipmentSubTypeId, e.EquipmentSubType != null ? e.EquipmentSubType.Name : null,
                 e.Identifier, e.Description, e.Size, e.SerialNumber, e.NextServiceDate,
                 e.SortOrder, e.IsActive))
@@ -28,7 +28,7 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
         return await context.Equipment
             .Where(e => e.Id == id)
             .Select(e => new EquipmentDto(
-                e.Id, e.SectionId, e.Section.Name, e.EquipmentTypeId, e.EquipmentType.Name,
+                e.Id, e.SectionId, e.Section != null ? e.Section.Name : null, e.EquipmentTypeId, e.EquipmentType.Name,
                 e.EquipmentSubTypeId, e.EquipmentSubType != null ? e.EquipmentSubType.Name : null,
                 e.Identifier, e.Description, e.Size, e.SerialNumber, e.NextServiceDate,
                 e.SortOrder, e.IsActive))
@@ -85,7 +85,8 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
             .Where(et => includeInactive || et.IsActive)
             .Select(et => new EquipmentTypeDto(et.Id, et.Name, et.Description, et.IsActive,
                 et.ChecklistItemTemplates.Count(c => c.IsActive),
-                et.SubTypes.Count(s => s.IsActive)))
+                et.SubTypes.Count(s => s.IsActive),
+                et.EquipmentChecks.Count(ec => ec.IsActive)))
             .ToListAsync(ct);
     }
 
@@ -95,7 +96,8 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
             .Where(et => et.Id == id)
             .Select(et => new EquipmentTypeDto(et.Id, et.Name, et.Description, et.IsActive,
                 et.ChecklistItemTemplates.Count(c => c.IsActive),
-                et.SubTypes.Count(s => s.IsActive)))
+                et.SubTypes.Count(s => s.IsActive),
+                et.EquipmentChecks.Count(ec => ec.IsActive)))
             .FirstOrDefaultAsync(ct);
     }
 
@@ -104,7 +106,7 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
         var equipmentType = new EquipmentType { Name = dto.Name, Description = dto.Description };
         context.EquipmentTypes.Add(equipmentType);
         await context.SaveChangesAsync(ct);
-        return new EquipmentTypeDto(equipmentType.Id, equipmentType.Name, equipmentType.Description, equipmentType.IsActive, 0, 0);
+        return new EquipmentTypeDto(equipmentType.Id, equipmentType.Name, equipmentType.Description, equipmentType.IsActive, 0, 0, 0);
     }
 
     public async Task UpdateEquipmentTypeAsync(EquipmentTypeUpdateDto dto, CancellationToken ct = default)
@@ -125,6 +127,8 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
             // Truly unused — remove everything linked to it
             var templates = await context.ChecklistItemTemplates.Where(t => t.EquipmentTypeId == id).ToListAsync(ct);
             context.ChecklistItemTemplates.RemoveRange(templates);
+            var checks = await context.EquipmentChecks.Where(c => c.EquipmentTypeId == id).ToListAsync(ct);
+            context.EquipmentChecks.RemoveRange(checks);
             var subTypes = await context.EquipmentSubTypes.Where(s => s.EquipmentTypeId == id).ToListAsync(ct);
             context.EquipmentSubTypes.RemoveRange(subTypes);
             var et = await context.EquipmentTypes.FindAsync([id], ct);
@@ -180,8 +184,9 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
     {
         var hasEquipment  = await context.Equipment.AnyAsync(e => e.EquipmentSubTypeId == id, ct);
         var hasTemplates  = await context.ChecklistItemTemplates.AnyAsync(t => t.EquipmentSubTypeId == id, ct);
+        var hasChecks     = await context.EquipmentChecks.AnyAsync(c => c.EquipmentSubTypeId == id, ct);
 
-        if (!hasEquipment && !hasTemplates)
+        if (!hasEquipment && !hasTemplates && !hasChecks)
         {
             var st = await context.EquipmentSubTypes.FindAsync([id], ct);
             if (st != null) context.EquipmentSubTypes.Remove(st);
@@ -285,5 +290,240 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
         if (t2 != null) { t2.IsActive = false; await context.SaveChangesAsync(ct); }
         return new DeleteResult(DeleteOutcome.Deactivated,
             "Checklist item disabled. It won't appear in future inspections; historical data is preserved.");
+    }
+
+    // ── Inventory ─────────────────────────────────────────────────────────────
+
+    public async Task<List<InventoryGroupDto>> GetInventoryAsync(CancellationToken ct = default)
+    {
+        var equipment = await context.Equipment
+            .Where(e => e.IsActive)
+            .Select(e => new InventoryEquipmentDto(
+                e.Id, e.Identifier, e.Description, e.Size, e.SerialNumber, e.IsActive,
+                e.SectionId,
+                e.Section != null ? e.Section.Name : null,
+                e.Section != null ? (int?)e.Section.PlantId : null,
+                e.Section != null ? e.Section.Plant.Name : null,
+                e.Section != null ? (int?)e.Section.Plant.CompanyId : null,
+                e.Section != null ? e.Section.Plant.Company.Name : null,
+                e.EquipmentTypeId, e.EquipmentType.Name,
+                e.EquipmentSubTypeId, e.EquipmentSubType != null ? e.EquipmentSubType.Name : null))
+            .ToListAsync(ct);
+
+        return equipment
+            .GroupBy(e => new { e.EquipmentTypeId, e.EquipmentTypeName, e.EquipmentSubTypeId, e.SubTypeName })
+            .Select(g => new InventoryGroupDto(
+                g.Key.EquipmentTypeId, g.Key.EquipmentTypeName,
+                g.Key.EquipmentSubTypeId, g.Key.SubTypeName,
+                g.Count(),
+                g.Count(e => e.SectionId.HasValue),
+                g.Count(e => !e.SectionId.HasValue),
+                g.OrderBy(e => e.Identifier).ToList()))
+            .OrderBy(g => g.EquipmentTypeName)
+            .ThenBy(g => g.SubTypeName)
+            .ToList();
+    }
+
+    public async Task<EquipmentDto> CreateInventoryEquipmentAsync(EquipmentInventoryCreateDto dto, string userId, CancellationToken ct = default)
+    {
+        var maxSort = await context.Equipment
+            .Where(e => e.EquipmentTypeId == dto.EquipmentTypeId)
+            .MaxAsync(e => (int?)e.SortOrder, ct) ?? 0;
+
+        var equipment = new Equipment
+        {
+            SectionId          = null,
+            EquipmentTypeId    = dto.EquipmentTypeId,
+            EquipmentSubTypeId = dto.EquipmentSubTypeId,
+            Identifier         = dto.Identifier,
+            Description        = dto.Description,
+            Size               = dto.Size,
+            SerialNumber       = dto.SerialNumber,
+            SortOrder          = maxSort + 1,
+            CreatedById        = userId
+        };
+
+        context.Equipment.Add(equipment);
+        await context.SaveChangesAsync(ct);
+        return (await GetEquipmentByIdAsync(equipment.Id, ct))!;
+    }
+
+    public async Task AssignEquipmentAsync(AssignEquipmentDto dto, string userId, CancellationToken ct = default)
+    {
+        var equipment = await context.Equipment.FindAsync([dto.EquipmentId], ct)
+            ?? throw new InvalidOperationException($"Equipment {dto.EquipmentId} not found");
+
+        equipment.SectionId    = dto.SectionId;
+        equipment.ModifiedAt   = DateTime.UtcNow;
+        equipment.ModifiedById = userId;
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task UnassignEquipmentAsync(UnassignEquipmentDto dto, string userId, CancellationToken ct = default)
+    {
+        var equipment = await context.Equipment.FindAsync([dto.EquipmentId], ct)
+            ?? throw new InvalidOperationException($"Equipment {dto.EquipmentId} not found");
+
+        equipment.SectionId    = null;
+        equipment.ModifiedAt   = DateTime.UtcNow;
+        equipment.ModifiedById = userId;
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task BulkAssignEquipmentAsync(List<int> equipmentIds, int sectionId, string userId, CancellationToken ct = default)
+    {
+        var items = await context.Equipment
+            .Where(e => equipmentIds.Contains(e.Id))
+            .ToListAsync(ct);
+
+        foreach (var item in items)
+        {
+            item.SectionId    = sectionId;
+            item.ModifiedAt   = DateTime.UtcNow;
+            item.ModifiedById = userId;
+        }
+
+        await context.SaveChangesAsync(ct);
+    }
+
+    // ── Equipment Check Templates ─────────────────────────────────────────────
+
+    public async Task<List<EquipmentCheckDto>> GetEquipmentChecksAsync(int equipmentTypeId, bool includeInactive = false, CancellationToken ct = default)
+    {
+        return await context.EquipmentChecks
+            .Where(c => c.EquipmentTypeId == equipmentTypeId && (includeInactive || c.IsActive))
+            .OrderBy(c => c.EquipmentSubTypeId == null ? 0 : 1)
+            .ThenBy(c => c.SortOrder)
+            .Select(c => new EquipmentCheckDto(
+                c.Id, c.EquipmentTypeId, c.EquipmentSubTypeId,
+                c.EquipmentSubType != null ? c.EquipmentSubType.Name : null,
+                c.Name, c.Description, c.IntervalMonths, c.IsRequired,
+                c.SortOrder, c.IsActive))
+            .ToListAsync(ct);
+    }
+
+    public async Task<EquipmentCheckDto> CreateEquipmentCheckAsync(EquipmentCheckCreateDto dto, CancellationToken ct = default)
+    {
+        var check = new EquipmentCheck
+        {
+            EquipmentTypeId    = dto.EquipmentTypeId,
+            EquipmentSubTypeId = dto.EquipmentSubTypeId,
+            Name               = dto.Name,
+            Description        = dto.Description,
+            IntervalMonths     = dto.IntervalMonths,
+            IsRequired         = dto.IsRequired,
+            SortOrder          = dto.SortOrder
+        };
+
+        context.EquipmentChecks.Add(check);
+        await context.SaveChangesAsync(ct);
+
+        var subTypeName = dto.EquipmentSubTypeId.HasValue
+            ? await context.EquipmentSubTypes
+                .Where(s => s.Id == dto.EquipmentSubTypeId.Value)
+                .Select(s => s.Name)
+                .FirstOrDefaultAsync(ct)
+            : null;
+
+        return new EquipmentCheckDto(
+            check.Id, check.EquipmentTypeId, check.EquipmentSubTypeId, subTypeName,
+            check.Name, check.Description, check.IntervalMonths, check.IsRequired,
+            check.SortOrder, check.IsActive);
+    }
+
+    public async Task UpdateEquipmentCheckAsync(EquipmentCheckUpdateDto dto, CancellationToken ct = default)
+    {
+        var check = await context.EquipmentChecks.FindAsync([dto.Id], ct)
+            ?? throw new InvalidOperationException($"EquipmentCheck {dto.Id} not found");
+        check.Name           = dto.Name;
+        check.Description    = dto.Description;
+        check.IntervalMonths = dto.IntervalMonths;
+        check.IsRequired     = dto.IsRequired;
+        check.SortOrder      = dto.SortOrder;
+        check.IsActive       = dto.IsActive;
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task<DeleteResult> DeleteOrDeactivateEquipmentCheckAsync(int id, CancellationToken ct = default)
+    {
+        var hasRecords = await context.EquipmentCheckRecords.AnyAsync(r => r.EquipmentCheckId == id, ct);
+        if (!hasRecords)
+        {
+            var c = await context.EquipmentChecks.FindAsync([id], ct);
+            if (c != null) context.EquipmentChecks.Remove(c);
+            await context.SaveChangesAsync(ct);
+            return new DeleteResult(DeleteOutcome.Deleted, "Compliance check permanently deleted.");
+        }
+
+        var c2 = await context.EquipmentChecks.FindAsync([id], ct);
+        if (c2 != null) { c2.IsActive = false; await context.SaveChangesAsync(ct); }
+        return new DeleteResult(DeleteOutcome.Deactivated,
+            "Compliance check disabled. Historical records are preserved.");
+    }
+
+    // ── Check Records ─────────────────────────────────────────────────────────
+
+    public async Task<List<EquipmentCheckRecordDto>> GetCheckRecordsAsync(int equipmentId, CancellationToken ct = default)
+    {
+        var records = await context.EquipmentCheckRecords
+            .Where(r => r.EquipmentId == equipmentId)
+            .Select(r => new EquipmentCheckRecordDto(
+                r.Id, r.EquipmentId, r.EquipmentCheckId, r.EquipmentCheck.Name,
+                r.EquipmentCheck.IntervalMonths, r.DateValue, r.ExpiryDate,
+                r.Notes,
+                r.ExpiryDate == null ? "OK"
+                    : r.ExpiryDate < DateOnly.FromDateTime(DateTime.UtcNow) ? "Overdue"
+                    : r.ExpiryDate < DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)) ? "Due Soon"
+                    : "OK"))
+            .ToListAsync(ct);
+
+        return records;
+    }
+
+    public async Task<EquipmentCheckRecordDto> UpsertCheckRecordAsync(EquipmentCheckRecordUpsertDto dto, string userId, CancellationToken ct = default)
+    {
+        var check = await context.EquipmentChecks.FindAsync([dto.EquipmentCheckId], ct)
+            ?? throw new InvalidOperationException($"EquipmentCheck {dto.EquipmentCheckId} not found");
+
+        var expiryDate = check.IntervalMonths.HasValue
+            ? dto.DateValue.AddMonths(check.IntervalMonths.Value)
+            : (DateOnly?)null;
+
+        var existing = await context.EquipmentCheckRecords
+            .FirstOrDefaultAsync(r => r.EquipmentId == dto.EquipmentId && r.EquipmentCheckId == dto.EquipmentCheckId, ct);
+
+        if (existing != null)
+        {
+            existing.DateValue    = dto.DateValue;
+            existing.ExpiryDate   = expiryDate;
+            existing.Notes        = dto.Notes;
+            existing.ModifiedAt   = DateTime.UtcNow;
+            existing.ModifiedById = userId;
+        }
+        else
+        {
+            existing = new EquipmentCheckRecord
+            {
+                EquipmentId      = dto.EquipmentId,
+                EquipmentCheckId = dto.EquipmentCheckId,
+                DateValue        = dto.DateValue,
+                ExpiryDate       = expiryDate,
+                Notes            = dto.Notes,
+                CreatedById      = userId
+            };
+            context.EquipmentCheckRecords.Add(existing);
+        }
+
+        await context.SaveChangesAsync(ct);
+
+        var complianceStatus = expiryDate == null ? "OK"
+            : expiryDate < DateOnly.FromDateTime(DateTime.UtcNow) ? "Overdue"
+            : expiryDate < DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)) ? "Due Soon"
+            : "OK";
+
+        return new EquipmentCheckRecordDto(
+            existing.Id, existing.EquipmentId, existing.EquipmentCheckId, check.Name,
+            check.IntervalMonths, existing.DateValue, existing.ExpiryDate,
+            existing.Notes, complianceStatus);
     }
 }

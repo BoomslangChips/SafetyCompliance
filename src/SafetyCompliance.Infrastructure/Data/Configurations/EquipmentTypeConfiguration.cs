@@ -14,6 +14,7 @@ public class EquipmentTypeConfiguration : IEntityTypeConfiguration<EquipmentType
         builder.Property(x => x.Description).HasMaxLength(500);
         builder.Property(x => x.IconClass).HasMaxLength(100);
         builder.HasMany(x => x.ChecklistItemTemplates).WithOne(x => x.EquipmentType).HasForeignKey(x => x.EquipmentTypeId);
+        builder.HasMany(x => x.EquipmentChecks).WithOne(x => x.EquipmentType).HasForeignKey(x => x.EquipmentTypeId);
         builder.HasMany(x => x.SubTypes).WithOne(x => x.EquipmentType).HasForeignKey(x => x.EquipmentTypeId);
         builder.HasMany(x => x.Equipment).WithOne(x => x.EquipmentType).HasForeignKey(x => x.EquipmentTypeId);
     }

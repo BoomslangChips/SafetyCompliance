@@ -177,7 +177,7 @@ public class ScheduleService(ApplicationDbContext context) : IScheduleService
         // Open issues
         var issues = await context.Issues
             .Where(i => i.Status == IssueStatus.Open || i.Status == IssueStatus.InProgress)
-            .Where(i => !plantId.HasValue || (i.Equipment != null && i.Equipment.Section.Plant.Id == plantId.Value))
+            .Where(i => !plantId.HasValue || (i.Equipment != null && i.Equipment.SectionId != null && i.Equipment.Section!.Plant.Id == plantId.Value))
             .OrderBy(i => i.Priority == IssuePriority.Critical ? 0 : i.Priority == IssuePriority.High ? 1 : 2)
             .ThenBy(i => i.DueDate)
             .Take(count)
@@ -185,7 +185,7 @@ public class ScheduleService(ApplicationDbContext context) : IScheduleService
                 i.Id, i.Title, i.Description,
                 i.DueDate ?? DateOnly.FromDateTime(i.CreatedAt),
                 "issue", null, i.Priority, i.Status,
-                0, i.Equipment != null ? i.Equipment.Section.Plant.Name : "N/A",
+                0, i.Equipment != null && i.Equipment.Section != null ? i.Equipment.Section.Plant.Name : "N/A",
                 i.Equipment != null ? i.Equipment.Identifier : null,
                 0, 0,
                 i.DueDate.HasValue && i.DueDate.Value < today))

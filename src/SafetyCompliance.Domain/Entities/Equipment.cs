@@ -4,7 +4,7 @@ namespace SafetyCompliance.Domain.Entities;
 
 public class Equipment : AuditableEntity
 {
-    public int SectionId { get; set; }
+    public int? SectionId { get; set; }
     public int EquipmentTypeId { get; set; }
     public int? EquipmentSubTypeId { get; set; }
     public string Identifier { get; set; } = string.Empty;
@@ -17,9 +17,10 @@ public class Equipment : AuditableEntity
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;
 
-    public Section Section { get; set; } = null!;
+    public Section? Section { get; set; }
     public EquipmentType EquipmentType { get; set; } = null!;
     public EquipmentSubType? EquipmentSubType { get; set; }
     public ICollection<EquipmentInspection> EquipmentInspections { get; set; } = [];
     public ICollection<ServiceBooking> ServiceBookings { get; set; } = [];
+    public ICollection<EquipmentCheckRecord> CheckRecords { get; set; } = [];
 }

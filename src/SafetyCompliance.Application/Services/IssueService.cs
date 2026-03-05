@@ -36,8 +36,8 @@ public class IssueService(ApplicationDbContext context) : IIssueService
                 i.CreatedById,
                 i.CreatedAt,
                 i.Comments.Count,
-                i.Equipment != null ? i.Equipment.Section.Plant.Name : (i.InspectionRound != null ? i.InspectionRound.Plant.Name : null),
-                i.Equipment != null ? i.Equipment.Section.Name : null))
+                i.Equipment != null && i.Equipment.Section != null ? i.Equipment.Section.Plant.Name : (i.InspectionRound != null ? i.InspectionRound.Plant.Name : null),
+                i.Equipment != null && i.Equipment.Section != null ? i.Equipment.Section.Name : null))
             .ToListAsync(ct);
     }
 

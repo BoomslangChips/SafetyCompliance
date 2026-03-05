@@ -50,7 +50,7 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
         await context.SaveChangesAsync(ct);
 
         var activeEquipment = await context.Equipment
-            .Where(e => e.Section.PlantId == plantId && e.IsActive && e.Section.IsActive)
+            .Where(e => e.SectionId != null && e.Section!.PlantId == plantId && e.IsActive && e.Section.IsActive)
             .ToListAsync(ct);
 
         foreach (var eq in activeEquipment)
@@ -112,7 +112,7 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
         // Load inspections
         var inspections = await context.EquipmentInspections
             .Where(ei => ei.InspectionRoundId == roundId)
-            .OrderBy(ei => ei.Equipment.Section.SortOrder)
+            .OrderBy(ei => ei.Equipment.Section != null ? ei.Equipment.Section.SortOrder : int.MaxValue)
             .ThenBy(ei => ei.Equipment.EquipmentType.Name)
             .ThenBy(ei => ei.Equipment.SortOrder)
             .Select(ei => new EquipmentInspectionDto(
@@ -129,8 +129,8 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
                         r.ChecklistItemTemplate.SortOrder, r.Response, r.Comment))
                     .ToList(),
                 ei.Photos.Count,
-                ei.Equipment.Section.Id,
-                ei.Equipment.Section.Name,
+                ei.Equipment.SectionId ?? 0,
+                ei.Equipment.Section != null ? ei.Equipment.Section.Name : null,
                 (ActiveServiceBookingDto?)null))
             .ToListAsync(ct);
 
@@ -318,7 +318,7 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
                 ei.Equipment.Identifier,
                 ei.Equipment.EquipmentType.Name,
                 ei.InspectionRound.Plant.Name,
-                ei.Equipment.Section.Name,
+                ei.Equipment.Section != null ? ei.Equipment.Section.Name : null,
                 ei.InspectionRound.InspectionDate,
                 ei.InspectionRound.InspectionMonth,
                 ei.Responses

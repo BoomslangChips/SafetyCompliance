@@ -43,7 +43,7 @@ public class ReportService(ApplicationDbContext db) : IReportService
 
             // Total active equipment
             var totalEquip = await db.Equipment
-                .CountAsync(e => e.Section.PlantId == pid && e.IsActive, ct);
+                .CountAsync(e => e.SectionId != null && e.Section!.PlantId == pid && e.IsActive, ct);
 
             // This-month rounds — project only Id, Status, Date
             var monthRounds = await db.InspectionRounds
@@ -96,20 +96,20 @@ public class ReportService(ApplicationDbContext db) : IReportService
             var openIncidents = await db.Issues
                 .CountAsync(i =>
                     ((i.InspectionRoundId.HasValue && allRoundIds.Contains(i.InspectionRoundId.Value)) ||
-                     (i.Equipment != null && i.Equipment.Section.PlantId == pid)) &&
+                     (i.Equipment != null && i.Equipment.SectionId != null && i.Equipment.Section!.PlantId == pid)) &&
                     (i.Status == IssueStatus.Open || i.Status == IssueStatus.InProgress), ct);
 
             var criticalIncidents = await db.Issues
                 .CountAsync(i =>
                     ((i.InspectionRoundId.HasValue && allRoundIds.Contains(i.InspectionRoundId.Value)) ||
-                     (i.Equipment != null && i.Equipment.Section.PlantId == pid)) &&
+                     (i.Equipment != null && i.Equipment.SectionId != null && i.Equipment.Section!.PlantId == pid)) &&
                     i.Priority == IssuePriority.Critical &&
                     (i.Status == IssueStatus.Open || i.Status == IssueStatus.InProgress), ct);
 
             // Active service bookings
             var activeServices = await db.ServiceBookings
                 .CountAsync(b =>
-                    b.Equipment.Section.PlantId == pid &&
+                    b.Equipment.SectionId != null && b.Equipment.Section!.PlantId == pid &&
                     (b.Status == ServiceBookingStatus.Sent ||
                      b.Status == ServiceBookingStatus.InService), ct);
 
@@ -117,7 +117,7 @@ public class ReportService(ApplicationDbContext db) : IReportService
             var notesCount = await db.Notes
                 .CountAsync(n =>
                     n.PlantId == pid ||
-                    (n.Equipment != null && n.Equipment.Section.PlantId == pid), ct);
+                    (n.Equipment != null && n.Equipment.SectionId != null && n.Equipment.Section!.PlantId == pid), ct);
 
             result.Add(new PlantReportSummaryDto(
                 pid, plant.Name, plant.CompanyName,
@@ -157,7 +157,7 @@ public class ReportService(ApplicationDbContext db) : IReportService
 
         // Total active equipment
         var totalEquip = await db.Equipment
-            .CountAsync(e => e.Section.PlantId == plantId && e.IsActive, ct);
+            .CountAsync(e => e.SectionId != null && e.Section!.PlantId == plantId && e.IsActive, ct);
 
         // ── Inspection rounds — projection (counts computed in SQL) ──
         var roundProj = await db.InspectionRounds
@@ -214,8 +214,8 @@ public class ReportService(ApplicationDbContext db) : IReportService
                     ei.EquipmentId,
                     Identifier   = (string?)(ei.Equipment.Identifier)           ?? "",
                     TypeName     = (string?)(ei.Equipment.EquipmentType.Name)    ?? "",
-                    SectionName  = (string?)(ei.Equipment.Section.Name)          ?? "",
-                    SectionSort  = ei.Equipment.Section.SortOrder,
+                    SectionName  = ei.Equipment.Section != null ? (string?)(ei.Equipment.Section.Name) ?? "" : "",
+                    SectionSort  = ei.Equipment.Section != null ? ei.Equipment.Section.SortOrder : int.MaxValue,
                     EquipSort    = ei.Equipment.SortOrder,
                     ei.IsComplete,
                     ei.Comments,
@@ -270,7 +270,7 @@ public class ReportService(ApplicationDbContext db) : IReportService
             .Where(i =>
                 (roundIds.Count > 0 && i.InspectionRoundId.HasValue
                     && roundIds.Contains(i.InspectionRoundId.Value)) ||
-                (i.Equipment != null && i.Equipment.Section.PlantId == plantId))
+                (i.Equipment != null && i.Equipment.SectionId != null && i.Equipment.Section!.PlantId == plantId))
             .OrderBy(i => i.Status)
             .ThenByDescending(i => i.Priority)
             .ThenByDescending(i => i.CreatedAt)
@@ -289,7 +289,7 @@ public class ReportService(ApplicationDbContext db) : IReportService
         // ── Service bookings — projection ──
         var bookingRows = await db.ServiceBookings
             .Where(b =>
-                b.Equipment.Section.PlantId == plantId &&
+                b.Equipment.SectionId != null && b.Equipment.Section!.PlantId == plantId &&
                 ((b.SentDate >= firstOfMonth && b.SentDate <= lastOfMonth) ||
                  (b.ActualReturnDate >= firstOfMonth && b.ActualReturnDate <= lastOfMonth) ||
                  b.Status == ServiceBookingStatus.Sent ||
@@ -301,7 +301,7 @@ public class ReportService(ApplicationDbContext db) : IReportService
                 (string?)(b.Equipment.Identifier)        ?? "",
                 (string?)(b.Equipment.EquipmentType.Name) ?? "",
                 b.Equipment.EquipmentSubType != null ? b.Equipment.EquipmentSubType.Name : null,
-                (string?)(b.Equipment.Section.Name)       ?? "",
+                b.Equipment.Section != null ? (string?)(b.Equipment.Section.Name) ?? "" : "",
                 (string?)(b.ServiceProvider)              ?? "",
                 (string?)(b.Reason)                       ?? "",
                 b.Status.ToString(),
@@ -314,7 +314,7 @@ public class ReportService(ApplicationDbContext db) : IReportService
         var noteRows = await db.Notes
             .Where(n =>
                 n.PlantId == plantId ||
-                (n.Equipment != null && n.Equipment.Section.PlantId == plantId))
+                (n.Equipment != null && n.Equipment.SectionId != null && n.Equipment.Section!.PlantId == plantId))
             .OrderByDescending(n => n.IsPinned)
             .ThenByDescending(n => n.Priority)
             .ThenByDescending(n => n.CreatedAt)
