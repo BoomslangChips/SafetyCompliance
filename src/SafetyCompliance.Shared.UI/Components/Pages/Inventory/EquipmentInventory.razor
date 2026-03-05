@@ -1,20 +1,26 @@
 @page "/inventory"
+@using SafetyCompliance.Domain.Entities
 @inject IEquipmentService EquipmentService
 @inject ICompanyService CompanyService
 @inject IPlantService PlantService
 @inject ISectionService SectionService
-
 
 <div class="page-header">
     <div class="page-header-left">
         <div class="page-header-icon"><i class="fa-light fa-warehouse"></i></div>
         <div class="page-header-info">
             <h1>Equipment Inventory</h1>
-            <p class="page-header-sub">Manage equipment pool and assign to locations</p>
+            <p class="page-header-sub">Manage equipment pool, assignments, and compliance</p>
         </div>
     </div>
     <div class="page-header-actions">
-        <button class="btn btn-primary" @onclick="async () => { _showAdd = true; _addModel = new(); await LoadEquipmentTypes(); }">
+        @if (_selectedIds.Count > 0)
+        {
+            <button class="btn btn-secondary" @onclick="OpenBulkAssignModal">
+                <i class="fa-light fa-link"></i> Assign Selected (@_selectedIds.Count)
+            </button>
+        }
+        <button class="btn btn-primary" @onclick="OpenAddModal">
             <i class="fa-light fa-plus"></i> Add to Inventory
         </button>
     </div>
@@ -25,39 +31,257 @@
     <div class="alert @_feedbackClass">@_feedback</div>
 }
 
-@* ── Add to inventory modal ── *@
+@* ── Stats Dashboard ── *@
+@if (_stats is not null)
+{
+    <div class="cal-stats ov-fadeIn">
+        <div class="cal-stat">
+            <div class="cal-stat-icon blue"><i class="fa-light fa-boxes-stacked"></i></div>
+            <div class="cal-stat-info">
+                <span class="cal-stat-value">@_stats.TotalEquipment</span>
+                <span class="cal-stat-label">Total</span>
+            </div>
+        </div>
+        <div class="cal-stat">
+            <div class="cal-stat-icon green"><i class="fa-light fa-link"></i></div>
+            <div class="cal-stat-info">
+                <span class="cal-stat-value">@_stats.AssignedCount</span>
+                <span class="cal-stat-label">Assigned</span>
+            </div>
+        </div>
+        <div class="cal-stat">
+            <div class="cal-stat-icon gray"><i class="fa-light fa-inbox"></i></div>
+            <div class="cal-stat-info">
+                <span class="cal-stat-value">@_stats.AvailableCount</span>
+                <span class="cal-stat-label">Available</span>
+            </div>
+        </div>
+        <div class="cal-stat">
+            <div class="cal-stat-icon @(_stats.OverdueComplianceCount > 0 ? "red" : "gray")">
+                <i class="fa-light fa-calendar-exclamation"></i>
+            </div>
+            <div class="cal-stat-info">
+                <span class="cal-stat-value">@_stats.OverdueComplianceCount</span>
+                <span class="cal-stat-label">Overdue</span>
+            </div>
+        </div>
+        <div class="cal-stat">
+            <div class="cal-stat-icon @(_stats.DamagedCount + _stats.MissingCount > 0 ? "amber" : "gray")">
+                <i class="fa-light fa-triangle-exclamation"></i>
+            </div>
+            <div class="cal-stat-info">
+                <span class="cal-stat-value">@(_stats.DamagedCount + _stats.MissingCount)</span>
+                <span class="cal-stat-label">Damaged / Missing</span>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Filters ── *@
+<div class="inv-filter-bar ov-fadeIn">
+    <div class="form-group search-input">
+        <input class="form-control" placeholder="Search identifier, serial, description..."
+               @bind="_searchTerm" @bind:event="oninput" @bind:after="ApplyFilters" />
+    </div>
+    <div class="form-group">
+        <select class="form-control" @bind="_filterStatusStr" @bind:after="ApplyFilters">
+            <option value="">All Statuses</option>
+            <option value="InService">In Service</option>
+            <option value="OutOfService">Out of Service</option>
+            <option value="Damaged">Damaged</option>
+            <option value="Missing">Missing</option>
+            <option value="NeedsReplacement">Needs Replacement</option>
+            <option value="Retired">Retired</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <select class="form-control" @bind="_filterCompliance" @bind:after="ApplyFilters">
+            <option value="">All Compliance</option>
+            <option value="Overdue">Overdue</option>
+            <option value="DueSoon">Due Soon</option>
+            <option value="OK">Up to Date</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <select class="form-control" @bind="_filterAssignment" @bind:after="ApplyFilters">
+            <option value="">All</option>
+            <option value="assigned">Assigned</option>
+            <option value="available">Available</option>
+        </select>
+    </div>
+</div>
+
+@* ── Type filter pills ── *@
+<div class="sched-filter-pills" style="margin-bottom: var(--spacing-md);">
+    <button class="sched-pill @(_filterTypeId == null ? "active" : "")"
+            @onclick="() => { _filterTypeId = null; ApplyFilters(); }">
+        All Types
+    </button>
+    @foreach (var t in _equipTypes)
+    {
+        var typeId = t.Id;
+        <button class="sched-pill @(_filterTypeId == typeId ? "active" : "")"
+                @onclick="() => { _filterTypeId = typeId; ApplyFilters(); }">
+            @t.Name
+        </button>
+    }
+</div>
+
+@* ── Main Inventory Table ── *@
+@if (_filteredEquipment is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <div class="section-card ov-fadeIn">
+        <div class="section-header">
+            <h2>Equipment <span class="text-muted">(@_filteredEquipment.Count items)</span></h2>
+        </div>
+
+        @if (!_filteredEquipment.Any())
+        {
+            <div class="empty-state" style="padding: var(--spacing-xl);">
+                <p>No equipment matches your filters.</p>
+            </div>
+        }
+        else
+        {
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px;">
+                            <input type="checkbox" @onchange="ToggleSelectAll"
+                                   checked="@(_selectedIds.Count == _filteredEquipment.Count && _filteredEquipment.Any())" />
+                        </th>
+                        <th style="width:30px;"></th>
+                        <th>Identifier</th>
+                        <th>Type</th>
+                        <th>Size</th>
+                        <th>Serial</th>
+                        <th>Location</th>
+                        <th>Compliance</th>
+                        <th style="width:120px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var eq in _filteredEquipment)
+                    {
+                        <tr class="@(eq.OverdueChecks > 0 ? "row-alert" : "")"
+                            style="cursor:pointer;" @onclick="() => OpenDetail(eq.Id)">
+                            <td @onclick:stopPropagation>
+                                <input type="checkbox" checked="@_selectedIds.Contains(eq.Id)"
+                                       @onchange="() => ToggleSelect(eq.Id)" />
+                            </td>
+                            <td>
+                                <span class="inv-status-dot @StatusDotClass(eq.Status)"
+                                      title="@FormatStatus(eq.Status)"></span>
+                            </td>
+                            <td><strong>@eq.Identifier</strong></td>
+                            <td>
+                                @eq.EquipmentTypeName
+                                @if (eq.SubTypeName != null)
+                                {
+                                    <span class="text-muted"> / @eq.SubTypeName</span>
+                                }
+                            </td>
+                            <td>@(eq.Size ?? "-")</td>
+                            <td>@(eq.SerialNumber ?? "-")</td>
+                            <td>
+                                @if (eq.SectionId.HasValue)
+                                {
+                                    <span>@eq.CompanyName / @eq.PlantName / @eq.SectionName</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Available</span>
+                                }
+                            </td>
+                            <td>
+                                @if (eq.TotalChecks == 0)
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                                else if (eq.OverdueChecks > 0)
+                                {
+                                    <span class="status-badge status-completedwithissues">@eq.OverdueChecks Overdue</span>
+                                }
+                                else if (eq.DueSoonChecks > 0)
+                                {
+                                    <span class="status-badge status-inprogress">@eq.DueSoonChecks Due Soon</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-completed">OK</span>
+                                }
+                            </td>
+                            <td @onclick:stopPropagation>
+                                @if (eq.SectionId.HasValue)
+                                {
+                                    <button class="btn btn-xs btn-secondary" @onclick="() => StartUnassign(eq)" title="Unassign">
+                                        <i class="fa-light fa-link-slash"></i>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-xs btn-primary" @onclick="() => StartAssign(eq)" title="Assign">
+                                        <i class="fa-light fa-link"></i>
+                                    </button>
+                                }
+                                <button class="btn btn-xs btn-secondary" @onclick="() => OpenDetail(eq.Id)" title="Details">
+                                    <i class="fa-light fa-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@* ── Add to Inventory Modal ── *@
 @if (_showAdd)
 {
     <div class="modal-overlay" @onclick="() => _showAdd = false">
-        <div class="modal" @onclick:stopPropagation>
-            <h2>Add Equipment to Inventory</h2>
+        <div class="modal modal-wide" @onclick:stopPropagation>
+            <h2><i class="fa-light fa-plus-circle"></i> Add Equipment to Inventory</h2>
             <EditForm Model="_addModel" OnValidSubmit="AddEquipment">
-                <div class="form-group">
-                    <label>Equipment Type</label>
-                    <select class="form-control" @onchange="OnAddTypeChanged">
-                        <option value="">— Select type —</option>
-                        @foreach (var t in _equipTypes)
-                        {
-                            <option value="@t.Id">@t.Name</option>
-                        }
-                    </select>
-                </div>
-                @if (_addSubTypes.Any())
-                {
+                <div class="form-row">
                     <div class="form-group">
-                        <label>Sub-Type</label>
-                        <select class="form-control" @bind="_addModel.EquipmentSubTypeId">
-                            <option value="">— None —</option>
-                            @foreach (var st in _addSubTypes)
+                        <label>Equipment Type</label>
+                        <select class="form-control" @onchange="OnAddTypeChanged">
+                            <option value="">-- Select type --</option>
+                            @foreach (var t in _equipTypes)
                             {
-                                <option value="@st.Id">@st.Name</option>
+                                <option value="@t.Id">@t.Name</option>
                             }
                         </select>
                     </div>
-                }
-                <div class="form-group">
-                    <label>Identifier</label>
-                    <InputText @bind-Value="_addModel.Identifier" class="form-control" placeholder="e.g. FE-001" />
+                    @if (_addSubTypes.Any())
+                    {
+                        <div class="form-group">
+                            <label>Sub-Type</label>
+                            <select class="form-control" @bind="_addModel.EquipmentSubTypeId" @bind:after="OnAddSubTypeChanged">
+                                <option value="">-- None --</option>
+                                @foreach (var st in _addSubTypes)
+                                {
+                                    <option value="@st.Id">@st.Name</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Identifier Prefix</label>
+                        <InputText @bind-Value="_addModel.IdentifierPrefix" class="form-control" placeholder="e.g. FE" />
+                        <small class="text-muted">Items will be numbered: FE-001, FE-002, ...</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantity</label>
+                        <InputNumber @bind-Value="_addModel.Quantity" class="form-control" min="1" max="100" />
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Description</label>
@@ -71,10 +295,65 @@
                     <div class="form-group">
                         <label>Serial Number</label>
                         <InputText @bind-Value="_addModel.SerialNumber" class="form-control" />
+                        @if (_addModel.Quantity > 1)
+                        {
+                            <small class="text-muted">Only applies for single items</small>
+                        }
                     </div>
                 </div>
+                <div class="form-group">
+                    <label>Initial Status</label>
+                    <select class="form-control" @bind="_addModel.StatusStr">
+                        <option value="InService">In Service</option>
+                        <option value="OutOfService">Out of Service</option>
+                        <option value="Damaged">Damaged</option>
+                        <option value="Missing">Missing</option>
+                        <option value="NeedsReplacement">Needs Replacement</option>
+                        <option value="Retired">Retired</option>
+                    </select>
+                </div>
+
+                @* Compliance checks section *@
+                @if (_addApplicableChecks.Any())
+                {
+                    <div class="section-card" style="margin-top: var(--spacing-md); padding: var(--spacing-md);">
+                        <h3 style="margin-bottom: var(--spacing-sm);">
+                            <i class="fa-light fa-calendar-check"></i> Compliance Check Dates
+                        </h3>
+                        <p class="text-muted" style="font-size: 0.8rem; margin-bottom: var(--spacing-sm);">
+                            Set initial dates for compliance checks. Leave blank to set later.
+                        </p>
+                        <table class="data-table" style="margin-top:var(--spacing-xs);">
+                            <thead>
+                                <tr>
+                                    <th>Check</th>
+                                    <th>Interval</th>
+                                    <th style="width:180px;">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var check in _addApplicableChecks)
+                                {
+                                    <tr>
+                                        <td><strong>@check.Name</strong>@if (check.EquipmentSubTypeName != null) { <span class="text-muted"> (@check.EquipmentSubTypeName)</span> }</td>
+                                        <td>@(check.IntervalMonths.HasValue ? $"{check.IntervalMonths} months" : "One-time")</td>
+                                        <td>
+                                            <input type="date" class="form-control" style="font-size:0.85rem;"
+                                                   value="@(_addCheckDates.GetValueOrDefault(check.Id)?.ToString("yyyy-MM-dd") ?? "")"
+                                                   @onchange="e => SetAddCheckDate(check.Id, e)" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
                 <div class="form-actions">
-                    <button type="submit" class="btn btn-primary" disabled="@(_addModel.EquipmentTypeId == 0)">Add</button>
+                    <button type="submit" class="btn btn-primary"
+                            disabled="@(_addModel.EquipmentTypeId == 0 || string.IsNullOrWhiteSpace(_addModel.IdentifierPrefix))">
+                        <i class="fa-light fa-plus"></i> Add @(_addModel.Quantity > 1 ? $"{_addModel.Quantity} Items" : "Item")
+                    </button>
                     <button type="button" class="btn btn-secondary" @onclick="() => _showAdd = false">Cancel</button>
                 </div>
             </EditForm>
@@ -82,18 +361,139 @@
     </div>
 }
 
-@* ── Assign modal (Company → Plant → Section drill-down) ── *@
-@if (_assignEquipmentId.HasValue)
+@* ── Equipment Detail Modal ── *@
+@if (_detailEquipment is not null)
 {
-    <div class="modal-overlay" @onclick="() => _assignEquipmentId = null">
+    <div class="modal-overlay" @onclick="CloseDetail">
+        <div class="modal modal-wide" @onclick:stopPropagation>
+            <h2><i class="fa-light fa-clipboard-list"></i> @_detailEquipment.Identifier</h2>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Type</label>
+                    <p>@_detailEquipment.EquipmentTypeName@(_detailEquipment.SubTypeName != null ? $" / {_detailEquipment.SubTypeName}" : "")</p>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select class="form-control" value="@_detailEquipment.Status" @onchange="OnDetailStatusChanged">
+                        <option value="InService">In Service</option>
+                        <option value="OutOfService">Out of Service</option>
+                        <option value="Damaged">Damaged</option>
+                        <option value="Missing">Missing</option>
+                        <option value="NeedsReplacement">Needs Replacement</option>
+                        <option value="Retired">Retired</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Size</label><p>@(_detailEquipment.Size ?? "-")</p></div>
+                <div class="form-group"><label>Serial</label><p>@(_detailEquipment.SerialNumber ?? "-")</p></div>
+                <div class="form-group"><label>Description</label><p>@(_detailEquipment.Description ?? "-")</p></div>
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                @if (_detailEquipment.SectionId.HasValue)
+                {
+                    <p>
+                        @_detailEquipment.CompanyName / @_detailEquipment.PlantName / @_detailEquipment.SectionName
+                        <button class="btn btn-xs btn-secondary" style="margin-left:8px;" @onclick="DetailUnassign">
+                            <i class="fa-light fa-link-slash"></i> Unassign
+                        </button>
+                    </p>
+                }
+                else
+                {
+                    <p>
+                        <span class="text-muted">Available in pool</span>
+                        <button class="btn btn-xs btn-primary" style="margin-left:8px;" @onclick="DetailAssign">
+                            <i class="fa-light fa-link"></i> Assign
+                        </button>
+                    </p>
+                }
+            </div>
+
+            @* Compliance Checks *@
+            <div class="section-card" style="margin-top: var(--spacing-md); padding: var(--spacing-md);">
+                <h3><i class="fa-light fa-calendar-check"></i> Compliance Checks</h3>
+                @if (!_detailEquipment.ComplianceChecks.Any())
+                {
+                    <p class="text-muted" style="margin-top:var(--spacing-sm);">No compliance checks configured for this equipment type.</p>
+                }
+                else
+                {
+                    <table class="data-table" style="margin-top: var(--spacing-sm);">
+                        <thead>
+                            <tr>
+                                <th>Check</th>
+                                <th>Interval</th>
+                                <th>Date Set</th>
+                                <th>Expiry / Due</th>
+                                <th>Status</th>
+                                <th style="width:220px;">Update</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var check in _detailEquipment.ComplianceChecks)
+                            {
+                                <tr>
+                                    <td><strong>@check.CheckName</strong></td>
+                                    <td>@(check.IntervalMonths.HasValue ? $"{check.IntervalMonths} months" : "One-time")</td>
+                                    <td>@(check.DateValue?.ToString("dd MMM yyyy") ?? "-")</td>
+                                    <td>@(check.ExpiryDate?.ToString("dd MMM yyyy") ?? "-")</td>
+                                    <td>
+                                        <span class="status-badge @ComplianceStatusClass(check.ComplianceStatus)">
+                                            @check.ComplianceStatus
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div style="display:flex; gap:4px; align-items:center;">
+                                            <input type="date" class="form-control" style="font-size:0.8rem; padding:2px 6px;"
+                                                   value="@(_detailCheckDates.GetValueOrDefault(check.CheckId)?.ToString("yyyy-MM-dd") ?? check.DateValue?.ToString("yyyy-MM-dd") ?? "")"
+                                                   @onchange="e => SetDetailCheckDate(check.CheckId, e)" />
+                                            <button class="btn btn-xs btn-primary" @onclick="() => SaveDetailCheckRecord(check.CheckId)"
+                                                    disabled="@(!_detailCheckDates.ContainsKey(check.CheckId))">
+                                                Save
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </div>
+
+            <div class="form-actions" style="margin-top: var(--spacing-lg);">
+                <button type="button" class="btn btn-secondary" @onclick="CloseDetail">Close</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Assign Modal (single or bulk) ── *@
+@if (_showAssignModal)
+{
+    <div class="modal-overlay" @onclick="() => _showAssignModal = false">
         <div class="modal" @onclick:stopPropagation>
-            <h2>Assign Equipment</h2>
-            <p>Assigning <strong>@_assignEquipmentName</strong></p>
+            <h2>
+                @if (_bulkAssignMode)
+                {
+                    <text>Assign @_selectedIds.Count Items</text>
+                }
+                else
+                {
+                    <text>Assign Equipment</text>
+                }
+            </h2>
+            @if (!_bulkAssignMode)
+            {
+                <p>Assigning <strong>@_assignEquipmentName</strong></p>
+            }
 
             <div class="form-group">
                 <label>Company</label>
                 <select class="form-control" @onchange="OnAssignCompanyChanged">
-                    <option value="">— Select company —</option>
+                    <option value="">-- Select company --</option>
                     @foreach (var c in _assignCompanies)
                     {
                         <option value="@c.Id">@c.Name</option>
@@ -106,7 +506,7 @@
                 <div class="form-group">
                     <label>Plant</label>
                     <select class="form-control" @onchange="OnAssignPlantChanged">
-                        <option value="">— Select plant —</option>
+                        <option value="">-- Select plant --</option>
                         @foreach (var p in _assignPlants)
                         {
                             <option value="@p.Id">@p.Name</option>
@@ -120,7 +520,7 @@
                 <div class="form-group">
                     <label>Section</label>
                     <select class="form-control" @bind="_assignSectionId">
-                        <option value="0">— Select section —</option>
+                        <option value="0">-- Select section --</option>
                         @foreach (var s in _assignSections)
                         {
                             <option value="@s.Id">@s.Name</option>
@@ -131,13 +531,13 @@
 
             <div class="form-actions">
                 <button class="btn btn-primary" disabled="@(_assignSectionId == 0)" @onclick="ConfirmAssign">Assign</button>
-                <button class="btn btn-secondary" @onclick="() => _assignEquipmentId = null">Cancel</button>
+                <button class="btn btn-secondary" @onclick="() => _showAssignModal = false">Cancel</button>
             </div>
         </div>
     </div>
 }
 
-@* ── Unassign confirm ── *@
+@* ── Unassign Confirm ── *@
 @if (_unassignEquipmentId.HasValue)
 {
     <div class="modal-overlay" @onclick="() => _unassignEquipmentId = null">
@@ -152,114 +552,53 @@
     </div>
 }
 
-@* ── Inventory groups ── *@
-@if (_groups is null)
-{
-    <p>Loading...</p>
-}
-else if (!_groups.Any())
-{
-    <p class="empty-state">No equipment in inventory. Add some to get started.</p>
-}
-else
-{
-    @foreach (var group in _groups)
-    {
-        <div class="section-card">
-            <div class="section-header clickable" @onclick="() => ToggleGroup(group)">
-                <h2>
-                    @group.EquipmentTypeName
-                    @if (group.SubTypeName != null)
-                    {
-                        <span class="text-muted"> — @group.SubTypeName</span>
-                    }
-                </h2>
-                <div class="card-stats">
-                    <span class="badge badge-total">@group.TotalCount Total</span>
-                    <span class="badge badge-success">@group.AssignedCount Assigned</span>
-                    <span class="badge badge-available">@group.AvailableCount Available</span>
-                </div>
-            </div>
-
-            @if (_expandedGroups.Contains(GroupKey(group)))
-            {
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Identifier</th>
-                            <th>Description</th>
-                            <th>Size</th>
-                            <th>Serial</th>
-                            <th>Location</th>
-                            <th style="width:140px"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var eq in group.Equipment)
-                        {
-                            <tr>
-                                <td>@eq.Identifier</td>
-                                <td>@(eq.Description ?? "-")</td>
-                                <td>@(eq.Size ?? "-")</td>
-                                <td>@(eq.SerialNumber ?? "-")</td>
-                                <td>
-                                    @if (eq.SectionId.HasValue)
-                                    {
-                                        <span>@eq.CompanyName / @eq.PlantName / @eq.SectionName</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted">Available</span>
-                                    }
-                                </td>
-                                <td>
-                                    @if (eq.SectionId.HasValue)
-                                    {
-                                        <button class="btn btn-xs btn-secondary" @onclick="() => StartUnassign(eq)" title="Unassign">
-                                            <i class="fa-light fa-link-slash"></i> Unassign
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <button class="btn btn-xs btn-primary" @onclick="() => StartAssign(eq)" title="Assign">
-                                            <i class="fa-light fa-link"></i> Assign
-                                        </button>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-        </div>
-    }
-}
-
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
     private string _userId = string.Empty;
 
-    private List<InventoryGroupDto>? _groups;
-    private HashSet<string> _expandedGroups = [];
-    private string _feedback      = string.Empty;
+    // Data
+    private List<InventoryEquipmentDto>? _allEquipment;
+    private List<InventoryEquipmentDto>? _filteredEquipment;
+    private InventoryStatsDto? _stats;
+    private List<EquipmentTypeDto> _equipTypes = [];
+
+    // Selection
+    private HashSet<int> _selectedIds = [];
+
+    // Filters
+    private int? _filterTypeId;
+    private string _filterStatusStr = string.Empty;
+    private string _filterCompliance = string.Empty;
+    private string _filterAssignment = string.Empty;
+    private string _searchTerm = string.Empty;
+
+    // Feedback
+    private string _feedback = string.Empty;
     private string _feedbackClass = "alert-success";
 
-    // add modal
+    // Add modal
     private bool _showAdd;
     private AddEquipmentModel _addModel = new();
-    private List<EquipmentTypeDto>    _equipTypes  = [];
     private List<EquipmentSubTypeDto> _addSubTypes = [];
+    private List<EquipmentCheckDto> _addApplicableChecks = [];
+    private Dictionary<int, DateOnly?> _addCheckDates = [];
 
-    // assign modal
-    private int?   _assignEquipmentId;
+    // Detail modal
+    private EquipmentDetailDto? _detailEquipment;
+    private Dictionary<int, DateOnly?> _detailCheckDates = [];
+
+    // Assign modal
+    private bool _showAssignModal;
+    private int? _assignEquipmentId;
     private string _assignEquipmentName = string.Empty;
-    private List<CompanyDto>  _assignCompanies = [];
-    private List<PlantDto>    _assignPlants    = [];
-    private List<SectionDto>  _assignSections  = [];
+    private bool _bulkAssignMode;
+    private List<CompanyDto> _assignCompanies = [];
+    private List<PlantDto> _assignPlants = [];
+    private List<SectionDto> _assignSections = [];
     private int _assignSectionId;
 
-    // unassign modal
-    private int?   _unassignEquipmentId;
+    // Unassign
+    private int? _unassignEquipmentId;
     private string _unassignEquipmentName = string.Empty;
 
     protected override async Task OnInitializedAsync()
@@ -269,23 +608,68 @@ else
             var state = await AuthState;
             _userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
         }
+        _equipTypes = await EquipmentService.GetEquipmentTypesAsync();
         await Reload();
     }
 
-    private async Task Reload() => _groups = await EquipmentService.GetInventoryAsync();
-
-    private string GroupKey(InventoryGroupDto g) => $"{g.EquipmentTypeId}_{g.EquipmentSubTypeId}";
-
-    private void ToggleGroup(InventoryGroupDto g)
+    private async Task Reload()
     {
-        var key = GroupKey(g);
-        if (!_expandedGroups.Remove(key))
-            _expandedGroups.Add(key);
+        // Parse filters
+        EquipmentStatus? statusFilter = null;
+        if (Enum.TryParse<EquipmentStatus>(_filterStatusStr, out var parsed))
+            statusFilter = parsed;
+
+        bool? isAssigned = _filterAssignment switch
+        {
+            "assigned" => true,
+            "available" => false,
+            _ => null
+        };
+
+        _allEquipment = await EquipmentService.GetInventoryAsync(
+            _filterTypeId, statusFilter,
+            string.IsNullOrEmpty(_filterCompliance) ? null : _filterCompliance,
+            string.IsNullOrEmpty(_searchTerm) ? null : _searchTerm,
+            isAssigned);
+
+        _filteredEquipment = _allEquipment;
+        _stats = await EquipmentService.GetInventoryStatsAsync();
+        _selectedIds.Clear();
     }
 
-    // ── Add to inventory ──
-    private async Task LoadEquipmentTypes()
-        => _equipTypes = await EquipmentService.GetEquipmentTypesAsync();
+    private async void ApplyFilters()
+    {
+        await Reload();
+        StateHasChanged();
+    }
+
+    // ── Selection ──
+
+    private void ToggleSelect(int id)
+    {
+        if (!_selectedIds.Remove(id))
+            _selectedIds.Add(id);
+    }
+
+    private void ToggleSelectAll(ChangeEventArgs e)
+    {
+        if (_filteredEquipment is null) return;
+        if (e.Value is true)
+            _selectedIds = _filteredEquipment.Select(eq => eq.Id).ToHashSet();
+        else
+            _selectedIds.Clear();
+    }
+
+    // ── Add to Inventory ──
+
+    private void OpenAddModal()
+    {
+        _showAdd = true;
+        _addModel = new();
+        _addSubTypes = [];
+        _addApplicableChecks = [];
+        _addCheckDates = [];
+    }
 
     private async Task OnAddTypeChanged(ChangeEventArgs e)
     {
@@ -294,61 +678,199 @@ else
         _addSubTypes = _addModel.EquipmentTypeId > 0
             ? await EquipmentService.GetSubTypesByTypeAsync(_addModel.EquipmentTypeId)
             : [];
+        await LoadAddApplicableChecks();
+    }
+
+    private async Task OnAddSubTypeChanged()
+    {
+        await LoadAddApplicableChecks();
+    }
+
+    private async Task LoadAddApplicableChecks()
+    {
+        if (_addModel.EquipmentTypeId > 0)
+        {
+            _addApplicableChecks = await EquipmentService.GetApplicableChecksAsync(
+                _addModel.EquipmentTypeId, _addModel.EquipmentSubTypeId);
+            _addCheckDates = [];
+        }
+        else
+        {
+            _addApplicableChecks = [];
+            _addCheckDates = [];
+        }
+    }
+
+    private void SetAddCheckDate(int checkId, ChangeEventArgs e)
+    {
+        if (DateOnly.TryParse(e.Value?.ToString(), out var date))
+            _addCheckDates[checkId] = date;
+        else
+            _addCheckDates.Remove(checkId);
     }
 
     private async Task AddEquipment()
     {
-        await EquipmentService.CreateInventoryEquipmentAsync(
+        var status = Enum.TryParse<EquipmentStatus>(_addModel.StatusStr, out var s) ? s : EquipmentStatus.InService;
+
+        var created = await EquipmentService.CreateInventoryEquipmentBulkAsync(
             new EquipmentInventoryCreateDto(
                 _addModel.EquipmentTypeId, _addModel.EquipmentSubTypeId,
-                _addModel.Identifier, _addModel.Description,
-                _addModel.Size, _addModel.SerialNumber),
+                _addModel.IdentifierPrefix, _addModel.Quantity,
+                _addModel.Description, _addModel.Size, _addModel.SerialNumber,
+                status),
             _userId);
+
+        // Save compliance check dates for each created item
+        var checkDatesToSave = _addCheckDates
+            .Where(kv => kv.Value.HasValue)
+            .Select(kv => new EquipmentCheckRecordUpsertDto(0, kv.Key, kv.Value!.Value, null))
+            .ToList();
+
+        if (checkDatesToSave.Any())
+        {
+            foreach (var eq in created)
+            {
+                await EquipmentService.BulkUpsertCheckRecordsAsync(eq.Id, checkDatesToSave, _userId);
+            }
+        }
+
         _showAdd = false;
         await Reload();
-        ShowFeedback("Equipment added to inventory.", true);
+        ShowFeedback($"{created.Count} item{(created.Count > 1 ? "s" : "")} added to inventory.", true);
+    }
+
+    // ── Detail Modal ──
+
+    private async Task OpenDetail(int equipmentId)
+    {
+        _detailEquipment = await EquipmentService.GetEquipmentDetailAsync(equipmentId);
+        _detailCheckDates = [];
+    }
+
+    private void CloseDetail() => _detailEquipment = null;
+
+    private async Task OnDetailStatusChanged(ChangeEventArgs e)
+    {
+        if (_detailEquipment is null) return;
+        if (Enum.TryParse<EquipmentStatus>(e.Value?.ToString(), out var newStatus))
+        {
+            await EquipmentService.UpdateEquipmentStatusAsync(
+                new EquipmentStatusUpdateDto(_detailEquipment.Id, newStatus, null), _userId);
+            _detailEquipment = await EquipmentService.GetEquipmentDetailAsync(_detailEquipment.Id);
+            await Reload();
+        }
+    }
+
+    private void SetDetailCheckDate(int checkId, ChangeEventArgs e)
+    {
+        if (DateOnly.TryParse(e.Value?.ToString(), out var date))
+            _detailCheckDates[checkId] = date;
+        else
+            _detailCheckDates.Remove(checkId);
+    }
+
+    private async Task SaveDetailCheckRecord(int checkId)
+    {
+        if (_detailEquipment is null || !_detailCheckDates.TryGetValue(checkId, out var date) || !date.HasValue) return;
+
+        await EquipmentService.UpsertCheckRecordAsync(
+            new EquipmentCheckRecordUpsertDto(_detailEquipment.Id, checkId, date.Value, null), _userId);
+
+        _detailCheckDates.Remove(checkId);
+        _detailEquipment = await EquipmentService.GetEquipmentDetailAsync(_detailEquipment.Id);
+        await Reload();
+    }
+
+    private async Task DetailAssign()
+    {
+        if (_detailEquipment is null) return;
+        _assignEquipmentId = _detailEquipment.Id;
+        _assignEquipmentName = _detailEquipment.Identifier;
+        _bulkAssignMode = false;
+        _assignCompanies = await CompanyService.GetAllCompaniesAsync();
+        _assignPlants = [];
+        _assignSections = [];
+        _assignSectionId = 0;
+        _showAssignModal = true;
+        CloseDetail();
+    }
+
+    private async Task DetailUnassign()
+    {
+        if (_detailEquipment is null) return;
+        await EquipmentService.UnassignEquipmentAsync(
+            new UnassignEquipmentDto(_detailEquipment.Id), _userId);
+        _detailEquipment = await EquipmentService.GetEquipmentDetailAsync(_detailEquipment.Id);
+        await Reload();
+        ShowFeedback("Equipment returned to inventory pool.", true);
     }
 
     // ── Assign ──
+
     private async Task StartAssign(InventoryEquipmentDto eq)
     {
-        _assignEquipmentId   = eq.Id;
+        _assignEquipmentId = eq.Id;
         _assignEquipmentName = eq.Identifier;
-        _assignCompanies     = await CompanyService.GetAllCompaniesAsync();
-        _assignPlants        = [];
-        _assignSections      = [];
-        _assignSectionId     = 0;
+        _bulkAssignMode = false;
+        _assignCompanies = await CompanyService.GetAllCompaniesAsync();
+        _assignPlants = [];
+        _assignSections = [];
+        _assignSectionId = 0;
+        _showAssignModal = true;
+    }
+
+    private async Task OpenBulkAssignModal()
+    {
+        _bulkAssignMode = true;
+        _assignEquipmentId = null;
+        _assignCompanies = await CompanyService.GetAllCompaniesAsync();
+        _assignPlants = [];
+        _assignSections = [];
+        _assignSectionId = 0;
+        _showAssignModal = true;
     }
 
     private async Task OnAssignCompanyChanged(ChangeEventArgs e)
     {
         var companyId = int.TryParse(e.Value?.ToString(), out var id) ? id : 0;
-        _assignPlants    = companyId > 0 ? await PlantService.GetPlantsByCompanyAsync(companyId) : [];
-        _assignSections  = [];
+        _assignPlants = companyId > 0 ? await PlantService.GetPlantsByCompanyAsync(companyId) : [];
+        _assignSections = [];
         _assignSectionId = 0;
     }
 
     private async Task OnAssignPlantChanged(ChangeEventArgs e)
     {
         var plantId = int.TryParse(e.Value?.ToString(), out var id) ? id : 0;
-        _assignSections  = plantId > 0 ? await SectionService.GetSectionsByPlantAsync(plantId) : [];
+        _assignSections = plantId > 0 ? await SectionService.GetSectionsByPlantAsync(plantId) : [];
         _assignSectionId = 0;
     }
 
     private async Task ConfirmAssign()
     {
-        if (!_assignEquipmentId.HasValue || _assignSectionId == 0) return;
-        await EquipmentService.AssignEquipmentAsync(
-            new AssignEquipmentDto(_assignEquipmentId.Value, _assignSectionId), _userId);
-        _assignEquipmentId = null;
+        if (_assignSectionId == 0) return;
+
+        if (_bulkAssignMode)
+        {
+            await EquipmentService.BulkAssignEquipmentAsync(_selectedIds.ToList(), _assignSectionId, _userId);
+            ShowFeedback($"{_selectedIds.Count} items assigned.", true);
+        }
+        else if (_assignEquipmentId.HasValue)
+        {
+            await EquipmentService.AssignEquipmentAsync(
+                new AssignEquipmentDto(_assignEquipmentId.Value, _assignSectionId), _userId);
+            ShowFeedback("Equipment assigned.", true);
+        }
+
+        _showAssignModal = false;
         await Reload();
-        ShowFeedback("Equipment assigned.", true);
     }
 
     // ── Unassign ──
+
     private void StartUnassign(InventoryEquipmentDto eq)
     {
-        _unassignEquipmentId   = eq.Id;
+        _unassignEquipmentId = eq.Id;
         _unassignEquipmentName = eq.Identifier;
     }
 
@@ -359,22 +881,57 @@ else
             new UnassignEquipmentDto(_unassignEquipmentId.Value), _userId);
         _unassignEquipmentId = null;
         await Reload();
-        ShowFeedback("Equipment returned to inventory.", true);
+        ShowFeedback("Equipment returned to inventory pool.", true);
     }
+
+    // ── Helpers ──
 
     private void ShowFeedback(string msg, bool success)
     {
-        _feedback      = msg;
+        _feedback = msg;
         _feedbackClass = success ? "alert-success" : "alert-danger";
     }
 
+    private static string FormatStatus(EquipmentStatus s) => s switch
+    {
+        EquipmentStatus.InService => "In Service",
+        EquipmentStatus.OutOfService => "Out of Service",
+        EquipmentStatus.Damaged => "Damaged",
+        EquipmentStatus.Missing => "Missing",
+        EquipmentStatus.NeedsReplacement => "Needs Replacement",
+        EquipmentStatus.Retired => "Retired",
+        _ => s.ToString()
+    };
+
+    private static string StatusDotClass(EquipmentStatus s) => s switch
+    {
+        EquipmentStatus.InService => "dot-green",
+        EquipmentStatus.Damaged => "dot-red",
+        EquipmentStatus.Missing => "dot-orange",
+        EquipmentStatus.NeedsReplacement => "dot-amber",
+        EquipmentStatus.OutOfService => "dot-gray",
+        EquipmentStatus.Retired => "dot-gray",
+        _ => "dot-gray"
+    };
+
+    private static string ComplianceStatusClass(string status) => status switch
+    {
+        "OK" => "status-completed",
+        "Due Soon" => "status-inprogress",
+        "Overdue" => "status-completedwithissues",
+        "Not Set" => "status-draft",
+        _ => "status-draft"
+    };
+
     private class AddEquipmentModel
     {
-        public int    EquipmentTypeId    { get; set; }
-        public int?   EquipmentSubTypeId { get; set; }
-        public string Identifier         { get; set; } = string.Empty;
-        public string? Description       { get; set; }
-        public string? Size              { get; set; }
-        public string? SerialNumber      { get; set; }
+        public int EquipmentTypeId { get; set; }
+        public int? EquipmentSubTypeId { get; set; }
+        public string IdentifierPrefix { get; set; } = string.Empty;
+        public int Quantity { get; set; } = 1;
+        public string? Description { get; set; }
+        public string? Size { get; set; }
+        public string? SerialNumber { get; set; }
+        public string StatusStr { get; set; } = "InService";
     }
 }

@@ -7654,6 +7654,47 @@ textarea.form-control {
     margin-left: 2px;
 }
 
+/* ===== Inventory Status Dots ===== */
+.inv-status-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.inv-status-dot.dot-green { background: var(--color-success); }
+.inv-status-dot.dot-red { background: var(--color-danger); }
+.inv-status-dot.dot-orange { background: #ea580c; }
+.inv-status-dot.dot-amber { background: var(--color-warning); }
+.inv-status-dot.dot-gray { background: var(--color-text-muted); }
+
+/* Row alert highlight for overdue compliance */
+.data-table tbody tr.row-alert { background: var(--color-tint-red); }
+.data-table tbody tr.row-alert:hover { background: #fde8e8; }
+[data-theme="dark"] .data-table tbody tr.row-alert { background: rgba(220, 38, 38, 0.08); }
+[data-theme="dark"] .data-table tbody tr.row-alert:hover { background: rgba(220, 38, 38, 0.14); }
+
+/* Checkbox in table header/rows */
+.data-table th input[type="checkbox"],
+.data-table td input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+}
+
+/* Inventory filter bar */
+.inv-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    align-items: end;
+    margin-bottom: var(--spacing-md);
+}
+.inv-filter-bar .form-group { margin-bottom: 0; }
+.inv-filter-bar .form-control { min-width: 160px; }
+.inv-filter-bar .search-input { flex: 1; min-width: 220px; max-width: 360px; }
+
 /* ── Responsive ── */
 @media (max-width: 600px) {
     .upload-zone__preview { height: 120px; }

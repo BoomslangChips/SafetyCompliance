@@ -1,4 +1,5 @@
 using SafetyCompliance.Application.DTOs;
+using SafetyCompliance.Domain.Entities;
 
 namespace SafetyCompliance.Application.Interfaces;
 
@@ -26,19 +27,27 @@ public interface IEquipmentService
     Task<DeleteResult> DeleteOrDeactivateChecklistTemplateAsync(int id, CancellationToken ct = default);
 
     // ── Inventory ──
-    Task<List<InventoryGroupDto>> GetInventoryAsync(CancellationToken ct = default);
-    Task<EquipmentDto> CreateInventoryEquipmentAsync(EquipmentInventoryCreateDto dto, string userId, CancellationToken ct = default);
+    Task<List<InventoryEquipmentDto>> GetInventoryAsync(
+        int? equipmentTypeId = null, EquipmentStatus? status = null,
+        string? complianceFilter = null, string? searchTerm = null,
+        bool? isAssigned = null, CancellationToken ct = default);
+    Task<InventoryStatsDto> GetInventoryStatsAsync(CancellationToken ct = default);
+    Task<EquipmentDetailDto?> GetEquipmentDetailAsync(int equipmentId, CancellationToken ct = default);
+    Task<List<EquipmentDto>> CreateInventoryEquipmentBulkAsync(EquipmentInventoryCreateDto dto, string userId, CancellationToken ct = default);
     Task AssignEquipmentAsync(AssignEquipmentDto dto, string userId, CancellationToken ct = default);
     Task UnassignEquipmentAsync(UnassignEquipmentDto dto, string userId, CancellationToken ct = default);
     Task BulkAssignEquipmentAsync(List<int> equipmentIds, int sectionId, string userId, CancellationToken ct = default);
+    Task UpdateEquipmentStatusAsync(EquipmentStatusUpdateDto dto, string userId, CancellationToken ct = default);
 
     // ── Equipment Check Templates ──
     Task<List<EquipmentCheckDto>> GetEquipmentChecksAsync(int equipmentTypeId, bool includeInactive = false, CancellationToken ct = default);
     Task<EquipmentCheckDto> CreateEquipmentCheckAsync(EquipmentCheckCreateDto dto, CancellationToken ct = default);
     Task UpdateEquipmentCheckAsync(EquipmentCheckUpdateDto dto, CancellationToken ct = default);
     Task<DeleteResult> DeleteOrDeactivateEquipmentCheckAsync(int id, CancellationToken ct = default);
+    Task<List<EquipmentCheckDto>> GetApplicableChecksAsync(int equipmentTypeId, int? equipmentSubTypeId = null, CancellationToken ct = default);
 
     // ── Check Records ──
     Task<List<EquipmentCheckRecordDto>> GetCheckRecordsAsync(int equipmentId, CancellationToken ct = default);
     Task<EquipmentCheckRecordDto> UpsertCheckRecordAsync(EquipmentCheckRecordUpsertDto dto, string userId, CancellationToken ct = default);
+    Task BulkUpsertCheckRecordsAsync(int equipmentId, List<EquipmentCheckRecordUpsertDto> records, string userId, CancellationToken ct = default);
 }

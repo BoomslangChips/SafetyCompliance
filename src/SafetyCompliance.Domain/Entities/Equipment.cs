@@ -15,6 +15,7 @@ public class Equipment : AuditableEntity
     public DateOnly? LastServiceDate { get; set; }
     public DateOnly? NextServiceDate { get; set; }
     public int SortOrder { get; set; }
+    public EquipmentStatus Status { get; set; } = EquipmentStatus.InService;
     public bool IsActive { get; set; } = true;
 
     public Section? Section { get; set; }
@@ -23,4 +24,14 @@ public class Equipment : AuditableEntity
     public ICollection<EquipmentInspection> EquipmentInspections { get; set; } = [];
     public ICollection<ServiceBooking> ServiceBookings { get; set; } = [];
     public ICollection<EquipmentCheckRecord> CheckRecords { get; set; } = [];
+}
+
+public enum EquipmentStatus : byte
+{
+    InService = 0,
+    OutOfService = 1,
+    Damaged = 2,
+    Missing = 3,
+    NeedsReplacement = 4,
+    Retired = 5
 }
