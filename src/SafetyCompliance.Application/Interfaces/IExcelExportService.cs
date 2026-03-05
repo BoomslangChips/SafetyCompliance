@@ -20,4 +20,11 @@ public interface IExcelExportService
     /// <param name="report">The fully-populated monthly report DTO.</param>
     /// <returns>Raw bytes of the .xlsx file.</returns>
     byte[] ExportMonthlyReport(MonthlyReportDto report);
+
+    /// <summary>
+    /// Exports equipment inventory data to a single-sheet workbook.
+    /// </summary>
+    /// <param name="equipment">The list of inventory equipment items.</param>
+    /// <returns>Raw bytes of the .xlsx file.</returns>
+    byte[] ExportInventory(List<InventoryEquipmentDto> equipment);
 }

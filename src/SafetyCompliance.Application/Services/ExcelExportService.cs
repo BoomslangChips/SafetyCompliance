@@ -565,6 +565,134 @@ public class ExcelExportService : IExcelExportService
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
+    //  INVENTORY EXPORT — one sheet, one row per equipment item
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    public byte[] ExportInventory(List<InventoryEquipmentDto> equipment)
+    {
+        using var wb = new XLWorkbook();
+        var ws = wb.Worksheets.Add("Equipment Inventory");
+
+        // ── Title band ──
+        ws.Cell(1, 1).Value = $"Equipment Inventory Report — {DateTime.Today:dd MMMM yyyy}";
+        ws.Range(1, 1, 1, 12).Merge();
+        StyleTitleRow(ws.Row(1), AccentFill);
+        ws.Row(1).Height = 22;
+
+        // ── Column headers (row 2) ──
+        var headers = new[]
+        {
+            "Identifier", "Type", "Sub-Type", "Size", "Serial Number",
+            "Status", "Company", "Plant", "Section",
+            "Compliance", "Overdue Checks", "Due Soon Checks"
+        };
+        for (int c = 0; c < headers.Length; c++)
+            ws.Cell(2, c + 1).Value = headers[c];
+        StyleHeaderRow(ws.Row(2));
+        ws.SheetView.FreezeRows(2);
+
+        // ── Data rows (from row 3) ──
+        int row = 3;
+        foreach (var eq in equipment)
+        {
+            ws.Cell(row, 1).Value  = eq.Identifier;
+            ws.Cell(row, 2).Value  = eq.EquipmentTypeName;
+            ws.Cell(row, 3).Value  = eq.SubTypeName ?? "—";
+            ws.Cell(row, 4).Value  = eq.Size ?? "—";
+            ws.Cell(row, 5).Value  = eq.SerialNumber ?? "—";
+            ws.Cell(row, 6).Value  = FormatEquipmentStatus(eq.Status);
+            ws.Cell(row, 7).Value  = eq.CompanyName ?? "—";
+            ws.Cell(row, 8).Value  = eq.PlantName ?? "—";
+            ws.Cell(row, 9).Value  = eq.SectionName ?? "Unassigned";
+            ws.Cell(row, 10).Value = eq.TotalChecks == 0 ? "N/A"
+                : eq.OverdueChecks > 0 ? "Overdue"
+                : eq.DueSoonChecks > 0 ? "Due Soon"
+                : "OK";
+            ws.Cell(row, 11).Value = eq.OverdueChecks;
+            ws.Cell(row, 12).Value = eq.DueSoonChecks;
+
+            // Status colour
+            ws.Cell(row, 6).Style.Fill.BackgroundColor = eq.Status switch
+            {
+                Domain.Entities.EquipmentStatus.InService => GreenFill,
+                Domain.Entities.EquipmentStatus.Damaged or Domain.Entities.EquipmentStatus.Missing => RedFill,
+                Domain.Entities.EquipmentStatus.NeedsReplacement => AmberFill,
+                Domain.Entities.EquipmentStatus.OutOfService or Domain.Entities.EquipmentStatus.Retired => HeaderFill,
+                _ => XLColor.NoColor
+            };
+
+            // Compliance colour
+            if (eq.OverdueChecks > 0)
+            {
+                ws.Cell(row, 10).Style.Fill.BackgroundColor = RedFill;
+                ws.Cell(row, 10).Style.Font.FontColor = RedFont;
+                ws.Cell(row, 11).Style.Fill.BackgroundColor = RedFill;
+            }
+            else if (eq.DueSoonChecks > 0)
+            {
+                ws.Cell(row, 10).Style.Fill.BackgroundColor = AmberFill;
+                ws.Cell(row, 10).Style.Font.FontColor = AmberFont;
+            }
+            else if (eq.TotalChecks > 0)
+            {
+                ws.Cell(row, 10).Style.Fill.BackgroundColor = GreenFill;
+                ws.Cell(row, 10).Style.Font.FontColor = GreenFont;
+            }
+
+            // Unassigned row — subtle gray
+            if (!eq.SectionId.HasValue)
+                ws.Cell(row, 9).Style.Font.FontColor = XLColor.FromHtml("#999999");
+
+            row++;
+        }
+
+        // ── Summary row ──
+        if (equipment.Count > 0)
+        {
+            ws.Cell(row, 1).Value = $"TOTAL: {equipment.Count} items";
+            ws.Cell(row, 1).Style.Font.Bold = true;
+            ws.Cell(row, 9).Value  = $"{equipment.Count(e => !e.SectionId.HasValue)} unassigned";
+            ws.Cell(row, 11).Value = equipment.Sum(e => e.OverdueChecks);
+            ws.Cell(row, 12).Value = equipment.Sum(e => e.DueSoonChecks);
+            ws.Range(row, 1, row, 12).Style.Fill.BackgroundColor = HeaderFill;
+            ws.Range(row, 1, row, 12).Style.Font.Bold = true;
+
+            if (equipment.Sum(e => e.OverdueChecks) > 0)
+            {
+                ws.Cell(row, 11).Style.Fill.BackgroundColor = RedFill;
+                ws.Cell(row, 11).Style.Font.FontColor = RedFont;
+            }
+        }
+
+        // ── Auto-fit and borders ──
+        ws.Columns().AdjustToContents();
+        for (int c = 1; c <= 12; c++)
+            if (ws.Column(c).Width > 40) ws.Column(c).Width = 40;
+
+        var dataRange = ws.Range(2, 1, row, 12);
+        dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Hair;
+        dataRange.Style.Border.OutsideBorderColor = XLColor.FromHtml("#AAAAAA");
+        dataRange.Style.Border.InsideBorderColor = XLColor.FromHtml("#DDDDDD");
+
+        // Serial number as text (prevent Excel interpreting as number)
+        ws.Column(5).Style.NumberFormat.Format = "@";
+
+        return ToBytes(wb);
+    }
+
+    private static string FormatEquipmentStatus(Domain.Entities.EquipmentStatus s) => s switch
+    {
+        Domain.Entities.EquipmentStatus.InService => "In Service",
+        Domain.Entities.EquipmentStatus.OutOfService => "Out of Service",
+        Domain.Entities.EquipmentStatus.Damaged => "Damaged",
+        Domain.Entities.EquipmentStatus.Missing => "Missing",
+        Domain.Entities.EquipmentStatus.NeedsReplacement => "Needs Replacement",
+        Domain.Entities.EquipmentStatus.Retired => "Retired",
+        _ => s.ToString()
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
     //  HELPERS
     // ═══════════════════════════════════════════════════════════════════════════
 

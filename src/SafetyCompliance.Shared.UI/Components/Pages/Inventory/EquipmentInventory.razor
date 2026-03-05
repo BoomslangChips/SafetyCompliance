@@ -4,6 +4,8 @@
 @inject ICompanyService CompanyService
 @inject IPlantService PlantService
 @inject ISectionService SectionService
+@inject IExcelExportService ExcelExportService
+@inject IJSRuntime JS
 
 <div class="page-header">
     <div class="page-header-left">
@@ -20,6 +22,9 @@
                 <i class="fa-light fa-link"></i> Assign Selected (@_selectedIds.Count)
             </button>
         }
+        <button class="btn btn-secondary" @onclick="ExportInventoryExcel" disabled="@(_filteredEquipment is null || !_filteredEquipment.Any())">
+            <i class="fa-light fa-file-excel"></i> Export
+        </button>
         <button class="btn btn-primary" @onclick="OpenAddModal">
             <i class="fa-light fa-plus"></i> Add to Inventory
         </button>
@@ -35,28 +40,32 @@
 @if (_stats is not null)
 {
     <div class="cal-stats ov-fadeIn">
-        <div class="cal-stat">
+        <div class="cal-stat @(_activeStatCard == "total" ? "active active-blue" : "")"
+             @onclick='() => ToggleStatFilter("total")'>
             <div class="cal-stat-icon blue"><i class="fa-light fa-boxes-stacked"></i></div>
             <div class="cal-stat-info">
                 <span class="cal-stat-value">@_stats.TotalEquipment</span>
                 <span class="cal-stat-label">Total</span>
             </div>
         </div>
-        <div class="cal-stat">
+        <div class="cal-stat @(_activeStatCard == "assigned" ? "active active-green" : "")"
+             @onclick='() => ToggleStatFilter("assigned")'>
             <div class="cal-stat-icon green"><i class="fa-light fa-link"></i></div>
             <div class="cal-stat-info">
                 <span class="cal-stat-value">@_stats.AssignedCount</span>
                 <span class="cal-stat-label">Assigned</span>
             </div>
         </div>
-        <div class="cal-stat">
+        <div class="cal-stat @(_activeStatCard == "available" ? "active active-gray" : "")"
+             @onclick='() => ToggleStatFilter("available")'>
             <div class="cal-stat-icon gray"><i class="fa-light fa-inbox"></i></div>
             <div class="cal-stat-info">
                 <span class="cal-stat-value">@_stats.AvailableCount</span>
                 <span class="cal-stat-label">Available</span>
             </div>
         </div>
-        <div class="cal-stat">
+        <div class="cal-stat @(_activeStatCard == "overdue" ? "active active-red" : "")"
+             @onclick='() => ToggleStatFilter("overdue")'>
             <div class="cal-stat-icon @(_stats.OverdueComplianceCount > 0 ? "red" : "gray")">
                 <i class="fa-light fa-calendar-exclamation"></i>
             </div>
@@ -65,7 +74,8 @@
                 <span class="cal-stat-label">Overdue</span>
             </div>
         </div>
-        <div class="cal-stat">
+        <div class="cal-stat @(_activeStatCard == "damaged-missing" ? "active active-amber" : "")"
+             @onclick='() => ToggleStatFilter("damaged-missing")'>
             <div class="cal-stat-icon @(_stats.DamagedCount + _stats.MissingCount > 0 ? "amber" : "gray")">
                 <i class="fa-light fa-triangle-exclamation"></i>
             </div>
@@ -105,8 +115,38 @@
     <div class="form-group">
         <select class="form-control" @bind="_filterAssignment" @bind:after="ApplyFilters">
             <option value="">All</option>
-            <option value="assigned">Assigned</option>
-            <option value="available">Available</option>
+            <option value="assigned">Assigned@(_stats is not null ? $" ({_stats.AssignedCount})" : "")</option>
+            <option value="available">Available@(_stats is not null ? $" ({_stats.AvailableCount})" : "")</option>
+        </select>
+    </div>
+</div>
+@* ── Location Filters ── *@
+<div class="inv-filter-bar ov-fadeIn" style="margin-top: calc(var(--spacing-sm) * -1);">
+    <div class="form-group">
+        <select class="form-control" @onchange="OnFilterCompanyChanged">
+            <option value="">All Companies</option>
+            @foreach (var c in _filterCompanies)
+            {
+                <option value="@c.Id" selected="@(_filterCompanyId == c.Id)">@c.Name</option>
+            }
+        </select>
+    </div>
+    <div class="form-group">
+        <select class="form-control" @onchange="OnFilterPlantChanged" disabled="@(!_filterPlants.Any())">
+            <option value="">All Plants</option>
+            @foreach (var p in _filterPlants)
+            {
+                <option value="@p.Id" selected="@(_filterPlantId == p.Id)">@p.Name</option>
+            }
+        </select>
+    </div>
+    <div class="form-group">
+        <select class="form-control" @bind="_filterSectionId" @bind:after="ApplyFilters" disabled="@(!_filterSections.Any())">
+            <option value="0">All Sections</option>
+            @foreach (var s in _filterSections)
+            {
+                <option value="@s.Id">@s.Name</option>
+            }
         </select>
     </div>
 </div>
@@ -141,8 +181,15 @@ else
 
         @if (!_filteredEquipment.Any())
         {
-            <div class="empty-state" style="padding: var(--spacing-xl);">
-                <p>No equipment matches your filters.</p>
+            <div class="inv-empty-state">
+                <i class="fa-light fa-box-open"></i>
+                <p>No equipment matches your current filters</p>
+                @if (_activeStatCard is not null || !string.IsNullOrEmpty(_searchTerm) || !string.IsNullOrEmpty(_filterStatusStr) || !string.IsNullOrEmpty(_filterCompliance) || !string.IsNullOrEmpty(_filterAssignment) || _filterTypeId.HasValue)
+                {
+                    <button class="btn btn-sm btn-secondary" @onclick="ClearAllFilters">
+                        <i class="fa-light fa-filter-slash"></i> Clear Filters
+                    </button>
+                }
             </div>
         }
         else
@@ -154,13 +201,41 @@ else
                             <input type="checkbox" @onchange="ToggleSelectAll"
                                    checked="@(_selectedIds.Count == _filteredEquipment.Count && _filteredEquipment.Any())" />
                         </th>
-                        <th style="width:30px;"></th>
-                        <th>Identifier</th>
-                        <th>Type</th>
-                        <th>Size</th>
+                        <th style="width:30px;" class="sortable @(_sortColumn == "Status" ? "sorted" : "")"
+                            @onclick='() => SetSort("Status")'>
+                            <i class="fa-light @SortIcon("Status") sort-icon @(_sortColumn == "Status" ? "active" : "")"></i>
+                        </th>
+                        <th class="sortable @(_sortColumn == "Identifier" ? "sorted" : "")"
+                            @onclick='() => SetSort("Identifier")'>
+                            Identifier
+                            <i class="fa-light @SortIcon("Identifier") sort-icon @(_sortColumn == "Identifier" ? "active" : "")"></i>
+                        </th>
+                        <th class="sortable @(_sortColumn == "Type" ? "sorted" : "")"
+                            @onclick='() => SetSort("Type")'>
+                            Type
+                            <i class="fa-light @SortIcon("Type") sort-icon @(_sortColumn == "Type" ? "active" : "")"></i>
+                        </th>
+                        <th class="sortable @(_sortColumn == "Size" ? "sorted" : "")"
+                            @onclick='() => SetSort("Size")'>
+                            Size
+                            <i class="fa-light @SortIcon("Size") sort-icon @(_sortColumn == "Size" ? "active" : "")"></i>
+                        </th>
                         <th>Serial</th>
-                        <th>Location</th>
-                        <th>Compliance</th>
+                        <th class="sortable @(_sortColumn == "Location" ? "sorted" : "")"
+                            @onclick='() => SetSort("Location")'>
+                            Location
+                            <i class="fa-light @SortIcon("Location") sort-icon @(_sortColumn == "Location" ? "active" : "")"></i>
+                            @{ var unassignedCount = _filteredEquipment.Count(e => !e.SectionId.HasValue); }
+                            @if (unassignedCount > 0)
+                            {
+                                <span class="th-count">@unassignedCount unassigned</span>
+                            }
+                        </th>
+                        <th class="sortable @(_sortColumn == "Compliance" ? "sorted" : "")"
+                            @onclick='() => SetSort("Compliance")'>
+                            Compliance
+                            <i class="fa-light @SortIcon("Compliance") sort-icon @(_sortColumn == "Compliance" ? "active" : "")"></i>
+                        </th>
                         <th style="width:120px;">Actions</th>
                     </tr>
                 </thead>
@@ -190,11 +265,17 @@ else
                             <td>
                                 @if (eq.SectionId.HasValue)
                                 {
-                                    <span>@eq.CompanyName / @eq.PlantName / @eq.SectionName</span>
+                                    <div class="inv-location">
+                                        <span class="inv-loc-plant">@eq.PlantName</span>
+                                        <i class="fa-light fa-chevron-right inv-loc-sep"></i>
+                                        <span class="inv-loc-section">@eq.SectionName</span>
+                                    </div>
                                 }
                                 else
                                 {
-                                    <span class="text-muted">Available</span>
+                                    <span class="inv-loc-unassigned">
+                                        <i class="fa-light fa-inbox"></i> Unassigned
+                                    </span>
                                 }
                             </td>
                             <td>
@@ -384,7 +465,7 @@ else
 @if (_detailEquipment is not null)
 {
     <div class="modal-overlay" @onclick="CloseDetail">
-        <div class="modal modal-wide" @onclick:stopPropagation>
+        <div class="modal modal-xl" @onclick:stopPropagation>
             <h2><i class="fa-light fa-clipboard-list"></i> Equipment Details</h2>
 
             <div class="form-row">
@@ -434,24 +515,34 @@ else
             }
 
             <div class="form-group" style="margin-top: var(--spacing-md);">
-                <label>Location</label>
+                <label><i class="fa-light fa-location-dot"></i> Location</label>
                 @if (_detailEquipment.SectionId.HasValue)
                 {
-                    <p>
-                        @_detailEquipment.CompanyName / @_detailEquipment.PlantName / @_detailEquipment.SectionName
-                        <button class="btn btn-xs btn-secondary" style="margin-left:8px;" @onclick="DetailUnassign">
+                    <div class="inv-detail-location">
+                        <i class="fa-light fa-map-pin inv-loc-icon"></i>
+                        <div class="inv-location">
+                            <span class="inv-loc-company">@_detailEquipment.CompanyName</span>
+                            <i class="fa-light fa-chevron-right inv-loc-sep"></i>
+                            <span class="inv-loc-plant">@_detailEquipment.PlantName</span>
+                            <i class="fa-light fa-chevron-right inv-loc-sep"></i>
+                            <span class="inv-loc-section">@_detailEquipment.SectionName</span>
+                        </div>
+                        <button class="btn btn-xs btn-secondary" @onclick="DetailUnassign">
                             <i class="fa-light fa-link-slash"></i> Unassign
                         </button>
-                    </p>
+                    </div>
                 }
                 else
                 {
-                    <p>
-                        <span class="text-muted">Available in pool</span>
-                        <button class="btn btn-xs btn-primary" style="margin-left:8px;" @onclick="DetailAssign">
+                    <div class="inv-detail-location">
+                        <i class="fa-light fa-inbox inv-loc-icon" style="opacity:0.5;"></i>
+                        <span class="inv-loc-unassigned" style="border:none; background:transparent; padding:0;">
+                            <i class="fa-light fa-inbox"></i> Available in pool
+                        </span>
+                        <button class="btn btn-xs btn-primary" @onclick="DetailAssign">
                             <i class="fa-light fa-link"></i> Assign
                         </button>
-                    </p>
+                    </div>
                 }
             </div>
 
@@ -627,6 +718,19 @@ else
     private string _filterCompliance = string.Empty;
     private string _filterAssignment = string.Empty;
     private string _searchTerm = string.Empty;
+    private string? _activeStatCard;
+
+    // Location filters
+    private List<CompanyDto> _filterCompanies = [];
+    private List<PlantDto> _filterPlants = [];
+    private List<SectionDto> _filterSections = [];
+    private int? _filterCompanyId;
+    private int? _filterPlantId;
+    private int _filterSectionId;
+
+    // Sorting
+    private string _sortColumn = "Identifier";
+    private bool _sortAscending = true;
 
     // Feedback
     private string _feedback = string.Empty;
@@ -669,6 +773,7 @@ else
             _userId = state.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
         }
         _equipTypes = await EquipmentService.GetEquipmentTypesAsync();
+        _filterCompanies = await CompanyService.GetAllCompaniesAsync();
         await Reload();
     }
 
@@ -692,7 +797,24 @@ else
             string.IsNullOrEmpty(_searchTerm) ? null : _searchTerm,
             isAssigned);
 
-        _filteredEquipment = _allEquipment;
+        // Client-side filters
+        IEnumerable<InventoryEquipmentDto> filtered = _allEquipment;
+
+        // "Damaged + Missing" combined stat card
+        if (_activeStatCard == "damaged-missing")
+            filtered = filtered.Where(e => e.Status == EquipmentStatus.Damaged || e.Status == EquipmentStatus.Missing);
+
+        // Location cascade filters (client-side)
+        if (_filterCompanyId.HasValue)
+            filtered = filtered.Where(e => e.CompanyId == _filterCompanyId.Value);
+        if (_filterPlantId.HasValue)
+            filtered = filtered.Where(e => e.PlantId == _filterPlantId.Value);
+        if (_filterSectionId > 0)
+            filtered = filtered.Where(e => e.SectionId == _filterSectionId);
+
+        _filteredEquipment = filtered.ToList();
+
+        ApplySort();
         _stats = await EquipmentService.GetInventoryStatsAsync();
         _selectedIds.Clear();
     }
@@ -701,6 +823,143 @@ else
     {
         await Reload();
         StateHasChanged();
+    }
+
+    // ── Sorting ──
+
+    private void SetSort(string column)
+    {
+        if (_sortColumn == column)
+            _sortAscending = !_sortAscending;
+        else
+        {
+            _sortColumn = column;
+            _sortAscending = true;
+        }
+        ApplySort();
+    }
+
+    private void ApplySort()
+    {
+        if (_filteredEquipment is null) return;
+
+        _filteredEquipment = _sortColumn switch
+        {
+            "Identifier" => _sortAscending
+                ? _filteredEquipment.OrderBy(e => e.Identifier).ToList()
+                : _filteredEquipment.OrderByDescending(e => e.Identifier).ToList(),
+            "Type" => _sortAscending
+                ? _filteredEquipment.OrderBy(e => e.EquipmentTypeName).ThenBy(e => e.SubTypeName).ToList()
+                : _filteredEquipment.OrderByDescending(e => e.EquipmentTypeName).ThenByDescending(e => e.SubTypeName).ToList(),
+            "Size" => _sortAscending
+                ? _filteredEquipment.OrderBy(e => e.Size ?? "").ToList()
+                : _filteredEquipment.OrderByDescending(e => e.Size ?? "").ToList(),
+            "Status" => _sortAscending
+                ? _filteredEquipment.OrderBy(e => e.Status).ToList()
+                : _filteredEquipment.OrderByDescending(e => e.Status).ToList(),
+            "Location" => _sortAscending
+                ? _filteredEquipment.OrderBy(e => e.SectionId.HasValue ? 0 : 1).ThenBy(e => e.CompanyName).ThenBy(e => e.PlantName).ThenBy(e => e.SectionName).ToList()
+                : _filteredEquipment.OrderBy(e => e.SectionId.HasValue ? 1 : 0).ThenByDescending(e => e.CompanyName).ThenByDescending(e => e.PlantName).ThenByDescending(e => e.SectionName).ToList(),
+            "Compliance" => _sortAscending
+                ? _filteredEquipment.OrderByDescending(e => e.OverdueChecks).ThenByDescending(e => e.DueSoonChecks).ToList()
+                : _filteredEquipment.OrderBy(e => e.OverdueChecks).ThenBy(e => e.DueSoonChecks).ToList(),
+            _ => _filteredEquipment
+        };
+    }
+
+    private string SortIcon(string column)
+    {
+        if (_sortColumn != column) return "fa-sort";
+        return _sortAscending ? "fa-sort-up" : "fa-sort-down";
+    }
+
+    // ── Stat Card Filters ──
+
+    private void ToggleStatFilter(string card)
+    {
+        if (_activeStatCard == card)
+        {
+            // Deactivate — clear all filters
+            ClearAllFilters();
+            return;
+        }
+
+        // Reset filters first
+        _filterStatusStr = string.Empty;
+        _filterCompliance = string.Empty;
+        _filterAssignment = string.Empty;
+        _searchTerm = string.Empty;
+        _filterTypeId = null;
+        _activeStatCard = card;
+
+        switch (card)
+        {
+            case "total":
+                break; // Show all — filters already cleared
+            case "assigned":
+                _filterAssignment = "assigned";
+                break;
+            case "available":
+                _filterAssignment = "available";
+                break;
+            case "overdue":
+                _filterCompliance = "Overdue";
+                break;
+            case "damaged-missing":
+                break; // Handled in Reload with client-side filter
+        }
+
+        ApplyFilters();
+    }
+
+    private void ClearAllFilters()
+    {
+        _activeStatCard = null;
+        _filterStatusStr = string.Empty;
+        _filterCompliance = string.Empty;
+        _filterAssignment = string.Empty;
+        _searchTerm = string.Empty;
+        _filterTypeId = null;
+        _filterCompanyId = null;
+        _filterPlantId = null;
+        _filterSectionId = 0;
+        _filterPlants = [];
+        _filterSections = [];
+        ApplyFilters();
+    }
+
+    // ── Location Cascade Filters ──
+
+    private async Task OnFilterCompanyChanged(ChangeEventArgs e)
+    {
+        _filterCompanyId = int.TryParse(e.Value?.ToString(), out var id) && id > 0 ? id : null;
+        _filterPlants = _filterCompanyId.HasValue
+            ? await PlantService.GetPlantsByCompanyAsync(_filterCompanyId.Value) : [];
+        _filterPlantId = null;
+        _filterSections = [];
+        _filterSectionId = 0;
+        ApplyFilters();
+    }
+
+    private async Task OnFilterPlantChanged(ChangeEventArgs e)
+    {
+        _filterPlantId = int.TryParse(e.Value?.ToString(), out var id) && id > 0 ? id : null;
+        _filterSections = _filterPlantId.HasValue
+            ? await SectionService.GetSectionsByPlantAsync(_filterPlantId.Value) : [];
+        _filterSectionId = 0;
+        ApplyFilters();
+    }
+
+    // ── Excel Export ──
+
+    private async Task ExportInventoryExcel()
+    {
+        if (_filteredEquipment is null || !_filteredEquipment.Any()) return;
+
+        var bytes = ExcelExportService.ExportInventory(_filteredEquipment);
+        var base64 = Convert.ToBase64String(bytes);
+        var name = $"Equipment-Inventory-{DateTime.Today:yyyy-MM-dd}.xlsx";
+        await JS.InvokeVoidAsync("downloadExcel", name, base64);
     }
 
     // ── Selection ──
