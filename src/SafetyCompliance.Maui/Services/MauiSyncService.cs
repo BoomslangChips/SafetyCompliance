@@ -208,6 +208,8 @@ public class MauiSyncService : ISyncService, IDisposable
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to pull table {Table}", typeof(T).Name);
+            // Clear change tracker to prevent cascading failures in subsequent tables
+            localCtx.ChangeTracker.Clear();
             return 0;
         }
     }
@@ -241,6 +243,8 @@ public class MauiSyncService : ISyncService, IDisposable
             {
                 _logger.LogWarning(ex, "Failed to push change {Table} #{Id} ({Type})",
                     change.TableName, change.RecordId, change.ChangeType);
+                // Clear server context to prevent cascading failures
+                serverCtx.ChangeTracker.Clear();
             }
         }
 
@@ -260,6 +264,14 @@ public class MauiSyncService : ISyncService, IDisposable
         // Map table name to entity type and push
         return change.TableName switch
         {
+            "Companies" => await PushEntity<Company>(localCtx, serverCtx, change, ct),
+            "Plants" => await PushEntity<Plant>(localCtx, serverCtx, change, ct),
+            "Sections" => await PushEntity<Section>(localCtx, serverCtx, change, ct),
+            "EquipmentTypes" => await PushEntity<EquipmentType>(localCtx, serverCtx, change, ct),
+            "EquipmentSubTypes" => await PushEntity<EquipmentSubType>(localCtx, serverCtx, change, ct),
+            "ChecklistItemTemplates" => await PushEntity<ChecklistItemTemplate>(localCtx, serverCtx, change, ct),
+            "EquipmentChecks" => await PushEntity<EquipmentCheck>(localCtx, serverCtx, change, ct),
+            "InspectionSchedules" => await PushEntity<InspectionSchedule>(localCtx, serverCtx, change, ct),
             "Equipment" => await PushEntity<Equipment>(localCtx, serverCtx, change, ct),
             "InspectionRounds" => await PushEntity<InspectionRound>(localCtx, serverCtx, change, ct),
             "EquipmentInspections" => await PushEntity<EquipmentInspection>(localCtx, serverCtx, change, ct),
@@ -311,10 +323,16 @@ public class MauiSyncService : ISyncService, IDisposable
             // Insert — enable IDENTITY_INSERT for this table
             await serverCtx.Database.ExecuteSqlRawAsync(
                 $"SET IDENTITY_INSERT [{change.TableName}] ON", ct);
-            serverCtx.Set<T>().Add(localEntity);
-            await serverCtx.SaveChangesAsync(ct);
-            await serverCtx.Database.ExecuteSqlRawAsync(
-                $"SET IDENTITY_INSERT [{change.TableName}] OFF", ct);
+            try
+            {
+                serverCtx.Set<T>().Add(localEntity);
+                await serverCtx.SaveChangesAsync(ct);
+            }
+            finally
+            {
+                await serverCtx.Database.ExecuteSqlRawAsync(
+                    $"SET IDENTITY_INSERT [{change.TableName}] OFF", ct);
+            }
             return true;
         }
 
