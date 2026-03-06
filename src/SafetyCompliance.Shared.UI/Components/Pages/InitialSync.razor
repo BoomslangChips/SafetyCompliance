@@ -1,7 +1,7 @@
 @page "/sync"
-@inject ISyncService? SyncService
 @inject ICompanyService CompanyService
 @inject NavigationManager Navigation
+@inject IServiceProvider ServiceProvider
 
 <div class="sync-page ov-fadeIn">
     <div class="sync-card">
@@ -51,9 +51,11 @@
     private string _iconClass = "fa-cloud-arrow-down";
     private string _progressText = "Connecting…";
     private int _progress;
+    private ISyncService? SyncService;
 
     protected override async Task OnInitializedAsync()
     {
+        SyncService = ServiceProvider.GetService(typeof(ISyncService)) as ISyncService;
         // If data already exists, skip sync and go to dashboard
         try
         {

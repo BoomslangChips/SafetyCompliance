@@ -9169,3 +9169,903 @@ textarea.form-control {
 [data-theme="dark"] .chk-priority-btn.active {
     border-color: currentColor;
 }
+
+/* ============================================================
+   MOBILE RESPONSIVE — OVERFLOW GUARDS & GLOBAL FIXES
+   Prevents horizontal scroll on all pages (Galaxy S22 360px)
+   ============================================================ */
+
+/* Global overflow prevention */
+html, body {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+}
+.main-content,
+.page-content {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
+/* Universal text truncation helpers */
+.chk-equip-name,
+.chk-equip-id,
+.chk-section-title,
+.inv-equip-name,
+.inv-equip-id,
+.db-alert-text,
+.insp-round-title,
+.insp-loc-text,
+.cal-evt-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+/* Equipment header — prevent flex children from overflowing */
+.chk-equip-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-width: 0;
+}
+.chk-equip-header > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Section nav pills — horizontal scroll with fade hints */
+.chk-section-nav {
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.chk-section-nav::-webkit-scrollbar {
+    display: none;
+}
+
+/* Checklist item rows — prevent overflow */
+.chk-item {
+    min-width: 0;
+    max-width: 100%;
+}
+.chk-item-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+/* Data tables — horizontal scroll container */
+.data-table-wrap,
+.inv-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+/* Cards and containers — prevent overflow */
+.insp-round-card,
+.db-kpi-card,
+.db-alert-item,
+.db-co-card,
+.inv-stat-card,
+.cal-evt {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* Metadata tags — allow wrapping */
+.chk-equip-meta,
+.insp-round-meta,
+.cal-evt-meta {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+.chk-equip-meta span,
+.insp-round-meta span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+}
+
+/* Form inputs — prevent iOS zoom */
+input, select, textarea {
+    font-size: 16px;
+}
+
+/* Ensure all images and media respect container */
+img, video, canvas, svg {
+    max-width: 100%;
+    height: auto;
+}
+
+/* ============================================================
+   MOBILE BREAKPOINT — 480px (Small phones landscape / large phones)
+   ============================================================ */
+@media (max-width: 480px) {
+    /* Dashboard */
+    .db-greeting-title { font-size: 1.25rem; }
+    .db-greeting-sub { font-size: 0.8rem; }
+    .db-kpi-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .db-kpi-card { padding: 0.75rem; }
+    .db-kpi-icon { width: 36px; height: 36px; font-size: 1rem; }
+    .db-kpi-value { font-size: 1.25rem; }
+    .db-kpi-label { font-size: 0.7rem; }
+    .db-section-title { font-size: 0.95rem; }
+    .db-alert-item { padding: 0.6rem 0.75rem; gap: 0.5rem; }
+    .db-alert-icon { width: 28px; height: 28px; font-size: 0.75rem; }
+    .db-alert-text { font-size: 0.78rem; }
+    .db-co-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+    .db-co-card { padding: 0.75rem; }
+    .cal-stats { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .cal-stat { padding: 0.5rem; }
+    .cal-stat-value { font-size: 1.1rem; }
+    .cal-stat-label { font-size: 0.65rem; }
+    .cal-evt { padding: 0.6rem 0.75rem; }
+    .cal-evt-title { font-size: 0.8rem; }
+    .cal-evt-meta { font-size: 0.68rem; gap: 0.35rem; }
+
+    /* Inspection List */
+    .insp-hero { padding: 1rem 0.75rem; }
+    .insp-hero-title { font-size: 1.3rem; }
+    .insp-hero-sub { font-size: 0.78rem; }
+    .insp-hero-actions { flex-direction: column; width: 100%; }
+    .insp-hero-actions .btn { width: 100%; justify-content: center; }
+    .insp-tabs { gap: 0; }
+    .insp-tab { font-size: 0.78rem; padding: 0.6rem 0.75rem; }
+    .insp-round-card { padding: 0.75rem; }
+    .insp-round-title { font-size: 0.9rem; }
+    .insp-round-meta { font-size: 0.7rem; gap: 0.25rem; }
+    .insp-round-meta span { max-width: 140px; }
+    .insp-filter-bar { flex-direction: column; gap: 0.5rem; }
+    .insp-filter-bar .form-control,
+    .insp-filter-bar .form-select { width: 100%; }
+    .insp-stats { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+
+    /* Checklist / Inspection Execution */
+    .chk-header { padding: 0.75rem; }
+    .chk-progress-ring { width: 40px; height: 40px; }
+    .chk-header-info h1 { font-size: 0.95rem; }
+    .chk-header-sub { font-size: 0.72rem; }
+    .chk-section-nav { padding: 0 0.5rem; gap: 0.35rem; }
+    .chk-section-pill { font-size: 0.72rem; padding: 0.35rem 0.65rem; white-space: nowrap; }
+    .chk-equip-card { margin: 0 0.5rem 0.75rem; padding: 0.75rem; }
+    .chk-equip-header { padding: 0; }
+    .chk-equip-name { font-size: 0.88rem; max-width: calc(100vw - 120px); }
+    .chk-equip-id { font-size: 0.68rem; max-width: calc(100vw - 120px); }
+    .chk-equip-toggle { padding: 0.3rem 0.5rem; font-size: 0.7rem; }
+    .chk-equip-meta { font-size: 0.68rem; }
+    .chk-equip-meta span { max-width: 120px; }
+    .chk-item { padding: 0.6rem 0.75rem; }
+    .chk-item-label { font-size: 0.82rem; }
+    .chk-item-actions { gap: 0.25rem; }
+    .chk-toggle-btn { min-width: 52px; padding: 0.35rem 0.5rem; font-size: 0.72rem; }
+    .chk-notes-area { padding: 0.5rem 0.75rem; }
+    .chk-notes-area textarea { min-height: 70px; font-size: 0.82rem; }
+    .chk-photo-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; padding: 0 0.75rem; }
+    .chk-photo-thumb { height: 80px; }
+    .chk-photo-delete { width: 28px; height: 28px; font-size: 0.65rem; }
+    .chk-footer { padding: 0.6rem 0.75rem; gap: 0.5rem; }
+    .chk-footer .btn { flex: 1; min-height: 44px; font-size: 0.82rem; padding: 0.5rem 0.75rem; }
+
+    /* Equipment Inventory */
+    .inv-stats-grid { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .inv-stat-card { padding: 0.6rem; }
+    .inv-stat-value { font-size: 1.1rem; }
+    .inv-stat-label { font-size: 0.65rem; }
+    .inv-filter-bar { flex-direction: column; gap: 0.5rem; }
+    .inv-filter-bar input,
+    .inv-filter-bar select { width: 100%; }
+    .inv-table-container { margin: 0 -0.5rem; }
+    .data-table { font-size: 0.75rem; }
+    .data-table th,
+    .data-table td { padding: 0.4rem 0.5rem; }
+
+    /* Company / Plant pages */
+    .company-grid,
+    .plant-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+    .company-card,
+    .plant-card { padding: 0.75rem; }
+
+    /* Page content padding */
+    .page-content { padding: 0.5rem; }
+
+    /* Top bar */
+    .top-bar { height: 48px; padding: 0 0.5rem; }
+    .user-greeting { font-size: 0.75rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Modals — bottom sheet style */
+    .modal-content {
+        border-radius: 16px 16px 0 0 !important;
+        margin-top: auto !important;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    .modal-dialog {
+        margin: 0 !important;
+        max-width: 100% !important;
+        display: flex;
+        align-items: flex-end;
+        min-height: 100vh;
+    }
+
+    /* Buttons — ensure touch-friendly sizing */
+    .btn { min-height: 44px; }
+
+    /* Hide scrollbars on mobile */
+    * { scrollbar-width: thin; }
+    *::-webkit-scrollbar { width: 4px; height: 4px; }
+}
+
+/* ============================================================
+   MOBILE BREAKPOINT — 380px (Galaxy S22 and similar ~360px devices)
+   ============================================================ */
+@media (max-width: 380px) {
+    /* Dashboard — tighter spacing */
+    .db-greeting-title { font-size: 1.1rem; }
+    .db-greeting-sub { font-size: 0.75rem; }
+    .db-kpi-grid { gap: 0.35rem; }
+    .db-kpi-card { padding: 0.6rem; }
+    .db-kpi-icon { width: 32px; height: 32px; font-size: 0.9rem; }
+    .db-kpi-value { font-size: 1.1rem; }
+    .db-kpi-label { font-size: 0.65rem; }
+    .db-section-title { font-size: 0.88rem; }
+    .db-alert-item { padding: 0.5rem 0.6rem; }
+    .db-alert-icon { width: 24px; height: 24px; font-size: 0.7rem; }
+    .db-alert-text { font-size: 0.72rem; max-width: calc(100vw - 100px); }
+    .db-co-card { padding: 0.6rem; }
+    .cal-stats { gap: 0.35rem; }
+    .cal-stat { padding: 0.4rem; }
+    .cal-stat-value { font-size: 1rem; }
+    .cal-stat-label { font-size: 0.6rem; }
+    .cal-evt { padding: 0.5rem 0.6rem; }
+    .cal-evt-title { font-size: 0.75rem; }
+
+    /* Inspection List — compact */
+    .insp-hero { padding: 0.75rem 0.5rem; }
+    .insp-hero-title { font-size: 1.15rem; }
+    .insp-hero-sub { font-size: 0.72rem; }
+    .insp-tab { font-size: 0.72rem; padding: 0.5rem 0.6rem; }
+    .insp-round-card { padding: 0.6rem; margin-bottom: 0.5rem; }
+    .insp-round-title { font-size: 0.82rem; max-width: calc(100vw - 80px); }
+    .insp-round-meta span { max-width: 110px; font-size: 0.65rem; }
+    .insp-stats { gap: 0.35rem; }
+    .insp-stat-card { padding: 0.5rem; }
+
+    /* Checklist Execution — edge-to-edge */
+    .chk-header { padding: 0.6rem 0.5rem; }
+    .chk-progress-ring { width: 36px; height: 36px; }
+    .chk-header-info h1 { font-size: 0.88rem; }
+    .chk-header-sub { font-size: 0.68rem; }
+    .chk-section-nav { padding: 0 0.35rem; gap: 0.25rem; }
+    .chk-section-pill { font-size: 0.68rem; padding: 0.3rem 0.55rem; }
+    .chk-equip-card { margin: 0 0.35rem 0.6rem; padding: 0.6rem; border-radius: 8px; }
+    .chk-equip-name { font-size: 0.82rem; max-width: calc(100vw - 100px); }
+    .chk-equip-id { font-size: 0.65rem; max-width: calc(100vw - 100px); }
+    .chk-equip-meta span { max-width: 100px; font-size: 0.62rem; }
+    .chk-item { padding: 0.5rem 0.6rem; }
+    .chk-item-label { font-size: 0.78rem; }
+    .chk-toggle-btn { min-width: 48px; padding: 0.3rem 0.4rem; font-size: 0.68rem; }
+    .chk-photo-grid { grid-template-columns: 1fr 1fr; gap: 0.35rem; padding: 0 0.6rem; }
+    .chk-photo-thumb { height: 72px; }
+    .chk-footer { padding: 0.5rem; }
+    .chk-footer .btn { min-height: 44px; font-size: 0.78rem; }
+
+    /* Equipment Inventory */
+    .inv-stats-grid { gap: 0.35rem; }
+    .inv-stat-card { padding: 0.5rem; }
+    .inv-stat-value { font-size: 1rem; }
+    .inv-stat-label { font-size: 0.6rem; }
+    .data-table { font-size: 0.7rem; }
+    .data-table th,
+    .data-table td { padding: 0.35rem 0.4rem; white-space: nowrap; }
+
+    /* Page content */
+    .page-content { padding: 0.35rem; }
+    .top-bar { height: 44px; padding: 0 0.35rem; }
+    .top-bar .sidebar-toggle-btn { padding: 0.4rem; }
+    .user-greeting { font-size: 0.7rem; max-width: 100px; }
+
+    /* Company pages */
+    .company-card,
+    .plant-card { padding: 0.6rem; }
+}
+
+/* ============================================================
+   MOBILE BREAKPOINT — 360px (Smallest mainstream phones)
+   ============================================================ */
+@media (max-width: 360px) {
+    /* Extra tight for smallest screens */
+    .db-kpi-grid { grid-template-columns: 1fr 1fr; gap: 0.25rem; }
+    .db-kpi-card { padding: 0.5rem; }
+    .db-kpi-icon { width: 28px; height: 28px; font-size: 0.8rem; }
+    .db-kpi-value { font-size: 1rem; }
+    .db-greeting-title { font-size: 1rem; }
+
+    .chk-equip-card { margin: 0 0.25rem 0.5rem; padding: 0.5rem; border-radius: 6px; }
+    .chk-equip-name { font-size: 0.78rem; }
+    .chk-equip-id { font-size: 0.6rem; }
+    .chk-item { padding: 0.4rem 0.5rem; }
+    .chk-item-label { font-size: 0.75rem; }
+    .chk-toggle-btn { min-width: 44px; font-size: 0.65rem; }
+    .chk-section-pill { font-size: 0.65rem; padding: 0.25rem 0.45rem; }
+    .chk-footer .btn { font-size: 0.75rem; }
+
+    .insp-round-card { padding: 0.5rem; }
+    .insp-round-title { font-size: 0.78rem; }
+    .insp-tab { font-size: 0.68rem; padding: 0.4rem 0.5rem; }
+
+    .page-content { padding: 0.25rem; }
+    .top-bar { height: 42px; }
+}
+
+/* ============================================================
+   TOUCH DEVICE OPTIMIZATIONS
+   ============================================================ */
+@media (hover: none) and (pointer: coarse) {
+    /* Larger tap targets */
+    .btn,
+    .chk-toggle-btn,
+    .chk-photo-delete,
+    .sidebar-toggle-btn,
+    .theme-toggle-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Remove hover effects that feel wrong on touch */
+    .btn:hover,
+    .chk-item:hover,
+    .insp-round-card:hover,
+    .db-kpi-card:hover,
+    .db-co-card:hover,
+    .nav-link:hover {
+        transform: none !important;
+    }
+
+    /* Smooth scrolling for touch */
+    .chk-section-nav,
+    .data-table-wrap,
+    .inv-table-container,
+    .page-content {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Hide scrollbars on touch devices */
+    .chk-section-nav::-webkit-scrollbar,
+    .page-content::-webkit-scrollbar {
+        display: none;
+    }
+    .chk-section-nav,
+    .page-content {
+        scrollbar-width: none;
+    }
+
+    /* Active state feedback for touch */
+    .btn:active,
+    .chk-toggle-btn:active,
+    .nav-link:active {
+        opacity: 0.7;
+        transition: opacity 0.1s;
+    }
+
+    /* Prevent text selection on interactive elements */
+    .btn,
+    .chk-toggle-btn,
+    .chk-section-pill,
+    .insp-tab,
+    .nav-link {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+/* ============================================================
+   MAUI APP — Android-specific overrides
+   ============================================================ */
+.maui-app .page-content {
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+.maui-app .main-content {
+    overflow-x: hidden;
+}
+
+/* Scroll-fade hint on section pills */
+.chk-section-nav::after {
+    content: "";
+    position: sticky;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 24px;
+    background: linear-gradient(to right, transparent, var(--color-bg, #fff));
+    pointer-events: none;
+    flex-shrink: 0;
+}
+
+/* ============================================================
+   CHECKLIST HEADER — Mobile-first 2-row layout
+   On small screens: row1 = back + title + delete
+                     row2 = ring + stats (centered)
+   ============================================================ */
+@media (max-width: 480px) {
+    .chk-header {
+        flex-wrap: wrap;
+        padding: 0.6rem 0.75rem;
+        gap: 0.4rem 0.5rem;
+    }
+    .chk-header-info {
+        flex: 1;
+        min-width: 0;
+        order: 1;
+    }
+    .chk-header-info h1 {
+        font-size: 0.92rem;
+        line-height: 1.2;
+    }
+    .chk-header-sub {
+        font-size: 0.7rem;
+    }
+    .chk-back {
+        order: 0;
+        width: 32px;
+        height: 32px;
+        font-size: 0.8rem;
+    }
+    .chk-delete-btn {
+        order: 2;
+        width: 32px;
+        height: 32px;
+        font-size: 0.8rem;
+    }
+    .chk-header-ring {
+        order: 3;
+        width: 36px;
+        height: 36px;
+    }
+    .chk-ring-pct {
+        font-size: 0.55rem;
+    }
+    .chk-header-stats {
+        order: 4;
+        flex: 1;
+        min-width: 0;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    .chk-stat {
+        font-size: 0.65rem;
+        padding: 3px 7px;
+        gap: 3px;
+    }
+}
+
+/* ============================================================
+   TAB BAR — Better mobile spacing
+   More breathing room below tabs, tabs scroll on small screens
+   ============================================================ */
+@media (max-width: 480px) {
+    .insp-tab-bar {
+        margin-bottom: var(--spacing-md);
+        padding: 0 var(--spacing-sm) 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .insp-tabs {
+        gap: 0;
+        min-width: max-content;
+    }
+    .insp-tab {
+        padding: 8px 12px;
+        font-size: 0.78rem;
+        gap: 5px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .insp-tab i {
+        font-size: 0.85rem;
+    }
+
+    /* Space below tabs before cards/content begin */
+    .insp-tab-bar + * {
+        margin-top: var(--spacing-md);
+    }
+}
+@media (max-width: 380px) {
+    .insp-tab {
+        padding: 6px 10px;
+        font-size: 0.72rem;
+        gap: 4px;
+    }
+    .insp-tab i {
+        font-size: 0.78rem;
+    }
+}
+
+/* ============================================================
+   CUSTOM CHECKBOX STYLING
+   Replaces default browser checkboxes with styled versions
+   ============================================================ */
+input[type="checkbox"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-border, #cbd5e1);
+    border-radius: 5px;
+    background: var(--color-surface, #fff);
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+}
+input[type="checkbox"]:hover {
+    border-color: var(--color-primary, #4f46e5);
+    background: var(--color-tint-indigo, rgba(79, 70, 229, 0.06));
+}
+input[type="checkbox"]:checked {
+    background: var(--color-primary, #4f46e5);
+    border-color: var(--color-primary, #4f46e5);
+}
+input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 6px;
+    height: 11px;
+    border: solid #fff;
+    border-width: 0 2.5px 2.5px 0;
+    transform: rotate(45deg);
+}
+input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--color-primary, #4f46e5);
+    outline-offset: 2px;
+}
+input[type="checkbox"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Checkbox in labels — alignment */
+label > input[type="checkbox"],
+label input[type="checkbox"] {
+    margin-right: 6px;
+}
+
+/* Checkbox inside tables — slightly smaller */
+.data-table input[type="checkbox"],
+td input[type="checkbox"],
+th input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+}
+.data-table input[type="checkbox"]:checked::after,
+td input[type="checkbox"]:checked::after,
+th input[type="checkbox"]:checked::after {
+    left: 4px;
+    top: 0px;
+    width: 5px;
+    height: 10px;
+    border-width: 0 2px 2px 0;
+}
+
+/* Dark mode checkbox */
+[data-theme="dark"] input[type="checkbox"] {
+    border-color: var(--color-border);
+    background: var(--color-bg);
+}
+[data-theme="dark"] input[type="checkbox"]:hover {
+    border-color: var(--color-primary);
+    background: rgba(99, 102, 241, 0.1);
+}
+[data-theme="dark"] input[type="checkbox"]:checked {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+}
+
+/* ============================================================
+   INVENTORY — Mobile Search Bar + Filter Toggle
+   ============================================================ */
+
+/* Mobile search row — hidden on desktop */
+.inv-mobile-search {
+    display: none;
+}
+.inv-mobile-search-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+.inv-mobile-search-input {
+    flex: 1;
+    position: relative;
+}
+.inv-mobile-search-input i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    pointer-events: none;
+}
+.inv-mobile-search-input .form-control {
+    padding-left: 36px;
+    height: 44px;
+    font-size: 0.88rem;
+    border-radius: var(--radius-md);
+}
+
+/* Filter toggle button */
+.inv-filter-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    font-size: 1.1rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+    transition: all 0.2s;
+}
+.inv-filter-toggle-btn:hover,
+.inv-filter-toggle-btn.active {
+    background: var(--color-tint-indigo);
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+}
+.inv-filter-toggle-btn.has-filters {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+.inv-filter-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* Filter labels — hidden on desktop (desktop uses placeholders) */
+.inv-filter-label {
+    display: none;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+}
+
+/* Clear all filters button */
+.inv-clear-filters-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.inv-clear-filters-btn:hover {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+    background: rgba(220, 38, 38, 0.06);
+}
+
+/* Desktop: search inside filter bar is visible */
+.inv-desktop-search {
+    display: block;
+}
+
+/* ============================================================
+   INVENTORY — Mobile Card View (hidden on desktop)
+   ============================================================ */
+.inv-mobile-cards {
+    display: none;
+}
+.inv-mobile-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.inv-mobile-card:active {
+    background: var(--color-bg);
+}
+.inv-mobile-card.card-alert {
+    border-left: 3px solid var(--color-danger);
+}
+
+/* Card top row: dot + identifier/type + compliance badge */
+.inv-mcard-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.inv-mcard-top .inv-status-dot {
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+.inv-mcard-id {
+    flex: 1;
+    min-width: 0;
+}
+.inv-mcard-id strong {
+    display: block;
+    font-size: 0.88rem;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.inv-mcard-type {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--color-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.inv-mcard-compliance {
+    flex-shrink: 0;
+}
+.inv-mcard-compliance .status-badge {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+}
+
+/* Card details row: tags */
+.inv-mcard-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+}
+.inv-mcard-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7rem;
+    color: var(--color-text-secondary);
+    background: var(--color-bg);
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+.inv-mcard-tag i {
+    font-size: 0.65rem;
+    flex-shrink: 0;
+}
+.inv-mcard-tag.unassigned {
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+/* Card action row */
+.inv-mcard-actions {
+    display: flex;
+    gap: 0.35rem;
+    justify-content: flex-end;
+}
+.inv-mcard-actions .btn {
+    font-size: 0.72rem;
+    padding: 5px 10px;
+    gap: 4px;
+}
+
+/* Dark mode card */
+[data-theme="dark"] .inv-mobile-card {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+}
+[data-theme="dark"] .inv-mcard-tag {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================================
+   INVENTORY — Mobile Breakpoint: swap table for cards
+   ============================================================ */
+@media (max-width: 768px) {
+    /* Show mobile search + filter toggle */
+    .inv-mobile-search {
+        display: block;
+    }
+
+    /* Hide desktop search inside filter bar */
+    .inv-desktop-search {
+        display: none !important;
+    }
+
+    /* Filter panel — collapsible on mobile */
+    .inv-filter-panel {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+        opacity: 0;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        padding: 0 var(--spacing-md);
+        margin-bottom: 0;
+    }
+    .inv-filter-panel.open {
+        max-height: 800px;
+        opacity: 1;
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+    }
+
+    /* Show filter labels on mobile */
+    .inv-filter-label {
+        display: block;
+    }
+
+    /* Stack filter groups vertically */
+    .inv-filter-panel .inv-filter-bar {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+    .inv-filter-panel .inv-filter-bar .form-group {
+        width: 100%;
+    }
+    .inv-filter-panel .inv-filter-bar .form-control {
+        min-width: unset;
+        width: 100%;
+    }
+
+    /* Type pills scroll */
+    .inv-filter-panel .sched-filter-pills {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Show mobile card view, hide inventory table only */
+    .inv-mobile-cards {
+        display: block;
+    }
+    .inv-table-swap .data-table {
+        display: none;
+    }
+
+    /* Stats grid — 2 cols on mobile */
+    .cal-stats {
+        grid-template-columns: 1fr 1fr;
+    }
+}

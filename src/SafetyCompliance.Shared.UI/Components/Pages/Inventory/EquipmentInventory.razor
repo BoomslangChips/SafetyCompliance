@@ -87,82 +87,115 @@
     </div>
 }
 
-@* ── Filters ── *@
-<div class="inv-filter-bar ov-fadeIn">
-    <div class="form-group search-input">
-        <input class="form-control" placeholder="Search identifier, serial, description..."
-               @bind="_searchTerm" @bind:event="oninput" @bind:after="ApplyFilters" />
-    </div>
-    <div class="form-group">
-        <select class="form-control" @bind="_filterStatusStr" @bind:after="ApplyFilters">
-            <option value="">All Statuses</option>
-            <option value="InOrder">In Order</option>
-            <option value="InForService">In for Service</option>
-            <option value="Damaged">Damaged</option>
-            <option value="OutOfPlace">Out of Place</option>
-            <option value="NeedsReplacement">Needs Replacement</option>
-            <option value="Retired">Retired</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <select class="form-control" @bind="_filterCompliance" @bind:after="ApplyFilters">
-            <option value="">All Compliance</option>
-            <option value="Overdue">Overdue</option>
-            <option value="DueSoon">Due Soon</option>
-            <option value="OK">Up to Date</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <select class="form-control" @bind="_filterAssignment" @bind:after="ApplyFilters">
-            <option value="">All</option>
-            <option value="assigned">Assigned@(_stats is not null ? $" ({_stats.AssignedCount})" : "")</option>
-            <option value="available">Available@(_stats is not null ? $" ({_stats.AvailableCount})" : "")</option>
-        </select>
-    </div>
-</div>
-@* ── Location Filters ── *@
-<div class="inv-filter-bar ov-fadeIn" style="margin-top: calc(var(--spacing-sm) * -1);">
-    <div class="form-group">
-        <select class="form-control" @onchange="OnFilterCompanyChanged">
-            <option value="">All Companies</option>
-            @foreach (var c in _filterCompanies)
+@* ── Mobile: Search + Filter Toggle ── *@
+<div class="inv-mobile-search ov-fadeIn">
+    <div class="inv-mobile-search-row">
+        <div class="inv-mobile-search-input">
+            <i class="fa-sharp fa-light fa-magnifying-glass"></i>
+            <input class="form-control" placeholder="Search identifier, serial..."
+                   @bind="_searchTerm" @bind:event="oninput" @bind:after="ApplyFilters" />
+        </div>
+        <button class="inv-filter-toggle-btn @(_showMobileFilters ? "active" : "") @(_activeFilterCount > 0 ? "has-filters" : "")"
+                @onclick="() => _showMobileFilters = !_showMobileFilters">
+            <i class="fa-sharp fa-light fa-sliders"></i>
+            @if (_activeFilterCount > 0)
             {
-                <option value="@c.Id" selected="@(_filterCompanyId == c.Id)">@c.Name</option>
+                <span class="inv-filter-badge">@_activeFilterCount</span>
             }
-        </select>
-    </div>
-    <div class="form-group">
-        <select class="form-control" @onchange="OnFilterPlantChanged" disabled="@(!_filterPlants.Any())">
-            <option value="">All Plants</option>
-            @foreach (var p in _filterPlants)
-            {
-                <option value="@p.Id" selected="@(_filterPlantId == p.Id)">@p.Name</option>
-            }
-        </select>
-    </div>
-    <div class="form-group">
-        <select class="form-control" @bind="_filterSectionId" @bind:after="ApplyFilters" disabled="@(!_filterSections.Any())">
-            <option value="0">All Sections</option>
-            @foreach (var s in _filterSections)
-            {
-                <option value="@s.Id">@s.Name</option>
-            }
-        </select>
+        </button>
     </div>
 </div>
 
-@* ── Type filter pills ── *@
-<div class="sched-filter-pills" style="margin-bottom: var(--spacing-md);">
-    <button class="sched-pill @(_filterTypeId == null ? "active" : "")"
-            @onclick="() => { _filterTypeId = null; ApplyFilters(); }">
-        All Types
-    </button>
-    @foreach (var t in _equipTypes)
+@* ── Filter Panel (collapsible on mobile, always visible on desktop) ── *@
+<div class="inv-filter-panel @(_showMobileFilters ? "open" : "") ov-fadeIn">
+    <div class="inv-filter-bar">
+        <div class="form-group search-input inv-desktop-search">
+            <input class="form-control" placeholder="Search identifier, serial, description..."
+                   @bind="_searchTerm" @bind:event="oninput" @bind:after="ApplyFilters" />
+        </div>
+        <div class="form-group">
+            <label class="inv-filter-label">Status</label>
+            <select class="form-control" @bind="_filterStatusStr" @bind:after="ApplyFilters">
+                <option value="">All Statuses</option>
+                <option value="InOrder">In Order</option>
+                <option value="InForService">In for Service</option>
+                <option value="Damaged">Damaged</option>
+                <option value="OutOfPlace">Out of Place</option>
+                <option value="NeedsReplacement">Needs Replacement</option>
+                <option value="Retired">Retired</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="inv-filter-label">Compliance</label>
+            <select class="form-control" @bind="_filterCompliance" @bind:after="ApplyFilters">
+                <option value="">All Compliance</option>
+                <option value="Overdue">Overdue</option>
+                <option value="DueSoon">Due Soon</option>
+                <option value="OK">Up to Date</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="inv-filter-label">Assignment</label>
+            <select class="form-control" @bind="_filterAssignment" @bind:after="ApplyFilters">
+                <option value="">All</option>
+                <option value="assigned">Assigned@(_stats is not null ? $" ({_stats.AssignedCount})" : "")</option>
+                <option value="available">Available@(_stats is not null ? $" ({_stats.AvailableCount})" : "")</option>
+            </select>
+        </div>
+    </div>
+    <div class="inv-filter-bar" style="margin-top: calc(var(--spacing-sm) * -1);">
+        <div class="form-group">
+            <label class="inv-filter-label">Company</label>
+            <select class="form-control" @onchange="OnFilterCompanyChanged">
+                <option value="">All Companies</option>
+                @foreach (var c in _filterCompanies)
+                {
+                    <option value="@c.Id" selected="@(_filterCompanyId == c.Id)">@c.Name</option>
+                }
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="inv-filter-label">Plant</label>
+            <select class="form-control" @onchange="OnFilterPlantChanged" disabled="@(!_filterPlants.Any())">
+                <option value="">All Plants</option>
+                @foreach (var p in _filterPlants)
+                {
+                    <option value="@p.Id" selected="@(_filterPlantId == p.Id)">@p.Name</option>
+                }
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="inv-filter-label">Section</label>
+            <select class="form-control" @bind="_filterSectionId" @bind:after="ApplyFilters" disabled="@(!_filterSections.Any())">
+                <option value="0">All Sections</option>
+                @foreach (var s in _filterSections)
+                {
+                    <option value="@s.Id">@s.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    @* ── Type filter pills ── *@
+    <div class="sched-filter-pills" style="margin-bottom: var(--spacing-sm);">
+        <button class="sched-pill @(_filterTypeId == null ? "active" : "")"
+                @onclick="() => { _filterTypeId = null; ApplyFilters(); }">
+            All Types
+        </button>
+        @foreach (var t in _equipTypes)
+        {
+            var typeId = t.Id;
+            <button class="sched-pill @(_filterTypeId == typeId ? "active" : "")"
+                    @onclick="() => { _filterTypeId = typeId; ApplyFilters(); }">
+                @t.Name
+            </button>
+        }
+    </div>
+
+    @if (_activeFilterCount > 0)
     {
-        var typeId = t.Id;
-        <button class="sched-pill @(_filterTypeId == typeId ? "active" : "")"
-                @onclick="() => { _filterTypeId = typeId; ApplyFilters(); }">
-            @t.Name
+        <button class="inv-clear-filters-btn" @onclick="ClearAllFilters">
+            <i class="fa-sharp fa-light fa-filter-slash"></i> Clear All Filters
         </button>
     }
 </div>
@@ -174,7 +207,7 @@
 }
 else
 {
-    <div class="section-card ov-fadeIn">
+    <div class="section-card inv-table-swap ov-fadeIn">
         <div class="section-header">
             <h2>Equipment <span class="text-muted">(@_filteredEquipment.Count items)</span></h2>
         </div>
@@ -317,6 +350,75 @@ else
                     }
                 </tbody>
             </table>
+
+            @* ── Mobile Card View ── *@
+            <div class="inv-mobile-cards">
+                @foreach (var eq in _filteredEquipment)
+                {
+                    <div class="inv-mobile-card @(eq.OverdueChecks > 0 ? "card-alert" : "")" @onclick="() => OpenDetail(eq.Id)">
+                        <div class="inv-mcard-top">
+                            <span class="inv-status-dot @StatusDotClass(eq.Status)"></span>
+                            <div class="inv-mcard-id">
+                                <strong>@eq.Identifier</strong>
+                                <span class="inv-mcard-type">@eq.EquipmentTypeName@(eq.SubTypeName != null ? $" / {eq.SubTypeName}" : "")</span>
+                            </div>
+                            <div class="inv-mcard-compliance">
+                                @if (eq.TotalChecks == 0)
+                                {
+                                    <span class="text-muted" style="font-size:0.7rem;">-</span>
+                                }
+                                else if (eq.OverdueChecks > 0)
+                                {
+                                    <span class="status-badge status-completedwithissues">@eq.OverdueChecks Overdue</span>
+                                }
+                                else if (eq.DueSoonChecks > 0)
+                                {
+                                    <span class="status-badge status-inprogress">Due Soon</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-completed">OK</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="inv-mcard-details">
+                            @if (!string.IsNullOrEmpty(eq.Size))
+                            {
+                                <span class="inv-mcard-tag"><i class="fa-sharp fa-light fa-ruler"></i> @eq.Size</span>
+                            }
+                            @if (!string.IsNullOrEmpty(eq.SerialNumber))
+                            {
+                                <span class="inv-mcard-tag"><i class="fa-sharp fa-light fa-barcode"></i> @eq.SerialNumber</span>
+                            }
+                            @if (eq.SectionId.HasValue)
+                            {
+                                <span class="inv-mcard-tag"><i class="fa-sharp fa-light fa-location-dot"></i> @eq.PlantName &rsaquo; @eq.SectionName</span>
+                            }
+                            else
+                            {
+                                <span class="inv-mcard-tag unassigned"><i class="fa-sharp fa-light fa-inbox"></i> Unassigned</span>
+                            }
+                        </div>
+                        <div class="inv-mcard-actions" @onclick:stopPropagation>
+                            @if (eq.SectionId.HasValue)
+                            {
+                                <button class="btn btn-xs btn-secondary" @onclick="() => StartUnassign(eq)">
+                                    <i class="fa-sharp fa-light fa-link-slash"></i> Unassign
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-xs btn-primary" @onclick="() => StartAssign(eq)">
+                                    <i class="fa-sharp fa-light fa-link"></i> Assign
+                                </button>
+                            }
+                            <button class="btn btn-xs btn-secondary" @onclick="() => OpenDetail(eq.Id)">
+                                <i class="fa-sharp fa-light fa-eye"></i> View
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
         }
     </div>
 }
@@ -744,6 +846,17 @@ else
     private int? _filterPlantId;
     private int _filterSectionId;
 
+    // Mobile filter toggle
+    private bool _showMobileFilters;
+    private int _activeFilterCount => new object?[] {
+        string.IsNullOrEmpty(_filterStatusStr) ? null : _filterStatusStr,
+        string.IsNullOrEmpty(_filterCompliance) ? null : _filterCompliance,
+        string.IsNullOrEmpty(_filterAssignment) ? null : _filterAssignment,
+        _filterCompanyId, _filterPlantId,
+        _filterSectionId > 0 ? (object)_filterSectionId : null,
+        _filterTypeId
+    }.Count(x => x is not null);
+
     // Sorting
     private string _sortColumn = "Identifier";
     private bool _sortAscending = true;
@@ -856,6 +969,43 @@ else
         ApplySort();
     }
 
+    /// <summary>Natural sort comparer — sorts "HR 1-001" before "HR 10-001".</summary>
+    private static int NaturalCompare(string? a, string? b)
+    {
+        if (a == b) return 0;
+        if (a is null) return -1;
+        if (b is null) return 1;
+
+        int ia = 0, ib = 0;
+        while (ia < a.Length && ib < b.Length)
+        {
+            bool aIsDigit = char.IsDigit(a[ia]);
+            bool bIsDigit = char.IsDigit(b[ib]);
+
+            if (aIsDigit && bIsDigit)
+            {
+                // Extract full number from each string
+                int numStartA = ia, numStartB = ib;
+                while (ia < a.Length && char.IsDigit(a[ia])) ia++;
+                while (ib < b.Length && char.IsDigit(b[ib])) ib++;
+
+                var numA = long.Parse(a.AsSpan(numStartA, ia - numStartA));
+                var numB = long.Parse(b.AsSpan(numStartB, ib - numStartB));
+
+                int cmp = numA.CompareTo(numB);
+                if (cmp != 0) return cmp;
+            }
+            else
+            {
+                int cmp = char.ToUpperInvariant(a[ia]).CompareTo(char.ToUpperInvariant(b[ib]));
+                if (cmp != 0) return cmp;
+                ia++;
+                ib++;
+            }
+        }
+        return a.Length.CompareTo(b.Length);
+    }
+
     private void ApplySort()
     {
         if (_filteredEquipment is null) return;
@@ -863,8 +1013,8 @@ else
         _filteredEquipment = _sortColumn switch
         {
             "Identifier" => _sortAscending
-                ? _filteredEquipment.OrderBy(e => e.Identifier).ToList()
-                : _filteredEquipment.OrderByDescending(e => e.Identifier).ToList(),
+                ? _filteredEquipment.OrderBy(e => e.Identifier, Comparer<string?>.Create(NaturalCompare)).ToList()
+                : _filteredEquipment.OrderByDescending(e => e.Identifier, Comparer<string?>.Create(NaturalCompare)).ToList(),
             "Type" => _sortAscending
                 ? _filteredEquipment.OrderBy(e => e.EquipmentTypeName).ThenBy(e => e.SubTypeName).ToList()
                 : _filteredEquipment.OrderByDescending(e => e.EquipmentTypeName).ThenByDescending(e => e.SubTypeName).ToList(),

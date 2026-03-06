@@ -2,7 +2,9 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:SafetyCompliance.Maui.Components"
-             x:Class="SafetyCompliance.Maui.MainPage">
+             x:Class="SafetyCompliance.Maui.MainPage"
+             BackgroundColor="#4f46e5"
+             Padding="0,48,0,0">
     <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
         <BlazorWebView.RootComponents>
             <RootComponent Selector="#app" ComponentType="{x:Type local:Routes}" />

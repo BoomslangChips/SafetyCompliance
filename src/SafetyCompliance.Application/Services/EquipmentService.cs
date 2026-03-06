@@ -352,7 +352,6 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
         }
 
         var items = await query
-            .OrderBy(e => e.Identifier)
             .Select(e => new InventoryEquipmentDto(
                 e.Id, e.Identifier, e.Description, e.Size, e.SerialNumber, e.IsActive,
                 e.SectionId,
@@ -368,6 +367,9 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
                 e.CheckRecords.Count(cr => cr.ExpiryDate != null && cr.ExpiryDate < today),
                 e.CheckRecords.Count(cr => cr.ExpiryDate != null && cr.ExpiryDate >= today && cr.ExpiryDate <= dueSoonDate)))
             .ToListAsync(ct);
+
+        // Natural sort by Identifier (HR 1-001 before HR 10-001)
+        items.Sort((a, b) => NaturalCompare(a.Identifier, b.Identifier));
 
         // Post-filter compliance status (cannot be done efficiently in the EF query)
         if (complianceFilter == "Overdue")
@@ -736,5 +738,36 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
                 new EquipmentCheckRecordUpsertDto(equipmentId, dto.EquipmentCheckId, dto.DateValue, dto.Notes),
                 userId, ct);
         }
+    }
+
+    /// <summary>Natural string comparison — numeric segments compared by value, not lexicographically.</summary>
+    private static int NaturalCompare(string? a, string? b)
+    {
+        if (a == b) return 0;
+        if (a is null) return -1;
+        if (b is null) return 1;
+
+        int ia = 0, ib = 0;
+        while (ia < a.Length && ib < b.Length)
+        {
+            if (char.IsDigit(a[ia]) && char.IsDigit(b[ib]))
+            {
+                int numStartA = ia, numStartB = ib;
+                while (ia < a.Length && char.IsDigit(a[ia])) ia++;
+                while (ib < b.Length && char.IsDigit(b[ib])) ib++;
+                var numA = long.Parse(a.AsSpan(numStartA, ia - numStartA));
+                var numB = long.Parse(b.AsSpan(numStartB, ib - numStartB));
+                int cmp = numA.CompareTo(numB);
+                if (cmp != 0) return cmp;
+            }
+            else
+            {
+                int cmp = char.ToUpperInvariant(a[ia]).CompareTo(char.ToUpperInvariant(b[ib]));
+                if (cmp != 0) return cmp;
+                ia++;
+                ib++;
+            }
+        }
+        return a.Length.CompareTo(b.Length);
     }
 }

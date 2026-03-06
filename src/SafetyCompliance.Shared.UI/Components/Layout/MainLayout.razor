@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
+@inject IServiceProvider ServiceProvider
 @implements IDisposable
 
 <div class="app-layout @(_sidebarCollapsed ? "sidebar-collapsed" : "")">
@@ -90,7 +91,7 @@
 </div>
 
 @code {
-    [Inject] private SafetyCompliance.Application.Interfaces.ISyncService? _syncService { get; set; }
+    private SafetyCompliance.Application.Interfaces.ISyncService? _syncService;
 
     private string _themeIconClass = "fa-sun-bright";
     private bool _sidebarOpen;
@@ -104,6 +105,10 @@
     protected override void OnInitialized()
     {
         Navigation.LocationChanged += OnLocationChanged;
+
+        // Resolve ISyncService optionally — only registered in MAUI, not in web
+        _syncService = ServiceProvider.GetService(typeof(SafetyCompliance.Application.Interfaces.ISyncService))
+            as SafetyCompliance.Application.Interfaces.ISyncService;
 
         if (_syncService is not null)
         {
