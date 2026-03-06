@@ -1,0 +1,130 @@
+@page "/sync"
+@inject ISyncService? SyncService
+@inject ICompanyService CompanyService
+@inject NavigationManager Navigation
+
+<div class="sync-page ov-fadeIn">
+    <div class="sync-card">
+        <div class="sync-icon">
+            <i class="fa-sharp fa-light @_iconClass @(_syncing ? "fa-spin" : "")"></i>
+        </div>
+
+        <h2 class="sync-title">@_title</h2>
+        <p class="sync-message">@_message</p>
+
+        @if (_syncing)
+        {
+            <div class="sync-progress">
+                <div class="sync-progress-bar">
+                    <div class="sync-progress-fill" style="width: @(_progress)%"></div>
+                </div>
+                <span class="sync-progress-text">@_progressText</span>
+            </div>
+        }
+
+        @if (_error is not null)
+        {
+            <div class="sync-error">
+                <i class="fa-sharp fa-light fa-triangle-exclamation"></i>
+                <span>@_error</span>
+            </div>
+            <button class="btn btn-primary sync-retry-btn" @onclick="StartSync">
+                <i class="fa-sharp fa-light fa-arrows-rotate"></i> Retry
+            </button>
+        }
+
+        @if (_complete)
+        {
+            <button class="btn btn-primary sync-continue-btn" @onclick='() => Navigation.NavigateTo("/", true)'>
+                <i class="fa-sharp fa-light fa-arrow-right"></i> Continue to Dashboard
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    private bool _syncing;
+    private bool _complete;
+    private string? _error;
+    private string _title = "Setting up your device";
+    private string _message = "Downloading data from server…";
+    private string _iconClass = "fa-cloud-arrow-down";
+    private string _progressText = "Connecting…";
+    private int _progress;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // If data already exists, skip sync and go to dashboard
+        try
+        {
+            var companies = await CompanyService.GetAllCompaniesAsync();
+            if (companies.Count > 0)
+            {
+                Navigation.NavigateTo("/", true);
+                return;
+            }
+        }
+        catch { /* no data yet, proceed with sync */ }
+
+        await StartSync();
+    }
+
+    private async Task StartSync()
+    {
+        if (SyncService is null)
+        {
+            // Web app — no sync needed
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        _syncing = true;
+        _complete = false;
+        _error = null;
+        _iconClass = "fa-cloud-arrow-down";
+        _title = "Setting up your device";
+        _message = "Downloading data from server…";
+        _progress = 10;
+        _progressText = "Connecting to server…";
+        StateHasChanged();
+
+        // Test connection
+        var canConnect = await SyncService.TestConnectionAsync();
+        if (!canConnect)
+        {
+            _syncing = false;
+            _error = "Cannot reach the server. Make sure you're on the same Wi-Fi network and SQL Server is running.";
+            _title = "Connection failed";
+            _iconClass = "fa-cloud-exclamation";
+            StateHasChanged();
+            return;
+        }
+
+        _progress = 25;
+        _progressText = "Connected! Downloading data…";
+        StateHasChanged();
+
+        // Run full sync
+        var result = await SyncService.SyncAsync();
+
+        _progress = 100;
+        _syncing = false;
+
+        if (result.Success)
+        {
+            _complete = true;
+            _title = "All set!";
+            _message = $"Downloaded {result.PulledCount} records from the server.";
+            _iconClass = "fa-circle-check";
+            _progressText = "Complete";
+        }
+        else
+        {
+            _error = result.Error ?? "Sync failed. Please try again.";
+            _title = "Sync failed";
+            _iconClass = "fa-cloud-exclamation";
+        }
+
+        StateHasChanged();
+    }
+}
