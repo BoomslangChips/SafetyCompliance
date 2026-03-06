@@ -15,4 +15,5 @@ public interface IInspectionService
     Task<string?> DeletePhotoAsync(int photoId, CancellationToken ct = default);
     Task<List<InspectionRoundDto>> GetActiveRoundsAsync(CancellationToken ct = default);
     Task<List<FailedInspectionItemDto>> GetFailedItemsAsync(CancellationToken ct = default);
+    Task DeleteRoundAsync(int roundId, CancellationToken ct = default);
 }

@@ -15,4 +15,9 @@ public interface IPhotoStorageService
     /// Deletes the physical file at the given web-relative path. No-op if the file does not exist.
     /// </summary>
     Task DeletePhotoAsync(string webPath);
+
+    /// <summary>
+    /// Reads the photo bytes from the given web-relative path. Returns null if file does not exist.
+    /// </summary>
+    Task<byte[]?> ReadPhotoAsync(string webPath);
 }

@@ -120,7 +120,7 @@ public class ExcelExportService : IExcelExportService
     //  MONTHLY REPORT EXPORT  — 6 sheets
     // ═══════════════════════════════════════════════════════════════════════════
 
-    public byte[] ExportMonthlyReport(MonthlyReportDto report)
+    public byte[] ExportMonthlyReport(MonthlyReportDto report, Dictionary<string, byte[]>? photoFiles = null)
     {
         using var wb = new XLWorkbook();
 
@@ -134,6 +134,9 @@ public class ExcelExportService : IExcelExportService
         AddServiceSheet(wb, report, title);
         AddNotesSheet(wb, report, title);
         AddContactsSheet(wb, report, title);
+
+        if (photoFiles is { Count: > 0 })
+            AddPhotosSheet(wb, report, title, photoFiles);
 
         return ToBytes(wb);
     }
@@ -564,6 +567,80 @@ public class ExcelExportService : IExcelExportService
         ws.Column(7).Width = 40;  // Notes
     }
 
+    // ── Sheet 8 (optional): Inspection Photos ───────────────────────────────
+
+    private static void AddPhotosSheet(XLWorkbook wb, MonthlyReportDto r, string title,
+        Dictionary<string, byte[]> photoFiles)
+    {
+        var ws = wb.Worksheets.Add("Inspection Photos");
+        AddSheetTitle(ws, $"Inspection Photos — {title}", 5);
+
+        var headers = new[] { "Round ID", "Identifier", "Type", "Section", "Photo" };
+        WriteHeaderRow(ws, 2, headers);
+
+        int row = 3;
+        int photoIndex = 0;
+
+        foreach (var eq in r.Equipment)
+        {
+            if (eq.PhotoPaths.Count == 0) continue;
+
+            foreach (var path in eq.PhotoPaths)
+            {
+                if (!photoFiles.TryGetValue(path, out var imageBytes) || imageBytes.Length == 0)
+                    continue;
+
+                ws.Cell(row, 1).Value = eq.RoundId;
+                ws.Cell(row, 2).Value = eq.Identifier;
+                ws.Cell(row, 3).Value = eq.TypeName;
+                ws.Cell(row, 4).Value = eq.SectionName;
+
+                // Embed the image in column 5
+                try
+                {
+                    using var ms = new MemoryStream(imageBytes);
+                    var pic = ws.AddPicture(ms, $"photo_{photoIndex}")
+                        .MoveTo(ws.Cell(row, 5));
+
+                    // Scale to fit within 200x150px
+                    const int maxW = 200, maxH = 150;
+                    var w = pic.Width;
+                    var h = pic.Height;
+                    if (w > maxW || h > maxH)
+                    {
+                        var scale = Math.Min((double)maxW / w, (double)maxH / h);
+                        pic.WithSize((int)(w * scale), (int)(h * scale));
+                    }
+
+                    // Set row height to fit image (approx. pixels → points)
+                    ws.Row(row).Height = Math.Max(ws.Row(row).Height, pic.Height * 0.75 + 6);
+                }
+                catch
+                {
+                    ws.Cell(row, 5).Value = "(image could not be loaded)";
+                }
+
+                photoIndex++;
+                row++;
+            }
+        }
+
+        if (row == 3)
+        {
+            ws.Cell(3, 1).Value = "No inspection photos were captured for this period.";
+        }
+
+        // Column widths
+        ws.Column(1).Width = 10;   // Round ID
+        ws.Column(2).Width = 16;   // Identifier
+        ws.Column(3).Width = 20;   // Type
+        ws.Column(4).Width = 18;   // Section
+        ws.Column(5).Width = 30;   // Photo
+
+        if (row > 3)
+            ApplyBorder(ws.Range(2, 1, row - 1, 5));
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     //  INVENTORY EXPORT — one sheet, one row per equipment item
     // ═══════════════════════════════════════════════════════════════════════════
@@ -614,10 +691,10 @@ public class ExcelExportService : IExcelExportService
             // Status colour
             ws.Cell(row, 6).Style.Fill.BackgroundColor = eq.Status switch
             {
-                Domain.Entities.EquipmentStatus.InService => GreenFill,
-                Domain.Entities.EquipmentStatus.Damaged or Domain.Entities.EquipmentStatus.Missing => RedFill,
+                Domain.Entities.EquipmentStatus.InOrder => GreenFill,
+                Domain.Entities.EquipmentStatus.Damaged or Domain.Entities.EquipmentStatus.OutOfPlace => RedFill,
                 Domain.Entities.EquipmentStatus.NeedsReplacement => AmberFill,
-                Domain.Entities.EquipmentStatus.OutOfService or Domain.Entities.EquipmentStatus.Retired => HeaderFill,
+                Domain.Entities.EquipmentStatus.InForService or Domain.Entities.EquipmentStatus.Retired => HeaderFill,
                 _ => XLColor.NoColor
             };
 
@@ -683,10 +760,10 @@ public class ExcelExportService : IExcelExportService
 
     private static string FormatEquipmentStatus(Domain.Entities.EquipmentStatus s) => s switch
     {
-        Domain.Entities.EquipmentStatus.InService => "In Service",
-        Domain.Entities.EquipmentStatus.OutOfService => "Out of Service",
+        Domain.Entities.EquipmentStatus.InOrder => "In Order",
+        Domain.Entities.EquipmentStatus.InForService => "In for Service",
         Domain.Entities.EquipmentStatus.Damaged => "Damaged",
-        Domain.Entities.EquipmentStatus.Missing => "Missing",
+        Domain.Entities.EquipmentStatus.OutOfPlace => "Out of Place",
         Domain.Entities.EquipmentStatus.NeedsReplacement => "Needs Replacement",
         Domain.Entities.EquipmentStatus.Retired => "Retired",
         _ => s.ToString()

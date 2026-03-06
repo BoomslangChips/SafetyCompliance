@@ -304,6 +304,50 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
             .ToListAsync(ct);
     }
 
+    public async Task DeleteRoundAsync(int roundId, CancellationToken ct = default)
+    {
+        var round = await context.InspectionRounds
+            .Include(r => r.EquipmentInspections)
+                .ThenInclude(ei => ei.Photos)
+            .FirstOrDefaultAsync(r => r.Id == roundId, ct)
+            ?? throw new InvalidOperationException($"Round {roundId} not found");
+
+        // Collect photo file paths for cleanup after DB delete
+        var photoPaths = round.EquipmentInspections
+            .SelectMany(ei => ei.Photos)
+            .Select(p => p.FilePath)
+            .ToList();
+
+        // Null-out FK references on Issues and Comments (nullable FKs)
+        var linkedIssues = await context.Issues
+            .Where(i => i.InspectionRoundId == roundId)
+            .ToListAsync(ct);
+        foreach (var issue in linkedIssues)
+            issue.InspectionRoundId = null;
+
+        var linkedComments = await context.Comments
+            .Where(c => c.InspectionRoundId == roundId)
+            .ToListAsync(ct);
+        foreach (var comment in linkedComments)
+            comment.InspectionRoundId = null;
+
+        // Remove the round — cascade deletes EquipmentInspections → Responses & Photos
+        context.InspectionRounds.Remove(round);
+        await context.SaveChangesAsync(ct);
+
+        // Clean up physical photo files (best-effort, don't throw)
+        foreach (var path in photoPaths)
+        {
+            try
+            {
+                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", path.TrimStart('/'));
+                if (File.Exists(fullPath))
+                    File.Delete(fullPath);
+            }
+            catch { /* photo cleanup is best-effort */ }
+        }
+    }
+
     public async Task<List<FailedInspectionItemDto>> GetFailedItemsAsync(CancellationToken ct = default)
     {
         var failedEquipment = await context.EquipmentInspections

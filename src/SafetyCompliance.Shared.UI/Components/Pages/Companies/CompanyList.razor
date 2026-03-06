@@ -4,13 +4,13 @@
 
 <div class="page-header">
     <div class="page-header-left">
-        <div class="page-header-icon"><i class="fa-light fa-buildings"></i></div>
+        <div class="page-header-icon"><i class="fa-sharp fa-light fa-buildings"></i></div>
         <div class="page-header-info">
             <h1>Companies</h1>
             <p class="page-header-sub">Manage your organisation's companies and structure</p>
         </div>
     </div>
-    <button class="btn btn-primary" @onclick="() => _showCreate = true"><i class="fa-light fa-plus"></i> Add Company</button>
+    <button class="btn btn-primary" @onclick="() => _showCreate = true"><i class="fa-sharp fa-light fa-plus"></i> Add Company</button>
 </div>
 
 @if (_showCreate)
@@ -48,10 +48,10 @@
                 <div class="form-group">
                     <label>Photo</label>
                     <InputFile OnChange="OnCreatePhotoSelected" class="form-control" accept="image/*" />
-                    @if (_createDto.PhotoBase64 is not null)
+                    @if (!string.IsNullOrEmpty(_createDto.PhotoBase64))
                     {
                         <div class="photo-preview">
-                            <img src="@($"data:image/jpeg;base64,{_createDto.PhotoBase64}")" alt="Preview" />
+                            <img src="@GetPhotoDataUri(_createDto.PhotoBase64)" alt="Preview" />
                             <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _createDto.PhotoBase64 = null; _createDto.PhotoFileName = null; }">Remove</button>
                         </div>
                     }
@@ -100,11 +100,11 @@
                 <div class="form-group">
                     <label>Photo</label>
                     <InputFile OnChange="OnEditPhotoSelected" class="form-control" accept="image/*" />
-                    @if (_editDto.PhotoBase64 is not null)
+                    @if (!string.IsNullOrEmpty(_editDto.PhotoBase64))
                     {
                         <div class="photo-preview">
-                            <img src="@($"data:image/jpeg;base64,{_editDto.PhotoBase64}")" alt="Preview" />
-                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _editDto.PhotoBase64 = null; _editDto.PhotoFileName = null; }">Remove</button>
+                            <img src="@GetPhotoDataUri(_editDto.PhotoBase64)" alt="Preview" />
+                            <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _editDto.PhotoBase64 = string.Empty; _editDto.PhotoFileName = null; }">Remove</button>
                         </div>
                     }
                 </div>
@@ -121,10 +121,10 @@
     @foreach (var company in _companies)
     {
         <div class="card clickable" @onclick="() => GoToCompany(company.Id)">
-            @if (company.PhotoBase64 is not null)
+            @if (!string.IsNullOrEmpty(company.PhotoBase64))
             {
                 <div class="card-photo">
-                    <img src="@($"data:image/jpeg;base64,{company.PhotoBase64}")" alt="@company.Name" />
+                    <img src="@GetPhotoDataUri(company.PhotoBase64)" alt="@company.Name" />
                 </div>
             }
             <div class="card-header-row">
@@ -193,23 +193,46 @@
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _createDto.PhotoBase64 = Convert.ToBase64String(buffer);
-        _createDto.PhotoFileName = file.Name;
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _createDto.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
+            _createDto.PhotoFileName = file.Name;
+        }
+        catch { /* file too large or read error */ }
     }
 
     private async Task OnEditPhotoSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _editDto.PhotoBase64 = Convert.ToBase64String(buffer);
-        _editDto.PhotoFileName = file.Name;
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _editDto.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
+            _editDto.PhotoFileName = file.Name;
+        }
+        catch { /* file too large or read error */ }
     }
 
     private void GoToCompany(int id) => Navigation.NavigateTo($"/companies/{id}");
+
+    private static string GetPhotoDataUri(string base64)
+    {
+        var mime = base64 switch
+        {
+            _ when base64.StartsWith("/9j/") => "image/jpeg",
+            _ when base64.StartsWith("iVBOR") => "image/png",
+            _ when base64.StartsWith("R0lG") => "image/gif",
+            _ when base64.StartsWith("UklG") => "image/webp",
+            _ => "image/png"
+        };
+        return $"data:{mime};base64,{base64}";
+    }
 
     private class CompanyCreateModel
     {

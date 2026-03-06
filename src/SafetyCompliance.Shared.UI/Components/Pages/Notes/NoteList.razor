@@ -12,16 +12,16 @@
     <div class="insp-tab-bar ov-fadeIn">
         <div class="insp-tabs">
             <button class="insp-tab @(_tab == NoteTab.All ? "active" : "")" @onclick="() => SetTab(NoteTab.All)">
-                <i class="fa-light fa-memo"></i> All
+                <i class="fa-sharp fa-light fa-memo"></i> All
             </button>
             <button class="insp-tab @(_tab == NoteTab.Pinned ? "active" : "")" @onclick="() => SetTab(NoteTab.Pinned)">
-                <i class="fa-light fa-thumbtack"></i> Pinned
+                <i class="fa-sharp fa-light fa-thumbtack"></i> Pinned
             </button>
             <button class="insp-tab @(_tab == NoteTab.Urgent ? "active" : "")" @onclick="() => SetTab(NoteTab.Urgent)">
-                <i class="fa-light fa-siren-on"></i> Urgent
+                <i class="fa-sharp fa-light fa-siren-on"></i> Urgent
             </button>
         </div>
-        <button class="inc-log-btn" @onclick="OpenCreateModal"><i class="fa-light fa-plus"></i> Add Note</button>
+        <button class="inc-log-btn" @onclick="OpenCreateModal"><i class="fa-sharp fa-light fa-plus"></i> Add Note</button>
     </div>
 
     @if (_loading)
@@ -33,35 +33,35 @@
         @* ── Stats row ── *@
         <div class="note-stats ov-fadeIn">
             <div class="note-stat">
-                <div class="note-stat-icon blue"><i class="fa-light fa-memo"></i></div>
+                <div class="note-stat-icon blue"><i class="fa-sharp fa-light fa-memo"></i></div>
                 <div class="note-stat-info">
                     <span class="note-stat-value">@_all.Count</span>
                     <span class="note-stat-label">Total Notes</span>
                 </div>
             </div>
             <div class="note-stat @(_pinnedCount > 0 ? "highlight" : "")">
-                <div class="note-stat-icon @(_pinnedCount > 0 ? "indigo" : "gray")"><i class="fa-light fa-thumbtack"></i></div>
+                <div class="note-stat-icon @(_pinnedCount > 0 ? "indigo" : "gray")"><i class="fa-sharp fa-light fa-thumbtack"></i></div>
                 <div class="note-stat-info">
                     <span class="note-stat-value">@_pinnedCount</span>
                     <span class="note-stat-label">Pinned</span>
                 </div>
             </div>
             <div class="note-stat @(_urgentCount > 0 ? "alert" : "")">
-                <div class="note-stat-icon @(_urgentCount > 0 ? "red" : "gray")"><i class="fa-light fa-siren-on"></i></div>
+                <div class="note-stat-icon @(_urgentCount > 0 ? "red" : "gray")"><i class="fa-sharp fa-light fa-siren-on"></i></div>
                 <div class="note-stat-info">
                     <span class="note-stat-value">@_urgentCount</span>
                     <span class="note-stat-label">Urgent</span>
                 </div>
             </div>
             <div class="note-stat">
-                <div class="note-stat-icon amber"><i class="fa-light fa-shield-halved"></i></div>
+                <div class="note-stat-icon amber"><i class="fa-sharp fa-light fa-shield-halved"></i></div>
                 <div class="note-stat-info">
                     <span class="note-stat-value">@_all.Count(n => n.Category == NoteCategory.Safety)</span>
                     <span class="note-stat-label">Safety</span>
                 </div>
             </div>
             <div class="note-stat">
-                <div class="note-stat-icon green"><i class="fa-light fa-clipboard-check"></i></div>
+                <div class="note-stat-icon green"><i class="fa-sharp fa-light fa-clipboard-check"></i></div>
                 <div class="note-stat-info">
                     <span class="note-stat-value">@_all.Count(n => n.Category == NoteCategory.Compliance)</span>
                     <span class="note-stat-label">Compliance</span>
@@ -82,7 +82,7 @@
                 {
                     <button class="inc-chip note-chip-@c.ToString().ToLower() @(_categoryFilter == c ? "active" : "")"
                             @onclick="() => SetCategoryFilter(c)">
-                        <i class="fa-light @CategoryIcon(c)"></i> @c <span class="inc-chip-count">@cnt</span>
+                        <i class="fa-sharp fa-light @CategoryIcon(c)"></i> @c <span class="inc-chip-count">@cnt</span>
                     </button>
                 }
             }
@@ -92,13 +92,13 @@
         @if (!_finalDisplay.Any())
         {
             <div class="ov-empty ov-fadeIn">
-                <div class="ov-empty-icon"><i class="fa-light fa-memo"></i></div>
+                <div class="ov-empty-icon"><i class="fa-sharp fa-light fa-memo"></i></div>
                 <h2>No notes found</h2>
                 <p>@(_tab == NoteTab.All ? "No notes have been added yet." : $"No {_tab.ToString().ToLower()} notes.")</p>
                 @if (_tab == NoteTab.All)
                 {
                     <button class="btn btn-primary btn-lg" @onclick="OpenCreateModal">
-                        <i class="fa-light fa-plus"></i> Add First Note
+                        <i class="fa-sharp fa-light fa-plus"></i> Add First Note
                     </button>
                 }
             </div>
@@ -121,12 +121,12 @@
                                         <i class="fa-solid fa-thumbtack note-pin-icon" title="Pinned"></i>
                                     }
                                     <span class="note-cat-badge note-cat-@n.Category.ToString().ToLower()">
-                                        <i class="fa-light @CategoryIcon(n.Category)"></i> @n.Category
+                                        <i class="fa-sharp fa-light @CategoryIcon(n.Category)"></i> @n.Category
                                     </span>
                                     @if (n.Priority != NotePriority.Normal)
                                     {
                                         <span class="note-priority-badge note-priority-@n.Priority.ToString().ToLower()">
-                                            <i class="fa-light @PriorityIcon(n.Priority)"></i> @n.Priority
+                                            <i class="fa-sharp fa-light @PriorityIcon(n.Priority)"></i> @n.Priority
                                         </span>
                                     }
                                     <h3>@n.Title</h3>
@@ -136,23 +136,23 @@
                             <div class="note-card-meta">
                                 @if (n.PlantName is not null)
                                 {
-                                    <span class="inc-meta-tag"><i class="fa-light fa-industry"></i> @n.PlantName</span>
+                                    <span class="inc-meta-tag"><i class="fa-sharp fa-light fa-industry"></i> @n.PlantName</span>
                                 }
                                 @if (n.EquipmentIdentifier is not null)
                                 {
-                                    <span class="inc-meta-tag equip"><i class="fa-light fa-gear"></i> @n.EquipmentIdentifier — @n.EquipmentTypeName@(n.EquipmentSubTypeName != null ? $" ({n.EquipmentSubTypeName})" : "")</span>
+                                    <span class="inc-meta-tag equip"><i class="fa-sharp fa-light fa-gear"></i> @n.EquipmentIdentifier — @n.EquipmentTypeName@(n.EquipmentSubTypeName != null ? $" ({n.EquipmentSubTypeName})" : "")</span>
                                 }
                                 @if (n.SectionName is not null)
                                 {
-                                    <span class="inc-meta-tag"><i class="fa-light fa-layer-group"></i> @n.SectionName</span>
+                                    <span class="inc-meta-tag"><i class="fa-sharp fa-light fa-layer-group"></i> @n.SectionName</span>
                                 }
                                 @if (n.ModifiedAt.HasValue)
                                 {
-                                    <span class="inc-meta-tag muted"><i class="fa-light fa-pen-to-square"></i> Edited @n.ModifiedAt.Value.ToString("MMM dd, yyyy")</span>
+                                    <span class="inc-meta-tag muted"><i class="fa-sharp fa-light fa-pen-to-square"></i> Edited @n.ModifiedAt.Value.ToString("MMM dd, yyyy")</span>
                                 }
                                 else
                                 {
-                                    <span class="inc-meta-tag muted"><i class="fa-light fa-clock"></i> @n.CreatedAt.ToString("MMM dd, yyyy")</span>
+                                    <span class="inc-meta-tag muted"><i class="fa-sharp fa-light fa-clock"></i> @n.CreatedAt.ToString("MMM dd, yyyy")</span>
                                 }
                             </div>
                         </div>
@@ -160,14 +160,14 @@
                             <button class="inc-action-btn @(n.IsPinned ? "reopen" : "resolve")"
                                     @onclick="() => TogglePin(n.Id)"
                                     title="@(n.IsPinned ? "Unpin" : "Pin")">
-                                <i class="fa-light fa-thumbtack"></i>
+                                <i class="fa-sharp fa-light fa-thumbtack"></i>
                                 <span>@(n.IsPinned ? "Unpin" : "Pin")</span>
                             </button>
                             <button class="inc-action-btn view" @onclick="() => OpenEditModal(n)" title="Edit">
-                                <i class="fa-light fa-pen"></i>
+                                <i class="fa-sharp fa-light fa-pen"></i>
                             </button>
                             <button class="inc-action-btn delete" @onclick="() => ConfirmDelete(n.Id, n.Title)" title="Delete">
-                                <i class="fa-light fa-trash"></i>
+                                <i class="fa-sharp fa-light fa-trash"></i>
                             </button>
                         </div>
                     </div>
@@ -184,12 +184,12 @@
     <div class="chk-modal-overlay" @onclick="CloseForm">
         <div class="chk-modal chk-modal-wide ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon primary"><i class="fa-light fa-memo"></i></div>
+                <div class="chk-modal-icon primary"><i class="fa-sharp fa-light fa-memo"></i></div>
                 <div>
                     <h2>@(_editId.HasValue ? "Edit Note" : "Add Note")</h2>
                     <span class="chk-modal-sub">@(_editId.HasValue ? "Update this note" : "Capture something notable")</span>
                 </div>
-                <button class="chk-modal-close" @onclick="CloseForm"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="CloseForm"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 <div class="form-group">
@@ -211,7 +211,7 @@
                                 <button type="button"
                                         class="note-cat-btn note-cat-@c.ToString().ToLower() @(_formCategory == c ? "active" : "")"
                                         @onclick="() => _formCategory = c">
-                                    <i class="fa-light @CategoryIcon(c)"></i> @c
+                                    <i class="fa-sharp fa-light @CategoryIcon(c)"></i> @c
                                 </button>
                             }
                         </div>
@@ -225,7 +225,7 @@
                                 <button type="button"
                                         class="note-pri-btn note-priority-@p.ToString().ToLower() @(_formPriority == p ? "active" : "")"
                                         @onclick="() => _formPriority = p">
-                                    <i class="fa-light @PriorityIcon(p)"></i> @p
+                                    <i class="fa-sharp fa-light @PriorityIcon(p)"></i> @p
                                 </button>
                             }
                         </div>
@@ -234,7 +234,7 @@
                 <div class="form-group">
                     <label class="note-pin-label">
                         <input type="checkbox" @bind="_formPinned" class="form-check" />
-                        <i class="fa-light fa-thumbtack"></i> Pin this note
+                        <i class="fa-sharp fa-light fa-thumbtack"></i> Pin this note
                     </label>
                 </div>
                 @if (!_editId.HasValue)
@@ -274,7 +274,7 @@
                         @if (_formEquipmentId.HasValue)
                         {
                             var sel = _pickerEquipment.FirstOrDefault(e => e.Id == _formEquipmentId);
-                            <div class="picker-summary"><i class="fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName@(sel?.SubTypeName != null ? $" ({sel.SubTypeName})" : "")@(!string.IsNullOrEmpty(sel?.Description) ? $" · {sel!.Description}" : "")</div>
+                            <div class="picker-summary"><i class="fa-sharp fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName@(sel?.SubTypeName != null ? $" ({sel.SubTypeName})" : "")@(!string.IsNullOrEmpty(sel?.Description) ? $" · {sel!.Description}" : "")</div>
                         }
                     </div>
                 }
@@ -285,14 +285,14 @@
                 {
                     <button class="btn btn-primary" @onclick="SaveEdit"
                             disabled="@(string.IsNullOrWhiteSpace(_formTitle) || string.IsNullOrWhiteSpace(_formContent))">
-                        <i class="fa-light fa-floppy-disk"></i> Save Changes
+                        <i class="fa-sharp fa-light fa-floppy-disk"></i> Save Changes
                     </button>
                 }
                 else
                 {
                     <button class="btn btn-primary" @onclick="CreateNote"
                             disabled="@(string.IsNullOrWhiteSpace(_formTitle) || string.IsNullOrWhiteSpace(_formContent))">
-                        <i class="fa-light fa-memo"></i> Add Note
+                        <i class="fa-sharp fa-light fa-memo"></i> Add Note
                     </button>
                 }
             </div>
@@ -306,12 +306,12 @@
     <div class="chk-modal-overlay" @onclick="() => _showDelete = false">
         <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon danger"><i class="fa-light fa-trash"></i></div>
+                <div class="chk-modal-icon danger"><i class="fa-sharp fa-light fa-trash"></i></div>
                 <div>
                     <h2>Delete Note</h2>
                     <span class="chk-modal-sub">This cannot be undone</span>
                 </div>
-                <button class="chk-modal-close" @onclick="() => _showDelete = false"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="() => _showDelete = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 <p>Are you sure you want to delete <strong>@_deleteTitle</strong>?</p>
@@ -319,7 +319,7 @@
             <div class="chk-modal-footer">
                 <button class="btn btn-ghost" @onclick="() => _showDelete = false">Cancel</button>
                 <button class="btn btn-danger" @onclick="DoDelete">
-                    <i class="fa-light fa-trash"></i> Delete
+                    <i class="fa-sharp fa-light fa-trash"></i> Delete
                 </button>
             </div>
         </div>

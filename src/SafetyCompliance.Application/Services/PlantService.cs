@@ -8,6 +8,19 @@ namespace SafetyCompliance.Application.Services;
 
 public class PlantService(ApplicationDbContext context) : IPlantService
 {
+    public async Task<List<PlantDto>> GetAllPlantsAsync(CancellationToken ct = default)
+    {
+        var plants = await context.Plants
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.Company.Name).ThenBy(p => p.Name)
+            .Select(p => new PlantDto(
+                p.Id, p.CompanyId, p.Company.Name, p.Name, p.Description,
+                p.ContactName, p.ContactPhone, p.ContactEmail, p.IsActive,
+                0, 0, null, null))
+            .ToListAsync(ct);
+        return plants;
+    }
+
     public async Task<List<PlantDto>> GetPlantsByCompanyAsync(int companyId, CancellationToken ct = default)
     {
         var plants = await context.Plants
@@ -105,8 +118,8 @@ public class PlantService(ApplicationDbContext context) : IPlantService
         plant.IsActive = dto.IsActive;
         if (dto.PhotoBase64 is not null)
         {
-            plant.PhotoBase64 = dto.PhotoBase64;
-            plant.PhotoFileName = dto.PhotoFileName;
+            plant.PhotoBase64 = dto.PhotoBase64 == "" ? null : dto.PhotoBase64;
+            plant.PhotoFileName = dto.PhotoBase64 == "" ? null : dto.PhotoFileName;
         }
         plant.ModifiedAt = DateTime.UtcNow;
         plant.ModifiedById = userId;
@@ -115,6 +128,16 @@ public class PlantService(ApplicationDbContext context) : IPlantService
     }
 
     // ── Plant Contacts ────────────────────────────────────────────────────
+
+    public async Task<Dictionary<int, int>> GetContactCountsByPlantsAsync(IEnumerable<int> plantIds, CancellationToken ct = default)
+    {
+        var ids = plantIds.ToList();
+        return await context.PlantContacts
+            .Where(c => ids.Contains(c.PlantId))
+            .GroupBy(c => c.PlantId)
+            .Select(g => new { PlantId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.PlantId, g => g.Count, ct);
+    }
 
     public async Task<List<PlantContactDto>> GetContactsAsync(int plantId, CancellationToken ct = default)
     {
@@ -183,5 +206,70 @@ public class PlantService(ApplicationDbContext context) : IPlantService
             context.PlantContacts.Remove(contact);
             await context.SaveChangesAsync(ct);
         }
+    }
+
+    // ── Contact Documents ──────────────────────────────────────────────────
+
+    public async Task<List<ContactDocumentDto>> GetContactDocumentsAsync(int contactId, CancellationToken ct = default)
+    {
+        return await context.ContactDocuments
+            .Where(d => d.PlantContactId == contactId)
+            .OrderByDescending(d => d.CreatedAt)
+            .Select(d => new ContactDocumentDto(
+                d.Id, d.PlantContactId, d.FileName, d.DisplayName,
+                d.ContentType, d.FileSizeBytes, d.CreatedAt))
+            .ToListAsync(ct);
+    }
+
+    public async Task<ContactDocumentDto> UploadContactDocumentAsync(ContactDocumentUploadDto dto, string userId, CancellationToken ct = default)
+    {
+        var doc = new ContactDocument
+        {
+            PlantContactId = dto.PlantContactId,
+            FileName       = dto.FileName,
+            DisplayName    = dto.DisplayName,
+            ContentType    = dto.ContentType,
+            FileSizeBytes  = dto.FileSizeBytes,
+            FileBase64     = dto.FileBase64,
+            CreatedById    = userId
+        };
+
+        context.ContactDocuments.Add(doc);
+        await context.SaveChangesAsync(ct);
+
+        return new ContactDocumentDto(doc.Id, doc.PlantContactId, doc.FileName, doc.DisplayName,
+            doc.ContentType, doc.FileSizeBytes, doc.CreatedAt);
+    }
+
+    public async Task RenameContactDocumentAsync(int documentId, string newDisplayName, string userId, CancellationToken ct = default)
+    {
+        var doc = await context.ContactDocuments.FindAsync([documentId], ct)
+            ?? throw new InvalidOperationException($"ContactDocument {documentId} not found");
+
+        doc.DisplayName  = newDisplayName.Trim();
+        doc.ModifiedAt   = DateTime.UtcNow;
+        doc.ModifiedById = userId;
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteContactDocumentAsync(int documentId, CancellationToken ct = default)
+    {
+        var doc = await context.ContactDocuments.FindAsync([documentId], ct);
+        if (doc is not null)
+        {
+            context.ContactDocuments.Remove(doc);
+            await context.SaveChangesAsync(ct);
+        }
+    }
+
+    public async Task<(string FileBase64, string ContentType, string FileName)?> DownloadContactDocumentAsync(int documentId, CancellationToken ct = default)
+    {
+        var doc = await context.ContactDocuments
+            .Where(d => d.Id == documentId)
+            .Select(d => new { d.FileBase64, d.ContentType, d.DisplayName })
+            .FirstOrDefaultAsync(ct);
+
+        if (doc is null) return null;
+        return (doc.FileBase64, doc.ContentType, doc.DisplayName);
     }
 }

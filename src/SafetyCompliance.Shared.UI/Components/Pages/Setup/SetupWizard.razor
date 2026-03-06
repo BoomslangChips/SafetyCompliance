@@ -23,7 +23,7 @@
             <div class="step-number">
                 @if (stepIndex < _currentStep)
                 {
-                    <i class="fa-light fa-check"></i>
+                    <i class="fa-sharp fa-light fa-check"></i>
                 }
                 else
                 {
@@ -50,7 +50,7 @@
     <div class="wizard-card">
         <div class="step-intro">
             <div class="step-intro-icon">
-                <i class="fa-light fa-building"></i>
+                <i class="fa-sharp fa-light fa-building"></i>
             </div>
             <div class="step-intro-content">
                 <h2>Select Your Company</h2>
@@ -61,17 +61,17 @@
         @if (!_companies.Any() && !_showCreateCompany)
         {
             <div class="empty-state">
-                <i class="fa-light fa-building"></i>
+                <i class="fa-sharp fa-light fa-building"></i>
                 No companies yet. Create your first company to get started.
                 <div style="margin-top: var(--spacing-md);">
-                    <button class="btn btn-primary btn-lg" @onclick="() => { _showCreateCompany = true; _companyCreate = new(); }"><i class="fa-light fa-plus"></i> Create Your First Company</button>
+                    <button class="btn btn-primary btn-lg" @onclick="() => { _showCreateCompany = true; _companyCreate = new(); }"><i class="fa-sharp fa-light fa-plus"></i> Create Your First Company</button>
                 </div>
             </div>
         }
         else if (!_showCreateCompany)
         {
             <div style="display: flex; justify-content: flex-end; margin-bottom: var(--spacing-md);">
-                <button class="btn btn-primary" @onclick="() => { _showCreateCompany = true; _companyCreate = new(); }"><i class="fa-light fa-plus"></i> New Company</button>
+                <button class="btn btn-primary" @onclick="() => { _showCreateCompany = true; _companyCreate = new(); }"><i class="fa-sharp fa-light fa-plus"></i> New Company</button>
             </div>
         }
 
@@ -79,8 +79,8 @@
         {
             <div class="setup-item-card" style="margin-bottom: var(--spacing-lg);">
                 <div class="setup-item-header">
-                    <h3><i class="fa-light fa-plus" style="color: var(--color-primary);"></i> Create New Company</h3>
-                    <button class="btn btn-sm btn-ghost" @onclick="() => _showCreateCompany = false"><i class="fa-light fa-xmark"></i> Cancel</button>
+                    <h3><i class="fa-sharp fa-light fa-plus" style="color: var(--color-primary);"></i> Create New Company</h3>
+                    <button class="btn btn-sm btn-ghost" @onclick="() => _showCreateCompany = false"><i class="fa-sharp fa-light fa-xmark"></i> Cancel</button>
                 </div>
                 <EditForm Model="_companyCreate" OnValidSubmit="CreateCompany">
                     <div class="form-row">
@@ -114,16 +114,16 @@
                     <div class="form-group">
                         <label>Photo</label>
                         <InputFile OnChange="OnCreateCompanyPhotoSelected" class="form-control" accept="image/*" />
-                        @if (_companyCreate.PhotoBase64 is not null)
+                        @if (!string.IsNullOrEmpty(_companyCreate.PhotoBase64))
                         {
                             <div class="photo-preview">
-                                <img src="@($"data:image/jpeg;base64,{_companyCreate.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _companyCreate.PhotoBase64 = null; _companyCreate.PhotoFileName = null; }"><i class="fa-light fa-trash"></i> Remove</button>
+                                <img src="@GetPhotoDataUri(_companyCreate.PhotoBase64)" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _companyCreate.PhotoBase64 = null; _companyCreate.PhotoFileName = null; }"><i class="fa-sharp fa-light fa-trash"></i> Remove</button>
                             </div>
                         }
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary"><i class="fa-light fa-check"></i> Save Company</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-sharp fa-light fa-check"></i> Save Company</button>
                         <button type="button" class="btn btn-secondary" @onclick="() => _showCreateCompany = false">Cancel</button>
                     </div>
                 </EditForm>
@@ -136,21 +136,21 @@
                 @foreach (var company in _companies)
                 {
                     <div class="card clickable @(company.Id == _selectedCompanyId ? "setup-selected" : "")" @onclick="() => SelectCompany(company.Id)">
-                        @if (company.PhotoBase64 is not null)
+                        @if (!string.IsNullOrEmpty(company.PhotoBase64))
                         {
                             <div class="card-photo">
-                                <img src="@($"data:image/jpeg;base64,{company.PhotoBase64}")" alt="@company.Name" />
+                                <img src="@GetPhotoDataUri(company.PhotoBase64)" alt="@company.Name" />
                             </div>
                         }
                         <h3>@company.Name</h3>
                         <p class="card-subtitle">@(company.Code ?? "No code") &middot; @(company.Address ?? "No address")</p>
                         <div class="card-stats">
-                            <span><i class="fa-light fa-industry"></i> @company.PlantCount plants</span>
-                            <span><i class="fa-light fa-gear"></i> @company.TotalEquipment equipment</span>
+                            <span><i class="fa-sharp fa-light fa-industry"></i> @company.PlantCount plants</span>
+                            <span><i class="fa-sharp fa-light fa-gear"></i> @company.TotalEquipment equipment</span>
                         </div>
                         @if (company.Id == _selectedCompanyId)
                         {
-                            <span class="active-badge" style="margin-top: var(--spacing-sm);"><i class="fa-light fa-check"></i> Selected</span>
+                            <span class="active-badge" style="margin-top: var(--spacing-sm);"><i class="fa-sharp fa-light fa-check"></i> Selected</span>
                         }
                     </div>
                 }
@@ -165,7 +165,7 @@
     <div class="wizard-card">
         <div class="step-intro">
             <div class="step-intro-icon" style="background: var(--color-tint-blue); color: var(--color-primary);">
-                <i class="fa-light fa-industry"></i>
+                <i class="fa-sharp fa-light fa-industry"></i>
             </div>
             <div class="step-intro-content">
                 <h2>Add Plants for @_selectedCompanyName</h2>
@@ -174,15 +174,15 @@
         </div>
 
         <div style="display: flex; justify-content: flex-end; margin-bottom: var(--spacing-md);">
-            <button class="btn btn-primary" @onclick="() => { _showCreatePlant = true; _showEditPlant = false; _plantCreate = new(); }"><i class="fa-light fa-plus"></i> Add Plant</button>
+            <button class="btn btn-primary" @onclick="() => { _showCreatePlant = true; _showEditPlant = false; _plantCreate = new(); }"><i class="fa-sharp fa-light fa-plus"></i> Add Plant</button>
         </div>
 
         @if (_showCreatePlant)
         {
             <div class="setup-item-card">
                 <div class="setup-item-header">
-                    <h3><i class="fa-light fa-plus" style="color: var(--color-primary);"></i> New Plant</h3>
-                    <button class="btn btn-sm btn-ghost" @onclick="() => _showCreatePlant = false"><i class="fa-light fa-xmark"></i> Cancel</button>
+                    <h3><i class="fa-sharp fa-light fa-plus" style="color: var(--color-primary);"></i> New Plant</h3>
+                    <button class="btn btn-sm btn-ghost" @onclick="() => _showCreatePlant = false"><i class="fa-sharp fa-light fa-xmark"></i> Cancel</button>
                 </div>
                 <EditForm Model="_plantCreate" OnValidSubmit="CreatePlant">
                     <div class="form-row">
@@ -212,16 +212,16 @@
                     <div class="form-group">
                         <label>Photo</label>
                         <InputFile OnChange="OnCreatePlantPhotoSelected" class="form-control" accept="image/*" />
-                        @if (_plantCreate.PhotoBase64 is not null)
+                        @if (!string.IsNullOrEmpty(_plantCreate.PhotoBase64))
                         {
                             <div class="photo-preview">
-                                <img src="@($"data:image/jpeg;base64,{_plantCreate.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _plantCreate.PhotoBase64 = null; _plantCreate.PhotoFileName = null; }"><i class="fa-light fa-trash"></i> Remove</button>
+                                <img src="@GetPhotoDataUri(_plantCreate.PhotoBase64)" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _plantCreate.PhotoBase64 = null; _plantCreate.PhotoFileName = null; }"><i class="fa-sharp fa-light fa-trash"></i> Remove</button>
                             </div>
                         }
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary"><i class="fa-light fa-check"></i> Save Plant</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-sharp fa-light fa-check"></i> Save Plant</button>
                         <button type="button" class="btn btn-secondary" @onclick="() => _showCreatePlant = false">Cancel</button>
                     </div>
                 </EditForm>
@@ -232,8 +232,8 @@
         {
             <div class="setup-item-card">
                 <div class="setup-item-header">
-                    <h3><i class="fa-light fa-pen" style="color: var(--color-primary);"></i> Edit Plant</h3>
-                    <button class="btn btn-sm btn-ghost" @onclick="() => _showEditPlant = false"><i class="fa-light fa-xmark"></i> Cancel</button>
+                    <h3><i class="fa-sharp fa-light fa-pen" style="color: var(--color-primary);"></i> Edit Plant</h3>
+                    <button class="btn btn-sm btn-ghost" @onclick="() => _showEditPlant = false"><i class="fa-sharp fa-light fa-xmark"></i> Cancel</button>
                 </div>
                 <EditForm Model="_plantEdit" OnValidSubmit="UpdatePlant">
                     <div class="form-row">
@@ -263,11 +263,11 @@
                     <div class="form-group">
                         <label>Photo</label>
                         <InputFile OnChange="OnEditPlantPhotoSelected" class="form-control" accept="image/*" />
-                        @if (_plantEdit.PhotoBase64 is not null)
+                        @if (!string.IsNullOrEmpty(_plantEdit.PhotoBase64))
                         {
                             <div class="photo-preview">
-                                <img src="@($"data:image/jpeg;base64,{_plantEdit.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _plantEdit.PhotoBase64 = null; _plantEdit.PhotoFileName = null; }">Remove</button>
+                                <img src="@GetPhotoDataUri(_plantEdit.PhotoBase64)" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _plantEdit.PhotoBase64 = string.Empty; _plantEdit.PhotoFileName = null; }">Remove</button>
                             </div>
                         }
                     </div>
@@ -283,10 +283,10 @@
             @foreach (var plant in _plants)
             {
                 <div class="card">
-                    @if (plant.PhotoBase64 is not null)
+                    @if (!string.IsNullOrEmpty(plant.PhotoBase64))
                     {
                         <div class="card-photo">
-                            <img src="@($"data:image/jpeg;base64,{plant.PhotoBase64}")" alt="@plant.Name" />
+                            <img src="@GetPhotoDataUri(plant.PhotoBase64)" alt="@plant.Name" />
                         </div>
                     }
                     <div class="card-header-row">
@@ -296,7 +296,7 @@
                         </div>
                     </div>
                     <p class="card-subtitle">@(plant.Description ?? "No description")</p>
-                    <p class="card-subtitle"><i class="fa-light fa-user"></i> @(plant.ContactName ?? "No contact")</p>
+                    <p class="card-subtitle"><i class="fa-sharp fa-light fa-user"></i> @(plant.ContactName ?? "No contact")</p>
                     <div class="card-stats">
                         <span>@plant.SectionCount sections</span>
                         <span>@plant.EquipmentCount equipment</span>
@@ -308,7 +308,7 @@
         @if (!_plants.Any() && !_showCreatePlant)
         {
             <div class="empty-state">
-                <i class="fa-light fa-industry"></i>
+                <i class="fa-sharp fa-light fa-industry"></i>
                 No plants yet. Click "Add Plant" above to create your first facility.
             </div>
         }
@@ -321,7 +321,7 @@
     <div class="wizard-card">
         <div class="step-intro">
             <div class="step-intro-icon" style="background: var(--color-tint-blue); color: var(--color-primary);">
-                <i class="fa-light fa-layer-group"></i>
+                <i class="fa-sharp fa-light fa-layer-group"></i>
             </div>
             <div class="step-intro-content">
                 <h2>Define Sections</h2>
@@ -332,7 +332,7 @@
         @if (_plants.Any())
         {
             <div class="setup-plant-selector">
-                <label><i class="fa-light fa-industry"></i> Plant:</label>
+                <label><i class="fa-sharp fa-light fa-industry"></i> Plant:</label>
                 <select class="form-control" value="@_selectedPlantId" @onchange="OnPlantChanged">
                     @foreach (var plant in _plants)
                     {
@@ -341,14 +341,14 @@
                 </select>
                 @if (_selectedPlantId > 0)
                 {
-                    <button class="btn btn-primary" @onclick="() => { _showCreateSection = true; _showEditSection = false; _sectionCreate = new(); }"><i class="fa-light fa-plus"></i> Add Section</button>
+                    <button class="btn btn-primary" @onclick="() => { _showCreateSection = true; _showEditSection = false; _sectionCreate = new(); }"><i class="fa-sharp fa-light fa-plus"></i> Add Section</button>
                 }
             </div>
         }
         else
         {
             <div class="empty-state">
-                <i class="fa-light fa-arrow-left"></i>
+                <i class="fa-sharp fa-light fa-arrow-left"></i>
                 No plants available. Go back to the previous step and add plants first.
             </div>
         }
@@ -357,8 +357,8 @@
         {
             <div class="setup-item-card">
                 <div class="setup-item-header">
-                    <h3><i class="fa-light fa-plus" style="color: var(--color-primary);"></i> New Section</h3>
-                    <button class="btn btn-sm btn-ghost" @onclick="() => _showCreateSection = false"><i class="fa-light fa-xmark"></i> Cancel</button>
+                    <h3><i class="fa-sharp fa-light fa-plus" style="color: var(--color-primary);"></i> New Section</h3>
+                    <button class="btn btn-sm btn-ghost" @onclick="() => _showCreateSection = false"><i class="fa-sharp fa-light fa-xmark"></i> Cancel</button>
                 </div>
                 <EditForm Model="_sectionCreate" OnValidSubmit="CreateSection">
                     <div class="form-row">
@@ -374,16 +374,16 @@
                     <div class="form-group">
                         <label>Photo</label>
                         <InputFile OnChange="OnCreateSectionPhotoSelected" class="form-control" accept="image/*" />
-                        @if (_sectionCreate.PhotoBase64 is not null)
+                        @if (!string.IsNullOrEmpty(_sectionCreate.PhotoBase64))
                         {
                             <div class="photo-preview">
-                                <img src="@($"data:image/jpeg;base64,{_sectionCreate.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionCreate.PhotoBase64 = null; _sectionCreate.PhotoFileName = null; }"><i class="fa-light fa-trash"></i> Remove</button>
+                                <img src="@GetPhotoDataUri(_sectionCreate.PhotoBase64)" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionCreate.PhotoBase64 = null; _sectionCreate.PhotoFileName = null; }"><i class="fa-sharp fa-light fa-trash"></i> Remove</button>
                             </div>
                         }
                     </div>
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary"><i class="fa-light fa-check"></i> Save Section</button>
+                        <button type="submit" class="btn btn-primary"><i class="fa-sharp fa-light fa-check"></i> Save Section</button>
                         <button type="button" class="btn btn-secondary" @onclick="() => _showCreateSection = false">Cancel</button>
                     </div>
                 </EditForm>
@@ -394,8 +394,8 @@
         {
             <div class="setup-item-card">
                 <div class="setup-item-header">
-                    <h3><i class="fa-light fa-pen" style="color: var(--color-primary);"></i> Edit Section</h3>
-                    <button class="btn btn-sm btn-ghost" @onclick="() => _showEditSection = false"><i class="fa-light fa-xmark"></i> Cancel</button>
+                    <h3><i class="fa-sharp fa-light fa-pen" style="color: var(--color-primary);"></i> Edit Section</h3>
+                    <button class="btn btn-sm btn-ghost" @onclick="() => _showEditSection = false"><i class="fa-sharp fa-light fa-xmark"></i> Cancel</button>
                 </div>
                 <EditForm Model="_sectionEdit" OnValidSubmit="UpdateSection">
                     <div class="form-row">
@@ -411,11 +411,11 @@
                     <div class="form-group">
                         <label>Photo</label>
                         <InputFile OnChange="OnEditSectionPhotoSelected" class="form-control" accept="image/*" />
-                        @if (_sectionEdit.PhotoBase64 is not null)
+                        @if (!string.IsNullOrEmpty(_sectionEdit.PhotoBase64))
                         {
                             <div class="photo-preview">
-                                <img src="@($"data:image/jpeg;base64,{_sectionEdit.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionEdit.PhotoBase64 = null; _sectionEdit.PhotoFileName = null; }">Remove</button>
+                                <img src="@GetPhotoDataUri(_sectionEdit.PhotoBase64)" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionEdit.PhotoBase64 = string.Empty; _sectionEdit.PhotoFileName = null; }">Remove</button>
                             </div>
                         }
                     </div>
@@ -433,10 +433,10 @@
                 @foreach (var sec in _sections)
                 {
                     <div class="card">
-                        @if (sec.PhotoBase64 is not null)
+                        @if (!string.IsNullOrEmpty(sec.PhotoBase64))
                         {
                             <div class="card-photo">
-                                <img src="@($"data:image/jpeg;base64,{sec.PhotoBase64}")" alt="@sec.Name" />
+                                <img src="@GetPhotoDataUri(sec.PhotoBase64)" alt="@sec.Name" />
                             </div>
                         }
                         <div class="card-header-row">
@@ -457,7 +457,7 @@
             @if (!_sections.Any() && !_showCreateSection)
             {
                 <div class="empty-state">
-                    <i class="fa-light fa-layer-group"></i>
+                    <i class="fa-sharp fa-light fa-layer-group"></i>
                     No sections for this plant yet. Click "Add Section" to create zones or areas.
                 </div>
             }
@@ -471,7 +471,7 @@
     <div class="wizard-card">
         <div class="step-intro">
             <div class="step-intro-icon" style="background: var(--color-tint-green); color: var(--color-success);">
-                <i class="fa-light fa-gear"></i>
+                <i class="fa-sharp fa-light fa-gear"></i>
             </div>
             <div class="step-intro-content">
                 <h2>Register Equipment</h2>
@@ -482,7 +482,7 @@
         @if (_plants.Any())
         {
             <div class="setup-plant-selector">
-                <label><i class="fa-light fa-industry"></i> Plant:</label>
+                <label><i class="fa-sharp fa-light fa-industry"></i> Plant:</label>
                 <select class="form-control" value="@_selectedPlantId" @onchange="OnPlantChanged">
                     @foreach (var plant in _plants)
                     {
@@ -494,7 +494,7 @@
         else
         {
             <div class="empty-state">
-                <i class="fa-light fa-arrow-left"></i>
+                <i class="fa-sharp fa-light fa-arrow-left"></i>
                 No plants available. Go back and add plants first.
             </div>
         }
@@ -505,8 +505,8 @@
             {
                 <div class="setup-section-group">
                     <div class="setup-item-header">
-                        <h4><i class="fa-light fa-layer-group" style="color: var(--color-primary);"></i> @sec.Name</h4>
-                        <button class="btn btn-sm btn-primary" @onclick="() => StartCreateEquipment(sec.Id)"><i class="fa-light fa-plus"></i> Add Equipment</button>
+                        <h4><i class="fa-sharp fa-light fa-layer-group" style="color: var(--color-primary);"></i> @sec.Name</h4>
+                        <button class="btn btn-sm btn-primary" @onclick="() => StartCreateEquipment(sec.Id)"><i class="fa-sharp fa-light fa-plus"></i> Add Equipment</button>
                     </div>
 
                     @if (GetEquipmentForSection(sec.Id).Any())
@@ -571,7 +571,7 @@
                     else
                     {
                         <div class="empty-state" style="margin-top: var(--spacing-sm);">
-                            <i class="fa-light fa-gear"></i>
+                            <i class="fa-sharp fa-light fa-gear"></i>
                             No equipment in this section yet. Click "Add Equipment" to register items.
                         </div>
                     }
@@ -581,7 +581,7 @@
         else if (_selectedPlantId > 0 && !_sections.Any())
         {
             <div class="empty-state">
-                <i class="fa-light fa-arrow-left"></i>
+                <i class="fa-sharp fa-light fa-arrow-left"></i>
                 No sections for this plant. Go back to Step 3 to add sections first.
             </div>
         }
@@ -728,7 +728,7 @@
     <div class="wizard-card">
         <div class="step-intro">
             <div class="step-intro-icon" style="background: var(--color-tint-orange); color: var(--color-warning);">
-                <i class="fa-light fa-clipboard-check"></i>
+                <i class="fa-sharp fa-light fa-clipboard-check"></i>
             </div>
             <div class="step-intro-content">
                 <h2>Review Your Setup</h2>
@@ -756,7 +756,7 @@
             <div class="review-tree">
                 <div class="tree-node tree-company">
                     <div class="tree-node-header">
-                        <i class="fa-light fa-building tree-icon"></i>
+                        <i class="fa-sharp fa-light fa-building tree-icon"></i>
                         <strong>@_reviewData.Company.Name</strong>
                         @if (_reviewData.Company.Code is not null)
                         {
@@ -768,7 +768,7 @@
                     {
                         <div class="tree-node tree-plant">
                             <div class="tree-node-header">
-                                <i class="fa-light fa-industry tree-icon"></i>
+                                <i class="fa-sharp fa-light fa-industry tree-icon"></i>
                                 <strong>@rp.Plant.Name</strong>
                                 <span class="card-subtitle">(@rp.Sections.Count sections, @rp.Sections.Sum(s => s.Equipment.Count) equipment)</span>
                             </div>
@@ -777,7 +777,7 @@
                             {
                                 <div class="tree-node tree-section">
                                     <div class="tree-node-header">
-                                        <i class="fa-light fa-folder tree-icon"></i>
+                                        <i class="fa-sharp fa-light fa-folder tree-icon"></i>
                                         <strong>@rs.Section.Name</strong>
                                         <span class="card-subtitle">(@rs.Equipment.Count equipment)</span>
                                     </div>
@@ -785,7 +785,7 @@
                                     @foreach (var eq in rs.Equipment)
                                     {
                                         <div class="tree-node tree-equipment">
-                                            <i class="fa-light fa-gear tree-icon"></i>
+                                            <i class="fa-sharp fa-light fa-gear tree-icon"></i>
                                             <span>@eq.Identifier</span>
                                             <span class="card-subtitle">@eq.EquipmentTypeName</span>
                                             @if (eq.SubTypeName is not null)
@@ -815,16 +815,16 @@
 <div class="wizard-actions">
     @if (_currentStep > 0)
     {
-        <button class="btn btn-secondary" @onclick="PreviousStep"><i class="fa-light fa-arrow-left"></i> Back</button>
+        <button class="btn btn-secondary" @onclick="PreviousStep"><i class="fa-sharp fa-light fa-arrow-left"></i> Back</button>
     }
     <div style="flex: 1;"></div>
     @if (_currentStep < _stepNames.Length - 1)
     {
-        <button class="btn btn-primary btn-lg" @onclick="NextStep">Continue to @_stepNames[_currentStep + 1] <i class="fa-light fa-arrow-right"></i></button>
+        <button class="btn btn-primary btn-lg" @onclick="NextStep">Continue to @_stepNames[_currentStep + 1] <i class="fa-sharp fa-light fa-arrow-right"></i></button>
     }
     else
     {
-        <button class="btn btn-success btn-lg" @onclick="Finish"><i class="fa-light fa-check"></i> Complete Setup</button>
+        <button class="btn btn-success btn-lg" @onclick="Finish"><i class="fa-sharp fa-light fa-check"></i> Complete Setup</button>
     }
 </div>
 
@@ -1294,50 +1294,88 @@
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _companyCreate.PhotoBase64 = Convert.ToBase64String(buffer);
-        _companyCreate.PhotoFileName = file.Name;
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _companyCreate.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
+            _companyCreate.PhotoFileName = file.Name;
+        }
+        catch { /* file too large or read error */ }
     }
 
     private async Task OnCreatePlantPhotoSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _plantCreate.PhotoBase64 = Convert.ToBase64String(buffer);
-        _plantCreate.PhotoFileName = file.Name;
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _plantCreate.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
+            _plantCreate.PhotoFileName = file.Name;
+        }
+        catch { /* file too large or read error */ }
     }
 
     private async Task OnEditPlantPhotoSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _plantEdit.PhotoBase64 = Convert.ToBase64String(buffer);
-        _plantEdit.PhotoFileName = file.Name;
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _plantEdit.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
+            _plantEdit.PhotoFileName = file.Name;
+        }
+        catch { /* file too large or read error */ }
     }
 
     private async Task OnCreateSectionPhotoSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _sectionCreate.PhotoBase64 = Convert.ToBase64String(buffer);
-        _sectionCreate.PhotoFileName = file.Name;
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _sectionCreate.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
+            _sectionCreate.PhotoFileName = file.Name;
+        }
+        catch { /* file too large or read error */ }
     }
 
     private async Task OnEditSectionPhotoSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _sectionEdit.PhotoBase64 = Convert.ToBase64String(buffer);
-        _sectionEdit.PhotoFileName = file.Name;
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _sectionEdit.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
+            _sectionEdit.PhotoFileName = file.Name;
+        }
+        catch { /* file too large or read error */ }
+    }
+
+    private static string GetPhotoDataUri(string base64)
+    {
+        var mime = base64 switch
+        {
+            _ when base64.StartsWith("/9j/") => "image/jpeg",
+            _ when base64.StartsWith("iVBOR") => "image/png",
+            _ when base64.StartsWith("R0lG") => "image/gif",
+            _ when base64.StartsWith("UklG") => "image/webp",
+            _ => "image/png"
+        };
+        return $"data:{mime};base64,{base64}";
     }
 
     // ==================== Navigation ====================

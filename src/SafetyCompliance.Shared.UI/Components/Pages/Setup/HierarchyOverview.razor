@@ -8,23 +8,23 @@
     @* ── Breadcrumb ── *@
     <nav class="ov-breadcrumb">
         <button class="ov-crumb @(_view == View.Companies ? "active" : "")" @onclick="GoCompanies">
-            <i class="fa-light fa-buildings"></i>
+            <i class="fa-sharp fa-light fa-buildings"></i>
             <span>Companies</span>
         </button>
         @if (_selCompany is not null)
         {
-            <i class="fa-light fa-chevron-right ov-crumb-sep"></i>
+            <i class="fa-sharp fa-light fa-chevron-right ov-crumb-sep"></i>
             <button class="ov-crumb @(_view == View.CompanyTree ? "active" : "")"
                     @onclick="() => DrillCompany(_selCompany)">
-                <i class="fa-light fa-building"></i>
+                <i class="fa-sharp fa-light fa-building"></i>
                 <span>@_selCompany.Name</span>
             </button>
         }
         @if (_selPlant is not null)
         {
-            <i class="fa-light fa-chevron-right ov-crumb-sep"></i>
+            <i class="fa-sharp fa-light fa-chevron-right ov-crumb-sep"></i>
             <button class="ov-crumb active">
-                <i class="fa-light fa-industry"></i>
+                <i class="fa-sharp fa-light fa-industry"></i>
                 <span>@_selPlant.Name</span>
             </button>
         }
@@ -40,11 +40,11 @@
     else if (!_hierarchy.Any())
     {
         <div class="ov-empty ov-fadeIn">
-            <div class="ov-empty-icon"><i class="fa-light fa-sitemap"></i></div>
+            <div class="ov-empty-icon"><i class="fa-sharp fa-light fa-sitemap"></i></div>
             <h2>No companies yet</h2>
             <p>Create your first company hierarchy using the Setup Wizard.</p>
             <button class="btn btn-primary btn-lg" @onclick="GoToSetup">
-                <i class="fa-light fa-wand-magic-sparkles"></i> Open Setup Wizard
+                <i class="fa-sharp fa-light fa-wand-magic-sparkles"></i> Open Setup Wizard
             </button>
         </div>
     }
@@ -96,7 +96,7 @@
                                     }
                                     else
                                     {
-                                        <i class="fa-light fa-building"></i>
+                                        <i class="fa-sharp fa-light fa-building"></i>
                                     }
                                 </div>
                                 <div class="ov-card-info">
@@ -110,17 +110,17 @@
 
                             <div class="ov-card-stats">
                                 <div class="ov-card-stat">
-                                    <i class="fa-light fa-industry"></i>
+                                    <i class="fa-sharp fa-light fa-industry"></i>
                                     <strong>@c.PlantCount</strong>
                                     <span>Plants</span>
                                 </div>
                                 <div class="ov-card-stat">
-                                    <i class="fa-light fa-layer-group"></i>
+                                    <i class="fa-sharp fa-light fa-layer-group"></i>
                                     <strong>@c.TotalSections</strong>
                                     <span>Sections</span>
                                 </div>
                                 <div class="ov-card-stat">
-                                    <i class="fa-light fa-gears"></i>
+                                    <i class="fa-sharp fa-light fa-gears"></i>
                                     <strong>@c.TotalEquipment</strong>
                                     <span>Equipment</span>
                                 </div>
@@ -131,15 +131,15 @@
                                 <div class="ov-card-contact">
                                     @if (c.ContactName is not null)
                                     {
-                                        <span><i class="fa-light fa-user"></i> @c.ContactName</span>
+                                        <span><i class="fa-sharp fa-light fa-user"></i> @c.ContactName</span>
                                     }
                                     @if (c.ContactEmail is not null)
                                     {
-                                        <span><i class="fa-light fa-envelope"></i> @c.ContactEmail</span>
+                                        <span><i class="fa-sharp fa-light fa-envelope"></i> @c.ContactEmail</span>
                                     }
                                     @if (c.Address is not null)
                                     {
-                                        <span><i class="fa-light fa-location-dot"></i> @c.Address</span>
+                                        <span><i class="fa-sharp fa-light fa-location-dot"></i> @c.Address</span>
                                     }
                                 </div>
                             }
@@ -150,7 +150,7 @@
                                     @foreach (var plant in c.Plants.Take(4))
                                     {
                                         <span class="ov-card-plant-chip">
-                                            <i class="fa-light fa-industry"></i> @plant.Name
+                                            <i class="fa-sharp fa-light fa-industry"></i> @plant.Name
                                         </span>
                                     }
                                     @if (c.Plants.Count > 4)
@@ -162,7 +162,7 @@
                         </div>
                         <div class="ov-card-cta">
                             <span>Explore</span>
-                            <i class="fa-light fa-arrow-right"></i>
+                            <i class="fa-sharp fa-light fa-arrow-right"></i>
                         </div>
                     </div>
                     idx++;
@@ -185,7 +185,7 @@
                                 }
                                 else
                                 {
-                                    <i class="fa-light fa-building"></i>
+                                    <i class="fa-sharp fa-light fa-building"></i>
                                 }
                             </div>
                             <div class="ov-tree-root-info">
@@ -195,10 +195,10 @@
                                         <input class="form-control" @bind="_editName" @bind:event="oninput"
                                                @onkeydown="HandleEditKey" />
                                         <button class="btn btn-success btn-sm" @onclick="SaveEdit">
-                                            <i class="fa-light fa-check"></i>
+                                            <i class="fa-sharp fa-light fa-check"></i>
                                         </button>
                                         <button class="btn btn-ghost btn-sm" @onclick="CancelEdit">
-                                            <i class="fa-light fa-xmark"></i>
+                                            <i class="fa-sharp fa-light fa-xmark"></i>
                                         </button>
                                     </div>
                                 }
@@ -209,7 +209,7 @@
                                         <button class="ov-edit-btn"
                                                 @onclick="() => StartEdit(_selCompany.Id, _selCompany.Name, EditType.Company)"
                                                 title="Edit name">
-                                            <i class="fa-light fa-pen-to-square"></i>
+                                            <i class="fa-sharp fa-light fa-pen-to-square"></i>
                                         </button>
                                     </div>
                                 }
@@ -255,7 +255,7 @@
                                                 }
                                                 else
                                                 {
-                                                    <i class="fa-light fa-industry"></i>
+                                                    <i class="fa-sharp fa-light fa-industry"></i>
                                                 }
                                             </div>
                                             @if (_editId == p.Id && _editType == EditType.Plant)
@@ -264,10 +264,10 @@
                                                     <input class="form-control" @bind="_editName" @bind:event="oninput"
                                                            @onkeydown="HandleEditKey" />
                                                     <button class="btn btn-success btn-sm" @onclick="SaveEdit">
-                                                        <i class="fa-light fa-check"></i>
+                                                        <i class="fa-sharp fa-light fa-check"></i>
                                                     </button>
                                                     <button class="btn btn-ghost btn-sm" @onclick="CancelEdit">
-                                                        <i class="fa-light fa-xmark"></i>
+                                                        <i class="fa-sharp fa-light fa-xmark"></i>
                                                     </button>
                                                 </div>
                                             }
@@ -277,7 +277,7 @@
                                                 <button class="ov-edit-btn" @onclick:stopPropagation="true"
                                                         @onclick="() => StartEdit(p.Id, p.Name, EditType.Plant)"
                                                         title="Edit name">
-                                                    <i class="fa-light fa-pen-to-square"></i>
+                                                    <i class="fa-sharp fa-light fa-pen-to-square"></i>
                                                 </button>
                                             }
                                         </div>
@@ -287,15 +287,15 @@
                                         }
                                         <div class="ov-branch-badges">
                                             <span class="ov-badge blue">
-                                                <i class="fa-light fa-layer-group"></i> @p.SectionCount sections
+                                                <i class="fa-sharp fa-light fa-layer-group"></i> @p.SectionCount sections
                                             </span>
                                             <span class="ov-badge purple">
-                                                <i class="fa-light fa-gears"></i> @p.EquipmentCount equipment
+                                                <i class="fa-sharp fa-light fa-gears"></i> @p.EquipmentCount equipment
                                             </span>
                                         </div>
                                     </div>
                                     <div class="ov-branch-arrow">
-                                        <i class="fa-light fa-chevron-right"></i>
+                                        <i class="fa-sharp fa-light fa-chevron-right"></i>
                                     </div>
                                 </div>
                             </div>
@@ -306,10 +306,10 @@
                 else
                 {
                     <div class="ov-empty-branch ov-fadeIn" style="animation-delay: 0.5s">
-                        <i class="fa-light fa-industry"></i>
+                        <i class="fa-sharp fa-light fa-industry"></i>
                         <p>No plants in this company yet.</p>
                         <button class="btn btn-primary" @onclick="GoToSetup">
-                            <i class="fa-light fa-plus"></i> Add Plants
+                            <i class="fa-sharp fa-light fa-plus"></i> Add Plants
                         </button>
                     </div>
                 }
@@ -329,7 +329,7 @@
                         }
                         else
                         {
-                            <i class="fa-light fa-industry"></i>
+                            <i class="fa-sharp fa-light fa-industry"></i>
                         }
                     </div>
                     <div class="ov-plant-hero-info">
@@ -339,10 +339,10 @@
                                 <input class="form-control" @bind="_editName" @bind:event="oninput"
                                        @onkeydown="HandleEditKey" />
                                 <button class="btn btn-success btn-sm" @onclick="SaveEdit">
-                                    <i class="fa-light fa-check"></i>
+                                    <i class="fa-sharp fa-light fa-check"></i>
                                 </button>
                                 <button class="btn btn-ghost btn-sm" @onclick="CancelEdit">
-                                    <i class="fa-light fa-xmark"></i>
+                                    <i class="fa-sharp fa-light fa-xmark"></i>
                                 </button>
                             </div>
                         }
@@ -353,7 +353,7 @@
                                 <button class="ov-edit-btn"
                                         @onclick="() => StartEdit(_selPlant.Id, _selPlant.Name, EditType.Plant)"
                                         title="Edit name">
-                                    <i class="fa-light fa-pen-to-square"></i>
+                                    <i class="fa-sharp fa-light fa-pen-to-square"></i>
                                 </button>
                             </div>
                         }
@@ -364,12 +364,12 @@
                     </div>
                     <div class="ov-plant-hero-stats">
                         <div class="ov-hero-stat-pill">
-                            <i class="fa-light fa-layer-group"></i>
+                            <i class="fa-sharp fa-light fa-layer-group"></i>
                             <strong>@_selPlant.SectionCount</strong>
                             <span>Sections</span>
                         </div>
                         <div class="ov-hero-stat-pill">
-                            <i class="fa-light fa-gears"></i>
+                            <i class="fa-sharp fa-light fa-gears"></i>
                             <strong>@_selPlant.EquipmentCount</strong>
                             <span>Equipment</span>
                         </div>
@@ -399,7 +399,7 @@
                                             }
                                             else
                                             {
-                                                <i class="fa-light fa-folder"></i>
+                                                <i class="fa-sharp fa-light fa-folder"></i>
                                             }
                                         </div>
                                         <div class="ov-tl-section-info">
@@ -409,10 +409,10 @@
                                                     <input class="form-control" @bind="_editName" @bind:event="oninput"
                                                            @onkeydown="HandleEditKey" />
                                                     <button class="btn btn-success btn-sm" @onclick="SaveEdit">
-                                                        <i class="fa-light fa-check"></i>
+                                                        <i class="fa-sharp fa-light fa-check"></i>
                                                     </button>
                                                     <button class="btn btn-ghost btn-sm" @onclick="CancelEdit">
-                                                        <i class="fa-light fa-xmark"></i>
+                                                        <i class="fa-sharp fa-light fa-xmark"></i>
                                                     </button>
                                                 </div>
                                             }
@@ -423,7 +423,7 @@
                                                     <button class="ov-edit-btn"
                                                             @onclick="() => StartEdit(s.Id, s.Name, EditType.Section)"
                                                             title="Edit name">
-                                                        <i class="fa-light fa-pen-to-square"></i>
+                                                        <i class="fa-sharp fa-light fa-pen-to-square"></i>
                                                     </button>
                                                 </div>
                                             }
@@ -435,7 +435,7 @@
                                     </div>
 
                                     <div class="ov-tl-eq-badge">
-                                        <i class="fa-light fa-gears"></i> @s.EquipmentCount equipment
+                                        <i class="fa-sharp fa-light fa-gears"></i> @s.EquipmentCount equipment
                                     </div>
 
                                     @if (s.Equipment.Any())
@@ -444,7 +444,7 @@
                                             @foreach (var eq in s.Equipment)
                                             {
                                                 <div class="ov-tl-eq">
-                                                    <i class="fa-light fa-gear ov-tl-eq-icon"></i>
+                                                    <i class="fa-sharp fa-light fa-gear ov-tl-eq-icon"></i>
                                                     <div class="ov-tl-eq-info">
                                                         <strong>@eq.Identifier</strong>
                                                         <span>@eq.EquipmentTypeName</span>
@@ -460,7 +460,7 @@
                                     else
                                     {
                                         <div class="ov-tl-no-eq">
-                                            <i class="fa-light fa-gear"></i>
+                                            <i class="fa-sharp fa-light fa-gear"></i>
                                             <span>No equipment assigned</span>
                                         </div>
                                     }
@@ -473,10 +473,10 @@
                 else
                 {
                     <div class="ov-empty-branch ov-fadeIn" style="animation-delay: 0.3s">
-                        <i class="fa-light fa-layer-group"></i>
+                        <i class="fa-sharp fa-light fa-layer-group"></i>
                         <p>No sections in this plant yet.</p>
                         <button class="btn btn-primary" @onclick="GoToSetup">
-                            <i class="fa-light fa-plus"></i> Add Sections
+                            <i class="fa-sharp fa-light fa-plus"></i> Add Sections
                         </button>
                     </div>
                 }
@@ -613,6 +613,17 @@
         }
     }
 
-    private static string GetPhotoSrc(string base64) => $"data:image/jpeg;base64,{base64}";
+    private static string GetPhotoSrc(string base64)
+    {
+        var mime = base64 switch
+        {
+            _ when base64.StartsWith("/9j/") => "image/jpeg",
+            _ when base64.StartsWith("iVBOR") => "image/png",
+            _ when base64.StartsWith("R0lG") => "image/gif",
+            _ when base64.StartsWith("UklG") => "image/webp",
+            _ => "image/png"
+        };
+        return $"data:{mime};base64,{base64}";
+    }
     private void GoToSetup() => Navigation.NavigateTo("/setup");
 }

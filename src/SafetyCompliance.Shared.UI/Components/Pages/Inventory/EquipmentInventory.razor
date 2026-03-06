@@ -9,7 +9,7 @@
 
 <div class="page-header">
     <div class="page-header-left">
-        <div class="page-header-icon"><i class="fa-light fa-warehouse"></i></div>
+        <div class="page-header-icon"><i class="fa-sharp fa-light fa-warehouse"></i></div>
         <div class="page-header-info">
             <h1>Equipment Inventory</h1>
             <p class="page-header-sub">Manage equipment pool, assignments, and compliance</p>
@@ -19,14 +19,14 @@
         @if (_selectedIds.Count > 0)
         {
             <button class="btn btn-secondary" @onclick="OpenBulkAssignModal">
-                <i class="fa-light fa-link"></i> Assign Selected (@_selectedIds.Count)
+                <i class="fa-sharp fa-light fa-link"></i> Assign Selected (@_selectedIds.Count)
             </button>
         }
         <button class="btn btn-secondary" @onclick="ExportInventoryExcel" disabled="@(_filteredEquipment is null || !_filteredEquipment.Any())">
-            <i class="fa-light fa-file-excel"></i> Export
+            <i class="fa-sharp fa-light fa-file-excel"></i> Export
         </button>
         <button class="btn btn-primary" @onclick="OpenAddModal">
-            <i class="fa-light fa-plus"></i> Add to Inventory
+            <i class="fa-sharp fa-light fa-plus"></i> Add to Inventory
         </button>
     </div>
 </div>
@@ -42,7 +42,7 @@
     <div class="cal-stats ov-fadeIn">
         <div class="cal-stat @(_activeStatCard == "total" ? "active active-blue" : "")"
              @onclick='() => ToggleStatFilter("total")'>
-            <div class="cal-stat-icon blue"><i class="fa-light fa-boxes-stacked"></i></div>
+            <div class="cal-stat-icon blue"><i class="fa-sharp fa-light fa-boxes-stacked"></i></div>
             <div class="cal-stat-info">
                 <span class="cal-stat-value">@_stats.TotalEquipment</span>
                 <span class="cal-stat-label">Total</span>
@@ -50,7 +50,7 @@
         </div>
         <div class="cal-stat @(_activeStatCard == "assigned" ? "active active-green" : "")"
              @onclick='() => ToggleStatFilter("assigned")'>
-            <div class="cal-stat-icon green"><i class="fa-light fa-link"></i></div>
+            <div class="cal-stat-icon green"><i class="fa-sharp fa-light fa-link"></i></div>
             <div class="cal-stat-info">
                 <span class="cal-stat-value">@_stats.AssignedCount</span>
                 <span class="cal-stat-label">Assigned</span>
@@ -58,7 +58,7 @@
         </div>
         <div class="cal-stat @(_activeStatCard == "available" ? "active active-gray" : "")"
              @onclick='() => ToggleStatFilter("available")'>
-            <div class="cal-stat-icon gray"><i class="fa-light fa-inbox"></i></div>
+            <div class="cal-stat-icon gray"><i class="fa-sharp fa-light fa-inbox"></i></div>
             <div class="cal-stat-info">
                 <span class="cal-stat-value">@_stats.AvailableCount</span>
                 <span class="cal-stat-label">Available</span>
@@ -67,7 +67,7 @@
         <div class="cal-stat @(_activeStatCard == "overdue" ? "active active-red" : "")"
              @onclick='() => ToggleStatFilter("overdue")'>
             <div class="cal-stat-icon @(_stats.OverdueComplianceCount > 0 ? "red" : "gray")">
-                <i class="fa-light fa-calendar-exclamation"></i>
+                <i class="fa-sharp fa-light fa-calendar-exclamation"></i>
             </div>
             <div class="cal-stat-info">
                 <span class="cal-stat-value">@_stats.OverdueComplianceCount</span>
@@ -76,12 +76,12 @@
         </div>
         <div class="cal-stat @(_activeStatCard == "damaged-missing" ? "active active-amber" : "")"
              @onclick='() => ToggleStatFilter("damaged-missing")'>
-            <div class="cal-stat-icon @(_stats.DamagedCount + _stats.MissingCount > 0 ? "amber" : "gray")">
-                <i class="fa-light fa-triangle-exclamation"></i>
+            <div class="cal-stat-icon @(_stats.DamagedCount + _stats.OutOfPlaceCount > 0 ? "amber" : "gray")">
+                <i class="fa-sharp fa-light fa-triangle-exclamation"></i>
             </div>
             <div class="cal-stat-info">
-                <span class="cal-stat-value">@(_stats.DamagedCount + _stats.MissingCount)</span>
-                <span class="cal-stat-label">Damaged / Missing</span>
+                <span class="cal-stat-value">@(_stats.DamagedCount + _stats.OutOfPlaceCount)</span>
+                <span class="cal-stat-label">Damaged / Out of Place</span>
             </div>
         </div>
     </div>
@@ -96,10 +96,10 @@
     <div class="form-group">
         <select class="form-control" @bind="_filterStatusStr" @bind:after="ApplyFilters">
             <option value="">All Statuses</option>
-            <option value="InService">In Service</option>
-            <option value="OutOfService">Out of Service</option>
+            <option value="InOrder">In Order</option>
+            <option value="InForService">In for Service</option>
             <option value="Damaged">Damaged</option>
-            <option value="Missing">Missing</option>
+            <option value="OutOfPlace">Out of Place</option>
             <option value="NeedsReplacement">Needs Replacement</option>
             <option value="Retired">Retired</option>
         </select>
@@ -182,12 +182,12 @@ else
         @if (!_filteredEquipment.Any())
         {
             <div class="inv-empty-state">
-                <i class="fa-light fa-box-open"></i>
+                <i class="fa-sharp fa-light fa-box-open"></i>
                 <p>No equipment matches your current filters</p>
                 @if (_activeStatCard is not null || !string.IsNullOrEmpty(_searchTerm) || !string.IsNullOrEmpty(_filterStatusStr) || !string.IsNullOrEmpty(_filterCompliance) || !string.IsNullOrEmpty(_filterAssignment) || _filterTypeId.HasValue)
                 {
                     <button class="btn btn-sm btn-secondary" @onclick="ClearAllFilters">
-                        <i class="fa-light fa-filter-slash"></i> Clear Filters
+                        <i class="fa-sharp fa-light fa-filter-slash"></i> Clear Filters
                     </button>
                 }
             </div>
@@ -203,28 +203,28 @@ else
                         </th>
                         <th style="width:30px;" class="sortable @(_sortColumn == "Status" ? "sorted" : "")"
                             @onclick='() => SetSort("Status")'>
-                            <i class="fa-light @SortIcon("Status") sort-icon @(_sortColumn == "Status" ? "active" : "")"></i>
+                            <i class="fa-sharp fa-light @SortIcon("Status") sort-icon @(_sortColumn == "Status" ? "active" : "")"></i>
                         </th>
                         <th class="sortable @(_sortColumn == "Identifier" ? "sorted" : "")"
                             @onclick='() => SetSort("Identifier")'>
                             Identifier
-                            <i class="fa-light @SortIcon("Identifier") sort-icon @(_sortColumn == "Identifier" ? "active" : "")"></i>
+                            <i class="fa-sharp fa-light @SortIcon("Identifier") sort-icon @(_sortColumn == "Identifier" ? "active" : "")"></i>
                         </th>
                         <th class="sortable @(_sortColumn == "Type" ? "sorted" : "")"
                             @onclick='() => SetSort("Type")'>
                             Type
-                            <i class="fa-light @SortIcon("Type") sort-icon @(_sortColumn == "Type" ? "active" : "")"></i>
+                            <i class="fa-sharp fa-light @SortIcon("Type") sort-icon @(_sortColumn == "Type" ? "active" : "")"></i>
                         </th>
                         <th class="sortable @(_sortColumn == "Size" ? "sorted" : "")"
                             @onclick='() => SetSort("Size")'>
                             Size
-                            <i class="fa-light @SortIcon("Size") sort-icon @(_sortColumn == "Size" ? "active" : "")"></i>
+                            <i class="fa-sharp fa-light @SortIcon("Size") sort-icon @(_sortColumn == "Size" ? "active" : "")"></i>
                         </th>
                         <th>Serial</th>
                         <th class="sortable @(_sortColumn == "Location" ? "sorted" : "")"
                             @onclick='() => SetSort("Location")'>
                             Location
-                            <i class="fa-light @SortIcon("Location") sort-icon @(_sortColumn == "Location" ? "active" : "")"></i>
+                            <i class="fa-sharp fa-light @SortIcon("Location") sort-icon @(_sortColumn == "Location" ? "active" : "")"></i>
                             @{ var unassignedCount = _filteredEquipment.Count(e => !e.SectionId.HasValue); }
                             @if (unassignedCount > 0)
                             {
@@ -234,7 +234,7 @@ else
                         <th class="sortable @(_sortColumn == "Compliance" ? "sorted" : "")"
                             @onclick='() => SetSort("Compliance")'>
                             Compliance
-                            <i class="fa-light @SortIcon("Compliance") sort-icon @(_sortColumn == "Compliance" ? "active" : "")"></i>
+                            <i class="fa-sharp fa-light @SortIcon("Compliance") sort-icon @(_sortColumn == "Compliance" ? "active" : "")"></i>
                         </th>
                         <th style="width:120px;">Actions</th>
                     </tr>
@@ -267,14 +267,14 @@ else
                                 {
                                     <div class="inv-location">
                                         <span class="inv-loc-plant">@eq.PlantName</span>
-                                        <i class="fa-light fa-chevron-right inv-loc-sep"></i>
+                                        <i class="fa-sharp fa-light fa-chevron-right inv-loc-sep"></i>
                                         <span class="inv-loc-section">@eq.SectionName</span>
                                     </div>
                                 }
                                 else
                                 {
                                     <span class="inv-loc-unassigned">
-                                        <i class="fa-light fa-inbox"></i> Unassigned
+                                        <i class="fa-sharp fa-light fa-inbox"></i> Unassigned
                                     </span>
                                 }
                             </td>
@@ -300,17 +300,17 @@ else
                                 @if (eq.SectionId.HasValue)
                                 {
                                     <button class="btn btn-xs btn-secondary" @onclick="() => StartUnassign(eq)" title="Unassign">
-                                        <i class="fa-light fa-link-slash"></i>
+                                        <i class="fa-sharp fa-light fa-link-slash"></i>
                                     </button>
                                 }
                                 else
                                 {
                                     <button class="btn btn-xs btn-primary" @onclick="() => StartAssign(eq)" title="Assign">
-                                        <i class="fa-light fa-link"></i>
+                                        <i class="fa-sharp fa-light fa-link"></i>
                                     </button>
                                 }
                                 <button class="btn btn-xs btn-secondary" @onclick="() => OpenDetail(eq.Id)" title="Details">
-                                    <i class="fa-light fa-eye"></i>
+                                    <i class="fa-sharp fa-light fa-eye"></i>
                                 </button>
                             </td>
                         </tr>
@@ -326,7 +326,7 @@ else
 {
     <div class="modal-overlay" @onclick="() => _showAdd = false">
         <div class="modal modal-wide" @onclick:stopPropagation>
-            <h2><i class="fa-light fa-plus-circle"></i> Add Equipment to Inventory</h2>
+            <h2><i class="fa-sharp fa-light fa-plus-circle"></i> Add Equipment to Inventory</h2>
             <EditForm Model="_addModel" OnValidSubmit="AddEquipment">
                 <div class="form-row">
                     <div class="form-group">
@@ -395,10 +395,10 @@ else
                 <div class="form-group">
                     <label>Initial Status</label>
                     <select class="form-control" @bind="_addModel.StatusStr">
-                        <option value="InService">In Service</option>
-                        <option value="OutOfService">Out of Service</option>
+                        <option value="InOrder">In Order</option>
+                        <option value="InForService">In for Service</option>
                         <option value="Damaged">Damaged</option>
-                        <option value="Missing">Missing</option>
+                        <option value="OutOfPlace">Out of Place</option>
                         <option value="NeedsReplacement">Needs Replacement</option>
                         <option value="Retired">Retired</option>
                     </select>
@@ -409,7 +409,7 @@ else
                 {
                     <div class="section-card" style="margin-top: var(--spacing-md); padding: var(--spacing-md);">
                         <h3 style="margin-bottom: var(--spacing-sm);">
-                            <i class="fa-light fa-calendar-check"></i> Compliance Check Dates
+                            <i class="fa-sharp fa-light fa-calendar-check"></i> Compliance Check Dates
                         </h3>
                         <p class="text-muted" style="font-size: 0.8rem; margin-bottom: var(--spacing-sm);">
                             Set initial dates for compliance checks. Leave blank to set later.
@@ -443,7 +443,7 @@ else
                 {
                     <div class="section-card" style="margin-top: var(--spacing-md); padding: var(--spacing-md); opacity: 0.7;">
                         <p class="text-muted" style="font-size: 0.82rem; margin: 0;">
-                            <i class="fa-light fa-info-circle"></i>
+                            <i class="fa-sharp fa-light fa-info-circle"></i>
                             Compliance check dates, serial numbers, and individual identifiers can be set per item after creation — open each item from the inventory table.
                         </p>
                     </div>
@@ -452,7 +452,7 @@ else
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary"
                             disabled="@(_addModel.EquipmentTypeId == 0 || string.IsNullOrWhiteSpace(_addModel.IdentifierPrefix))">
-                        <i class="fa-light fa-plus"></i> Add @(_addModel.Quantity > 1 ? $"{_addModel.Quantity} Items" : "Item")
+                        <i class="fa-sharp fa-light fa-plus"></i> Add @(_addModel.Quantity > 1 ? $"{_addModel.Quantity} Items" : "Item")
                     </button>
                     <button type="button" class="btn btn-secondary" @onclick="() => _showAdd = false">Cancel</button>
                 </div>
@@ -466,7 +466,7 @@ else
 {
     <div class="modal-overlay" @onclick="CloseDetail">
         <div class="modal modal-xl" @onclick:stopPropagation>
-            <h2><i class="fa-light fa-clipboard-list"></i> Equipment Details</h2>
+            <h2><i class="fa-sharp fa-light fa-clipboard-list"></i> Equipment Details</h2>
 
             <div class="form-row">
                 <div class="form-group">
@@ -480,10 +480,10 @@ else
                 <div class="form-group">
                     <label>Status</label>
                     <select class="form-control" value="@_detailEquipment.Status" @onchange="OnDetailStatusChanged">
-                        <option value="InService">In Service</option>
-                        <option value="OutOfService">Out of Service</option>
+                        <option value="InOrder">In Order</option>
+                        <option value="InForService">In for Service</option>
                         <option value="Damaged">Damaged</option>
-                        <option value="Missing">Missing</option>
+                        <option value="OutOfPlace">Out of Place</option>
                         <option value="NeedsReplacement">Needs Replacement</option>
                         <option value="Retired">Retired</option>
                     </select>
@@ -508,39 +508,39 @@ else
             {
                 <div class="form-actions" style="margin-top: var(--spacing-sm);">
                     <button class="btn btn-sm btn-primary" @onclick="SaveDetailEquipment">
-                        <i class="fa-light fa-floppy-disk"></i> Save Changes
+                        <i class="fa-sharp fa-light fa-floppy-disk"></i> Save Changes
                     </button>
                     <button class="btn btn-sm btn-secondary" @onclick="ResetDetailEdits">Discard</button>
                 </div>
             }
 
             <div class="form-group" style="margin-top: var(--spacing-md);">
-                <label><i class="fa-light fa-location-dot"></i> Location</label>
+                <label><i class="fa-sharp fa-light fa-location-dot"></i> Location</label>
                 @if (_detailEquipment.SectionId.HasValue)
                 {
                     <div class="inv-detail-location">
-                        <i class="fa-light fa-map-pin inv-loc-icon"></i>
+                        <i class="fa-sharp fa-light fa-map-pin inv-loc-icon"></i>
                         <div class="inv-location">
                             <span class="inv-loc-company">@_detailEquipment.CompanyName</span>
-                            <i class="fa-light fa-chevron-right inv-loc-sep"></i>
+                            <i class="fa-sharp fa-light fa-chevron-right inv-loc-sep"></i>
                             <span class="inv-loc-plant">@_detailEquipment.PlantName</span>
-                            <i class="fa-light fa-chevron-right inv-loc-sep"></i>
+                            <i class="fa-sharp fa-light fa-chevron-right inv-loc-sep"></i>
                             <span class="inv-loc-section">@_detailEquipment.SectionName</span>
                         </div>
                         <button class="btn btn-xs btn-secondary" @onclick="DetailUnassign">
-                            <i class="fa-light fa-link-slash"></i> Unassign
+                            <i class="fa-sharp fa-light fa-link-slash"></i> Unassign
                         </button>
                     </div>
                 }
                 else
                 {
                     <div class="inv-detail-location">
-                        <i class="fa-light fa-inbox inv-loc-icon" style="opacity:0.5;"></i>
+                        <i class="fa-sharp fa-light fa-inbox inv-loc-icon" style="opacity:0.5;"></i>
                         <span class="inv-loc-unassigned" style="border:none; background:transparent; padding:0;">
-                            <i class="fa-light fa-inbox"></i> Available in pool
+                            <i class="fa-sharp fa-light fa-inbox"></i> Available in pool
                         </span>
                         <button class="btn btn-xs btn-primary" @onclick="DetailAssign">
-                            <i class="fa-light fa-link"></i> Assign
+                            <i class="fa-sharp fa-light fa-link"></i> Assign
                         </button>
                     </div>
                 }
@@ -548,7 +548,7 @@ else
 
             @* Compliance Checks *@
             <div class="section-card" style="margin-top: var(--spacing-md); padding: var(--spacing-md);">
-                <h3><i class="fa-light fa-calendar-check"></i> Compliance Checks</h3>
+                <h3><i class="fa-sharp fa-light fa-calendar-check"></i> Compliance Checks</h3>
                 @if (!_detailEquipment.ComplianceChecks.Any())
                 {
                     <p class="text-muted" style="margin-top:var(--spacing-sm);">No compliance checks configured for this equipment type.</p>
@@ -575,13 +575,13 @@ else
                                         @if (check.IntervalMonths.HasValue)
                                         {
                                             <span class="eqt-check-type recurring">
-                                                <i class="fa-light fa-repeat"></i> @FormatCheckInterval(check.IntervalMonths.Value)
+                                                <i class="fa-sharp fa-light fa-repeat"></i> @FormatCheckInterval(check.IntervalMonths.Value)
                                             </span>
                                         }
                                         else
                                         {
                                             <span class="eqt-check-type onetime">
-                                                <i class="fa-light fa-calendar-day"></i> One-time
+                                                <i class="fa-sharp fa-light fa-calendar-day"></i> One-time
                                             </span>
                                         }
                                     </td>
@@ -615,7 +615,7 @@ else
                 @if (!_confirmDeleteEquipment)
                 {
                     <button type="button" class="btn btn-danger btn-sm" @onclick="() => _confirmDeleteEquipment = true">
-                        <i class="fa-light fa-trash-can"></i> Delete
+                        <i class="fa-sharp fa-light fa-trash-can"></i> Delete
                     </button>
                 }
                 else
@@ -623,7 +623,7 @@ else
                     <div style="display:flex; gap:var(--spacing-xs); align-items:center;">
                         <span style="color:var(--color-danger); font-size:0.85rem; font-weight:500;">Are you sure?</span>
                         <button type="button" class="btn btn-danger btn-sm" @onclick="DeleteDetailEquipment">
-                            <i class="fa-light fa-check"></i> Confirm Delete
+                            <i class="fa-sharp fa-light fa-check"></i> Confirm Delete
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" @onclick="() => _confirmDeleteEquipment = false">Cancel</button>
                     </div>
@@ -819,7 +819,7 @@ else
 
         // "Damaged + Missing" combined stat card
         if (_activeStatCard == "damaged-missing")
-            filtered = filtered.Where(e => e.Status == EquipmentStatus.Damaged || e.Status == EquipmentStatus.Missing);
+            filtered = filtered.Where(e => e.Status == EquipmentStatus.Damaged || e.Status == EquipmentStatus.OutOfPlace);
 
         // Location cascade filters (client-side)
         if (_filterCompanyId.HasValue)
@@ -1047,7 +1047,7 @@ else
 
     private async Task AddEquipment()
     {
-        var status = Enum.TryParse<EquipmentStatus>(_addModel.StatusStr, out var s) ? s : EquipmentStatus.InService;
+        var status = Enum.TryParse<EquipmentStatus>(_addModel.StatusStr, out var s) ? s : EquipmentStatus.InOrder;
 
         var created = await EquipmentService.CreateInventoryEquipmentBulkAsync(
             new EquipmentInventoryCreateDto(
@@ -1292,10 +1292,10 @@ else
 
     private static string FormatStatus(EquipmentStatus s) => s switch
     {
-        EquipmentStatus.InService => "In Service",
-        EquipmentStatus.OutOfService => "Out of Service",
+        EquipmentStatus.InOrder => "In Order",
+        EquipmentStatus.InForService => "In for Service",
         EquipmentStatus.Damaged => "Damaged",
-        EquipmentStatus.Missing => "Missing",
+        EquipmentStatus.OutOfPlace => "Out of Place",
         EquipmentStatus.NeedsReplacement => "Needs Replacement",
         EquipmentStatus.Retired => "Retired",
         _ => s.ToString()
@@ -1303,11 +1303,11 @@ else
 
     private static string StatusDotClass(EquipmentStatus s) => s switch
     {
-        EquipmentStatus.InService => "dot-green",
+        EquipmentStatus.InOrder => "dot-green",
         EquipmentStatus.Damaged => "dot-red",
-        EquipmentStatus.Missing => "dot-orange",
+        EquipmentStatus.OutOfPlace => "dot-orange",
         EquipmentStatus.NeedsReplacement => "dot-amber",
-        EquipmentStatus.OutOfService => "dot-gray",
+        EquipmentStatus.InForService => "dot-blue",
         EquipmentStatus.Retired => "dot-gray",
         _ => "dot-gray"
     };
@@ -1345,6 +1345,6 @@ else
         public string? Description { get; set; }
         public string? Size { get; set; }
         public string? SerialNumber { get; set; }
-        public string StatusStr { get; set; } = "InService";
+        public string StatusStr { get; set; } = "InOrder";
     }
 }

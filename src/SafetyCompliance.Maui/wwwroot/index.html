@@ -2,9 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#40A8A0" />
     <title>MIS — Majesty Oil Mills Inspection System</title>
     <base href="/" />
+    <script>
+        (function() {
+            var theme = localStorage.getItem('safecheck-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -17,6 +24,45 @@
 </head>
 <body>
     <div id="app">Loading...</div>
+    <script>
+        function toggleTheme() {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('safecheck-theme', next);
+            return next;
+        }
+        function getTheme() {
+            return document.documentElement.getAttribute('data-theme') || 'light';
+        }
+        function getSidebarCollapsed() {
+            return localStorage.getItem('safecheck-sidebar-collapsed') === 'true';
+        }
+        function setSidebarCollapsed(val) {
+            localStorage.setItem('safecheck-sidebar-collapsed', val ? 'true' : 'false');
+        }
+        function downloadExcel(filename, base64) {
+            var a = document.createElement('a');
+            a.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + base64;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+        function clickPhotoInput(id) {
+            var el = document.getElementById(id);
+            if (el) { el.value = ''; el.click(); }
+        }
+        function downloadFile(filename, base64, contentType) {
+            var a = document.createElement('a');
+            a.href = 'data:' + contentType + ';base64,' + base64;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
+    <script src="_content/SafetyCompliance.Shared.UI/js/app-utils.js"></script>
     <script src="_framework/blazor.webview.js" autostart="false"></script>
 </body>
 </html>

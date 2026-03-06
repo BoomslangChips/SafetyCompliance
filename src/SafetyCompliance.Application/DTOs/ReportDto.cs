@@ -36,6 +36,7 @@ public record ReportRoundRowDto(
 
 public record ReportEquipmentRowDto(
     int          RoundId,
+    int          EquipmentInspectionId,
     int          EquipmentId,
     string       Identifier,
     string       TypeName,
@@ -44,7 +45,8 @@ public record ReportEquipmentRowDto(
     int          PassChecks,
     int          FailChecks,
     List<string> FailedItems,
-    string?      Comments);
+    string?      Comments,
+    List<string> PhotoPaths);
 
 public record ReportIssueRowDto(
     int       Id,

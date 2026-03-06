@@ -246,8 +246,24 @@ public class ReportService(ApplicationDbContext db) : IReportService
                 .ToDictionary(g => g.Key, g => g.Select(r => r.ItemName).ToList());
         }
 
+        // Fetch photo paths for all equipment inspections in this period
+        var allEiIds = equipProj.Select(e => e.Id).ToList();
+        Dictionary<int, List<string>> photoPathsMap = [];
+        if (allEiIds.Count > 0)
+        {
+            var photoRows = await db.InspectionPhotos
+                .Where(p => allEiIds.Contains(p.EquipmentInspectionId))
+                .Select(p => new { p.EquipmentInspectionId, p.FilePath })
+                .ToListAsync(ct);
+
+            photoPathsMap = photoRows
+                .GroupBy(p => p.EquipmentInspectionId)
+                .ToDictionary(g => g.Key, g => g.Select(p => p.FilePath).ToList());
+        }
+
         var equipRows = equipProj.Select(ei => new ReportEquipmentRowDto(
             ei.InspectionRoundId,
+            ei.Id,
             ei.EquipmentId,
             ei.Identifier,
             ei.TypeName,
@@ -256,7 +272,8 @@ public class ReportService(ApplicationDbContext db) : IReportService
             ei.PassChecks,
             ei.FailChecks,
             failedItemsMap.GetValueOrDefault(ei.Id, []),
-            ei.Comments)).ToList();
+            ei.Comments,
+            photoPathsMap.GetValueOrDefault(ei.Id, []))).ToList();
 
         // Overall compliance %
         var totalPassed      = equipRows.Sum(e => e.PassChecks);

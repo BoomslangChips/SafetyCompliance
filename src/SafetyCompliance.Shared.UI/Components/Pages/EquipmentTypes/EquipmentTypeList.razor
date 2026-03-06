@@ -4,7 +4,7 @@
 
 <div class="page-header">
     <div class="page-header-left">
-        <div class="page-header-icon"><i class="fa-light fa-gear"></i></div>
+        <div class="page-header-icon"><i class="fa-sharp fa-light fa-gear"></i></div>
         <div class="page-header-info">
             <h1>Equipment Types</h1>
             <p class="page-header-sub">Define and manage equipment categories</p>
@@ -16,7 +16,7 @@
             Show disabled
         </label>
         <button class="btn btn-primary" @onclick="() => { _showCreate = true; _createModel = new(); }">
-            <i class="fa-light fa-plus"></i> Add Equipment Type
+            <i class="fa-sharp fa-light fa-plus"></i> Add Equipment Type
         </button>
     </div>
 </div>
@@ -111,12 +111,12 @@
                     <button class="btn btn-sm btn-secondary"
                             @onclick="() => StartEdit(eqType)"
                             title="Edit">
-                        <i class="fa-light fa-pen"></i>
+                        <i class="fa-sharp fa-light fa-pen"></i>
                     </button>
                     <button class="btn btn-sm btn-danger"
                             @onclick="() => { _confirmDeleteId = eqType.Id; _confirmDeleteName = eqType.Name; }"
                             title="Delete / Disable">
-                        <i class="fa-light fa-trash"></i>
+                        <i class="fa-sharp fa-light fa-trash"></i>
                     </button>
                 </div>
             </div>

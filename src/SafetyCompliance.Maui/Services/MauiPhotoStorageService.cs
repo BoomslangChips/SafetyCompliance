@@ -32,4 +32,12 @@ public class MauiPhotoStorageService : IPhotoStorageService
         if (File.Exists(physical)) File.Delete(physical);
         return Task.CompletedTask;
     }
+
+    public async Task<byte[]?> ReadPhotoAsync(string webPath)
+    {
+        var relative = webPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var physical = Path.Combine(FileSystem.AppDataDirectory, relative);
+        if (!File.Exists(physical)) return null;
+        return await File.ReadAllBytesAsync(physical);
+    }
 }

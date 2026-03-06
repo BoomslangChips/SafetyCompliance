@@ -13,13 +13,11 @@ public interface IExcelExportService
     byte[] ExportSummary(List<PlantReportSummaryDto> summaries, string period);
 
     /// <summary>
-    /// Exports a full monthly maintenance report to a 6-sheet workbook
-    /// (Summary, Inspection Rounds, Equipment Checklist, Incidents &amp; Issues,
-    ///  Service Bookings, Notes).
+    /// Exports a full monthly maintenance report to a multi-sheet workbook.
+    /// When <paramref name="photoFiles"/> is provided, an Inspection Photos sheet
+    /// with embedded images is included.
     /// </summary>
-    /// <param name="report">The fully-populated monthly report DTO.</param>
-    /// <returns>Raw bytes of the .xlsx file.</returns>
-    byte[] ExportMonthlyReport(MonthlyReportDto report);
+    byte[] ExportMonthlyReport(MonthlyReportDto report, Dictionary<string, byte[]>? photoFiles = null);
 
     /// <summary>
     /// Exports equipment inventory data to a single-sheet workbook.

@@ -10,7 +10,7 @@ else
 {
     <div class="page-header">
         <div class="page-header-left">
-            <div class="page-header-icon"><i class="fa-light fa-shapes"></i></div>
+            <div class="page-header-icon"><i class="fa-sharp fa-light fa-shapes"></i></div>
             <div class="page-header-info">
                 <h1>
                     @_type.Name
@@ -24,7 +24,7 @@ else
         </div>
         <div class="page-header-actions">
             <button class="btn btn-secondary" @onclick="GoBack">
-                <i class="fa-light fa-arrow-left"></i> Back
+                <i class="fa-sharp fa-light fa-arrow-left"></i> Back
             </button>
         </div>
     </div>
@@ -37,15 +37,15 @@ else
     @* ── Tab Bar ── *@
     <div class="eqt-tab-bar">
         <button class="eqt-tab @(_activeTab == "subtypes" ? "active" : "")" @onclick='() => _activeTab = "subtypes"'>
-            <i class="fa-light fa-layer-group"></i> Sub-Types
+            <i class="fa-sharp fa-light fa-layer-group"></i> Sub-Types
             <span class="eqt-tab-count">@_subTypes.Count</span>
         </button>
         <button class="eqt-tab @(_activeTab == "checklist" ? "active" : "")" @onclick='() => _activeTab = "checklist"'>
-            <i class="fa-light fa-clipboard-list-check"></i> Inspection Checklist
+            <i class="fa-sharp fa-light fa-clipboard-list-check"></i> Inspection Checklist
             <span class="eqt-tab-count">@_checklistItems.Count</span>
         </button>
         <button class="eqt-tab @(_activeTab == "compliance" ? "active" : "")" @onclick='() => _activeTab = "compliance"'>
-            <i class="fa-light fa-calendar-check"></i> Compliance Checks
+            <i class="fa-sharp fa-light fa-calendar-check"></i> Compliance Checks
             <span class="eqt-tab-count">@_checks.Count</span>
         </button>
     </div>
@@ -69,7 +69,7 @@ else
                         Show disabled
                     </label>
                     <button class="btn btn-sm btn-primary" @onclick="() => { _showAddSubType = true; _subTypeModel = new(); }">
-                        <i class="fa-light fa-plus"></i> Add Sub-Type
+                        <i class="fa-sharp fa-light fa-plus"></i> Add Sub-Type
                     </button>
                 </div>
             </div>
@@ -129,10 +129,10 @@ else
                                     </td>
                                     <td>
                                         <button class="btn btn-xs btn-secondary" @onclick="() => StartSubTypeEdit(st)" title="Edit">
-                                            <i class="fa-light fa-pen"></i>
+                                            <i class="fa-sharp fa-light fa-pen"></i>
                                         </button>
                                         <button class="btn btn-xs btn-danger" @onclick="() => { _confirmSubTypeId = st.Id; _confirmSubTypeName = st.Name; }" title="Delete / Disable">
-                                            <i class="fa-light fa-trash"></i>
+                                            <i class="fa-sharp fa-light fa-trash"></i>
                                         </button>
                                     </td>
                                 </tr>
@@ -166,7 +166,7 @@ else
                         Show disabled
                     </label>
                     <button class="btn btn-sm btn-primary" @onclick="() => { _showAddChecklist = true; _checklistModel = new(); }">
-                        <i class="fa-light fa-plus"></i> Add Checklist Item
+                        <i class="fa-sharp fa-light fa-plus"></i> Add Checklist Item
                     </button>
                 </div>
             </div>
@@ -257,7 +257,7 @@ else
                         Show disabled
                     </label>
                     <button class="btn btn-sm btn-primary" @onclick="() => { _showAddCheck = true; _checkModel = new(); }">
-                        <i class="fa-light fa-plus"></i> Add Compliance Check
+                        <i class="fa-sharp fa-light fa-plus"></i> Add Compliance Check
                     </button>
                 </div>
             </div>
@@ -460,12 +460,12 @@ else
                             </td>
                             <td>
                                 <button class="btn btn-xs btn-secondary" @onclick="() => StartChecklistEdit(item)" title="Edit">
-                                    <i class="fa-light fa-pen"></i>
+                                    <i class="fa-sharp fa-light fa-pen"></i>
                                 </button>
                                 <button class="btn btn-xs btn-danger"
                                         @onclick="() => { _confirmChecklistId = item.Id; _confirmChecklistName = item.ItemName; }"
                                         title="Delete / Disable">
-                                    <i class="fa-light fa-trash"></i>
+                                    <i class="fa-sharp fa-light fa-trash"></i>
                                 </button>
                             </td>
                         </tr>
@@ -535,13 +535,13 @@ else
                                 @if (item.IntervalMonths.HasValue)
                                 {
                                     <span class="eqt-check-type recurring">
-                                        <i class="fa-light fa-repeat"></i> @FormatInterval(item.IntervalMonths.Value)
+                                        <i class="fa-sharp fa-light fa-repeat"></i> @FormatInterval(item.IntervalMonths.Value)
                                     </span>
                                 }
                                 else
                                 {
                                     <span class="eqt-check-type onetime">
-                                        <i class="fa-light fa-calendar-day"></i> One-time
+                                        <i class="fa-sharp fa-light fa-calendar-day"></i> One-time
                                     </span>
                                 }
                             </td>
@@ -553,12 +553,12 @@ else
                             </td>
                             <td>
                                 <button class="btn btn-xs btn-secondary" @onclick="() => StartCheckEdit(item)" title="Edit">
-                                    <i class="fa-light fa-pen"></i>
+                                    <i class="fa-sharp fa-light fa-pen"></i>
                                 </button>
                                 <button class="btn btn-xs btn-danger"
                                         @onclick="() => { _confirmCheckId = item.Id; _confirmCheckName = item.Name; }"
                                         title="Delete / Disable">
-                                    <i class="fa-light fa-trash"></i>
+                                    <i class="fa-sharp fa-light fa-trash"></i>
                                 </button>
                             </td>
                         </tr>

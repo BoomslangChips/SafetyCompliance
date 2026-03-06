@@ -29,6 +29,7 @@ public class ServiceBookingService(ApplicationDbContext context) : IServiceBooki
         if (equipment is not null)
         {
             equipment.LastServiceDate = booking.SentDate;
+            equipment.Status = EquipmentStatus.InForService;
             equipment.ModifiedById = userId;
             equipment.ModifiedAt = DateTime.UtcNow;
         }
@@ -51,6 +52,14 @@ public class ServiceBookingService(ApplicationDbContext context) : IServiceBooki
         if (dto.Status == ServiceBookingStatus.Returned)
         {
             booking.ActualReturnDate = dto.ActualReturnDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+
+            var equipment = await context.Equipment.FindAsync([booking.EquipmentId], ct);
+            if (equipment is not null && equipment.Status == EquipmentStatus.InForService)
+            {
+                equipment.Status = EquipmentStatus.InOrder;
+                equipment.ModifiedById = userId;
+                equipment.ModifiedAt = DateTime.UtcNow;
+            }
         }
 
         await context.SaveChangesAsync(ct);

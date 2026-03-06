@@ -1,6 +1,7 @@
 @page "/companies/{CompanyId:int}"
 @inject ICompanyService CompanyService
 @inject IPlantService PlantService
+@inject IJSRuntime JS
 @inject NavigationManager Navigation
 
 @if (_company is null)
@@ -28,10 +29,10 @@ else
         </button>
     </div>
 
-    @if (_company.PhotoBase64 is not null)
+    @if (!string.IsNullOrEmpty(_company.PhotoBase64))
     {
         <div class="entity-photo">
-            <img src="@($"data:image/jpeg;base64,{_company.PhotoBase64}")" alt="@_company.Name" />
+            <img src="@GetPhotoDataUri(_company.PhotoBase64)" alt="@_company.Name" />
         </div>
     }
 
@@ -86,12 +87,12 @@ else
                     </div>
                     <div class="form-group">
                         <label class="form-label">Photo</label>
-                        <div class="upload-zone @(_plantCreate.PhotoBase64 is not null ? "upload-zone--has-file" : "")">
+                        <div class="upload-zone @(!string.IsNullOrEmpty(_plantCreate.PhotoBase64) ? "upload-zone--has-file" : "")">
                             <InputFile OnChange="OnCreatePlantPhotoSelected" class="upload-zone__input" accept="image/*" />
-                            @if (_plantCreate.PhotoBase64 is not null)
+                            @if (!string.IsNullOrEmpty(_plantCreate.PhotoBase64))
                             {
                                 <div class="upload-zone__preview">
-                                    <img src="@($"data:image/jpeg;base64,{_plantCreate.PhotoBase64}")" alt="Preview" />
+                                    <img src="@GetPhotoDataUri(_plantCreate.PhotoBase64)" alt="Preview" />
                                     <span class="upload-zone__preview-label">Click to change photo</span>
                                 </div>
                                 <button type="button" class="upload-zone__remove"
@@ -174,17 +175,17 @@ else
                     </div>
                     <div class="form-group">
                         <label class="form-label">Photo</label>
-                        <div class="upload-zone @(_plantEdit.PhotoBase64 is not null ? "upload-zone--has-file" : "")">
+                        <div class="upload-zone @(!string.IsNullOrEmpty(_plantEdit.PhotoBase64) ? "upload-zone--has-file" : "")">
                             <InputFile OnChange="OnEditPlantPhotoSelected" class="upload-zone__input" accept="image/*" />
-                            @if (_plantEdit.PhotoBase64 is not null)
+                            @if (!string.IsNullOrEmpty(_plantEdit.PhotoBase64))
                             {
                                 <div class="upload-zone__preview">
-                                    <img src="@($"data:image/jpeg;base64,{_plantEdit.PhotoBase64}")" alt="Preview" />
+                                    <img src="@GetPhotoDataUri(_plantEdit.PhotoBase64)" alt="Preview" />
                                     <span class="upload-zone__preview-label">Click to change photo</span>
                                 </div>
                                 <button type="button" class="upload-zone__remove"
                                         @onclick:stopPropagation
-                                        @onclick="() => { _plantEdit.PhotoBase64 = null; _plantEdit.PhotoFileName = null; }">
+                                        @onclick="() => { _plantEdit.PhotoBase64 = string.Empty; _plantEdit.PhotoFileName = null; }">
                                     <i class="fa-sharp fa-solid fa-xmark"></i>
                                 </button>
                             }
@@ -225,7 +226,7 @@ else
     {
         var contactPlantName = _plants.FirstOrDefault(p => p.Id == _contactsPlantId)?.Name ?? "Plant";
         <div class="modal-overlay" @onclick="CloseContactsModal">
-            <div class="modal plt-contact-modal cmpd-contacts-modal" @onclick:stopPropagation>
+            <div class="modal plt-contact-modal cmpd-contacts-modal @(_showContactForm ? "cmpd-contacts-modal--wide" : "")" @onclick:stopPropagation>
                 <div class="plt-modal-header">
                     <div class="plt-modal-title">
                         <span class="plt-modal-icon" style="background: linear-gradient(135deg,var(--color-primary),var(--color-primary-light));">
@@ -264,78 +265,158 @@ else
                     }
                     else
                     {
-                        @* Inline Add/Edit Form *@
+                        @* Inline Add/Edit Form — Two Panel Layout *@
                         @if (_showContactForm)
                         {
-                            <div class="cmpd-contact-form">
-                                <div class="form-group">
-                                    <label class="form-label">Category <span class="form-required">*</span></label>
-                                    <div class="plt-category-chips">
-                                        @foreach (var cat in _predefinedCategories)
+                            <div class="cmpd-contact-form contact-two-panel">
+                                <div class="contact-detail-panel">
+                                    <h4 class="contact-panel-title"><i class="fa-sharp fa-regular fa-user"></i> Contact Details</h4>
+                                    <div class="form-group">
+                                        <label class="form-label">Category <span class="form-required">*</span></label>
+                                        <div class="plt-category-chips">
+                                            @foreach (var cat in _predefinedCategories)
+                                            {
+                                                <button type="button"
+                                                        class="plt-chip @(_contactForm.Category == cat ? "plt-chip--active" : "")"
+                                                        @onclick="() => _contactForm.Category = cat">
+                                                    @GetCategoryEmoji(cat) @cat
+                                                </button>
+                                            }
+                                        </div>
+                                        <input class="form-control plt-category-custom"
+                                               placeholder="Or type a custom category…"
+                                               value="@_contactForm.Category"
+                                               @oninput="e => _contactForm.Category = e.Value?.ToString() ?? string.Empty" />
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Full Name <span class="form-required">*</span></label>
+                                            <input class="form-control" placeholder="e.g. John Smith"
+                                                   value="@_contactForm.Name"
+                                                   @oninput="e => _contactForm.Name = e.Value?.ToString() ?? string.Empty" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Role / Title</label>
+                                            <input class="form-control" placeholder="e.g. Fire Captain"
+                                                   value="@_contactForm.Role"
+                                                   @oninput="e => _contactForm.Role = e.Value?.ToString()" />
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Phone</label>
+                                            <input class="form-control" type="tel" placeholder="+27 82 000 0000"
+                                                   value="@_contactForm.Phone"
+                                                   @oninput="e => _contactForm.Phone = e.Value?.ToString()" />
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Email</label>
+                                            <input class="form-control" type="email" placeholder="name@company.com"
+                                                   value="@_contactForm.Email"
+                                                   @oninput="e => _contactForm.Email = e.Value?.ToString()" />
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Notes</label>
+                                        <textarea class="form-control" rows="2" placeholder="Availability, shift hours, etc."
+                                                  value="@_contactForm.Notes"
+                                                  @oninput="e => _contactForm.Notes = e.Value?.ToString()"></textarea>
+                                    </div>
+                                    <label class="plt-toggle-label">
+                                        <input type="checkbox"
+                                               checked="@_contactForm.IsPrimary"
+                                               @onchange="e => _contactForm.IsPrimary = (bool)(e.Value ?? false)" />
+                                        <span class="plt-toggle-text">
+                                            <strong>Mark as primary contact</strong>
+                                            <small>First point of contact for this category</small>
+                                        </span>
+                                    </label>
+                                    <div class="cmpd-form-actions">
+                                        <button class="btn btn-secondary btn-sm" @onclick="CancelContactForm">Cancel</button>
+                                        <button class="btn btn-primary btn-sm"
+                                                disabled="@(string.IsNullOrWhiteSpace(_contactForm.Name) || string.IsNullOrWhiteSpace(_contactForm.Category))"
+                                                @onclick="SaveContact">
+                                            <i class="fa-sharp fa-solid fa-check"></i>
+                                            @(_editingContactId > 0 ? "Update" : "Save") Contact
+                                        </button>
+                                    </div>
+                                </div>
+
+                                @* ── Documents Panel (right side) ── *@
+                                <div class="contact-docs-panel">
+                                    <h4 class="contact-panel-title"><i class="fa-sharp fa-regular fa-paperclip"></i> Documents</h4>
+                                    @if (_editingContactId == 0)
+                                    {
+                                        <div class="contact-docs-empty">
+                                            <i class="fa-sharp fa-regular fa-file-circle-info"></i>
+                                            <p>Save the contact first, then you can attach documents.</p>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="contact-docs-upload">
+                                            <InputFile OnChange="OnDocumentSelected" class="contact-docs-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.gif,.txt,.csv" multiple />
+                                            <div class="contact-docs-upload-label">
+                                                <i class="fa-sharp fa-regular fa-cloud-arrow-up"></i>
+                                                <span>Click to upload</span>
+                                            </div>
+                                        </div>
+                                        @if (_uploadingDoc)
                                         {
-                                            <button type="button"
-                                                    class="plt-chip @(_contactForm.Category == cat ? "plt-chip--active" : "")"
-                                                    @onclick="() => _contactForm.Category = cat">
-                                                @GetCategoryEmoji(cat) @cat
-                                            </button>
+                                            <div class="contact-doc-uploading">
+                                                <i class="fa-sharp fa-regular fa-spinner fa-spin"></i> Uploading...
+                                            </div>
                                         }
-                                    </div>
-                                    <input class="form-control plt-category-custom"
-                                           placeholder="Or type a custom category…"
-                                           value="@_contactForm.Category"
-                                           @oninput="e => _contactForm.Category = e.Value?.ToString() ?? string.Empty" />
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label">Full Name <span class="form-required">*</span></label>
-                                        <input class="form-control" placeholder="e.g. John Smith"
-                                               value="@_contactForm.Name"
-                                               @oninput="e => _contactForm.Name = e.Value?.ToString() ?? string.Empty" />
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Role / Title</label>
-                                        <input class="form-control" placeholder="e.g. Fire Captain"
-                                               value="@_contactForm.Role"
-                                               @oninput="e => _contactForm.Role = e.Value?.ToString()" />
-                                    </div>
-                                </div>
-                                <div class="form-row">
-                                    <div class="form-group">
-                                        <label class="form-label">Phone</label>
-                                        <input class="form-control" type="tel" placeholder="+27 82 000 0000"
-                                               value="@_contactForm.Phone"
-                                               @oninput="e => _contactForm.Phone = e.Value?.ToString()" />
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Email</label>
-                                        <input class="form-control" type="email" placeholder="name@company.com"
-                                               value="@_contactForm.Email"
-                                               @oninput="e => _contactForm.Email = e.Value?.ToString()" />
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Notes</label>
-                                    <textarea class="form-control" rows="2" placeholder="Availability, shift hours, etc."
-                                              value="@_contactForm.Notes"
-                                              @oninput="e => _contactForm.Notes = e.Value?.ToString()"></textarea>
-                                </div>
-                                <label class="plt-toggle-label">
-                                    <input type="checkbox"
-                                           checked="@_contactForm.IsPrimary"
-                                           @onchange="e => _contactForm.IsPrimary = (bool)(e.Value ?? false)" />
-                                    <span class="plt-toggle-text">
-                                        <strong>Mark as primary contact</strong>
-                                        <small>First point of contact for this category</small>
-                                    </span>
-                                </label>
-                                <div class="cmpd-form-actions">
-                                    <button class="btn btn-secondary btn-sm" @onclick="CancelContactForm">Cancel</button>
-                                    <button class="btn btn-primary btn-sm"
-                                            disabled="@(string.IsNullOrWhiteSpace(_contactForm.Name) || string.IsNullOrWhiteSpace(_contactForm.Category))"
-                                            @onclick="SaveContact">
-                                        <i class="fa-sharp fa-solid fa-check"></i>
-                                        @(_editingContactId > 0 ? "Update" : "Save") Contact
-                                    </button>
+                                        @if (_contactDocuments.Any())
+                                        {
+                                            <div class="contact-docs-list">
+                                                @foreach (var doc in _contactDocuments)
+                                                {
+                                                    <div class="contact-doc-item">
+                                                        <div class="contact-doc-icon @GetDocIconClass(doc.ContentType)">
+                                                            <i class="@GetDocIcon(doc.ContentType)"></i>
+                                                        </div>
+                                                        <div class="contact-doc-info">
+                                                            @if (_renamingDocId == doc.Id)
+                                                            {
+                                                                <input class="form-control form-control-sm contact-doc-rename"
+                                                                       value="@_renameDocValue"
+                                                                       @oninput="e => _renameDocValue = e.Value?.ToString() ?? string.Empty"
+                                                                       @onkeydown="OnRenameKeyDown" />
+                                                                <div class="contact-doc-rename-actions">
+                                                                    <button class="btn-icon-xs" title="Save" @onclick="ConfirmRenameDoc"><i class="fa-sharp fa-solid fa-check"></i></button>
+                                                                    <button class="btn-icon-xs" title="Cancel" @onclick="() => _renamingDocId = 0"><i class="fa-sharp fa-solid fa-xmark"></i></button>
+                                                                </div>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="contact-doc-name" title="@doc.DisplayName">@doc.DisplayName</span>
+                                                                <span class="contact-doc-size">@FormatFileSize(doc.FileSizeBytes)</span>
+                                                            }
+                                                        </div>
+                                                        <div class="contact-doc-actions">
+                                                            <button class="btn-icon-xs" title="Download" @onclick="() => DownloadDoc(doc)">
+                                                                <i class="fa-sharp fa-regular fa-download"></i>
+                                                            </button>
+                                                            <button class="btn-icon-xs" title="Rename" @onclick="() => StartRenameDoc(doc)">
+                                                                <i class="fa-sharp fa-regular fa-pen"></i>
+                                                            </button>
+                                                            <button class="btn-icon-xs btn-icon-danger" title="Delete" @onclick="() => DeleteDoc(doc.Id)">
+                                                                <i class="fa-sharp fa-regular fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                        else if (!_uploadingDoc)
+                                        {
+                                            <div class="contact-docs-empty">
+                                                <i class="fa-sharp fa-regular fa-folder-open"></i>
+                                                <p>No documents attached yet.</p>
+                                            </div>
+                                        }
+                                    }
                                 </div>
                             </div>
                         }
@@ -428,10 +509,10 @@ else
         @foreach (var plant in _plants)
         {
             <div class="card clickable" @onclick="() => GoToPlant(plant.Id)">
-                @if (plant.PhotoBase64 is not null)
+                @if (!string.IsNullOrEmpty(plant.PhotoBase64))
                 {
                     <div class="card-photo">
-                        <img src="@($"data:image/jpeg;base64,{plant.PhotoBase64}")" alt="@plant.Name" />
+                        <img src="@GetPhotoDataUri(plant.PhotoBase64)" alt="@plant.Name" />
                     </div>
                 }
                 <div class="card-header-row">
@@ -490,6 +571,12 @@ else
     private int? _deleteContactId;
     private ContactFormModel _contactForm = new();
 
+    // contact documents
+    private List<ContactDocumentDto> _contactDocuments = [];
+    private bool _uploadingDoc;
+    private int  _renamingDocId;
+    private string _renameDocValue = string.Empty;
+
     private static readonly string[] _predefinedCategories =
     [
         "Firefighters", "Plant Management", "Medical",
@@ -502,14 +589,7 @@ else
     {
         _company = await CompanyService.GetCompanyByIdAsync(CompanyId);
         _plants  = await PlantService.GetPlantsByCompanyAsync(CompanyId);
-
-        // Load contact counts for all plants (for badge display)
-        _contactCounts.Clear();
-        foreach (var p in _plants)
-        {
-            var contacts = await PlantService.GetContactsAsync(p.Id);
-            _contactCounts[p.Id] = contacts.Count;
-        }
+        _contactCounts = await PlantService.GetContactCountsByPlantsAsync(_plants.Select(p => p.Id));
     }
 
     // ── Contacts Modal ────────────────────────────────────────────────────────
@@ -542,7 +622,7 @@ else
         _showContactForm  = true;
     }
 
-    private void StartEditContactInModal(PlantContactDto c)
+    private async Task StartEditContactInModal(PlantContactDto c)
     {
         _editingContactId = c.Id;
         _contactForm = new ContactFormModel
@@ -555,7 +635,8 @@ else
             Notes     = c.Notes,
             IsPrimary = c.IsPrimary
         };
-        _showContactForm = true;
+        _showContactForm  = true;
+        _contactDocuments = await PlantService.GetContactDocumentsAsync(c.Id);
     }
 
     private void CancelContactForm()
@@ -601,6 +682,89 @@ else
         _contactCounts[_contactsPlantId] = _modalContacts.Count;
         _deleteContactId                 = null;
     }
+
+    // ── Contact Documents ─────────────────────────────────────────────────────
+    private async Task OnDocumentSelected(InputFileChangeEventArgs e)
+    {
+        if (_editingContactId <= 0) return;
+        _uploadingDoc = true;
+        StateHasChanged();
+
+        foreach (var file in e.GetMultipleFiles(10))
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var base64 = Convert.ToBase64String(ms.ToArray());
+
+            var dto = new ContactDocumentUploadDto(
+                _editingContactId, file.Name, file.Name,
+                file.ContentType, file.Size, base64);
+            await PlantService.UploadContactDocumentAsync(dto, "current-user");
+        }
+
+        _contactDocuments = await PlantService.GetContactDocumentsAsync(_editingContactId);
+        _uploadingDoc = false;
+    }
+
+    private void StartRenameDoc(ContactDocumentDto doc)
+    {
+        _renamingDocId  = doc.Id;
+        _renameDocValue = doc.DisplayName;
+    }
+
+    private async Task OnRenameKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await ConfirmRenameDoc();
+    }
+
+    private async Task ConfirmRenameDoc()
+    {
+        if (_renamingDocId <= 0 || string.IsNullOrWhiteSpace(_renameDocValue)) return;
+        await PlantService.RenameContactDocumentAsync(_renamingDocId, _renameDocValue, "current-user");
+        _contactDocuments = await PlantService.GetContactDocumentsAsync(_editingContactId);
+        _renamingDocId = 0;
+    }
+
+    private async Task DeleteDoc(int docId)
+    {
+        await PlantService.DeleteContactDocumentAsync(docId);
+        _contactDocuments = await PlantService.GetContactDocumentsAsync(_editingContactId);
+    }
+
+    private async Task DownloadDoc(ContactDocumentDto doc)
+    {
+        var result = await PlantService.DownloadContactDocumentAsync(doc.Id);
+        if (result is null) return;
+        var (base64, contentType, fileName) = result.Value;
+        await JS.InvokeVoidAsync("downloadFile", fileName, base64, contentType);
+    }
+
+    private static string GetDocIcon(string contentType) => contentType switch
+    {
+        var ct when ct.Contains("pdf")                               => "fa-sharp fa-solid fa-file-pdf",
+        var ct when ct.Contains("word") || ct.Contains("document")   => "fa-sharp fa-solid fa-file-word",
+        var ct when ct.Contains("excel") || ct.Contains("sheet")     => "fa-sharp fa-solid fa-file-excel",
+        var ct when ct.Contains("image")                             => "fa-sharp fa-solid fa-file-image",
+        var ct when ct.Contains("text") || ct.Contains("csv")        => "fa-sharp fa-solid fa-file-lines",
+        _                                                             => "fa-sharp fa-solid fa-file"
+    };
+
+    private static string GetDocIconClass(string contentType) => contentType switch
+    {
+        var ct when ct.Contains("pdf")                               => "doc-icon-pdf",
+        var ct when ct.Contains("word") || ct.Contains("document")   => "doc-icon-word",
+        var ct when ct.Contains("excel") || ct.Contains("sheet")     => "doc-icon-excel",
+        var ct when ct.Contains("image")                             => "doc-icon-image",
+        _                                                             => "doc-icon-default"
+    };
+
+    private static string FormatFileSize(long bytes) => bytes switch
+    {
+        < 1024         => $"{bytes} B",
+        < 1024 * 1024  => $"{bytes / 1024.0:F1} KB",
+        _              => $"{bytes / (1024.0 * 1024.0):F1} MB"
+    };
 
     // ── Create / Edit Plant ───────────────────────────────────────────────────
     private async Task CreatePlant()
@@ -670,6 +834,19 @@ else
     private void GoBack() => Navigation.NavigateTo("/companies");
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+    private static string GetPhotoDataUri(string base64)
+    {
+        var mime = base64 switch
+        {
+            _ when base64.StartsWith("/9j/") => "image/jpeg",
+            _ when base64.StartsWith("iVBOR") => "image/png",
+            _ when base64.StartsWith("R0lG") => "image/gif",
+            _ when base64.StartsWith("UklG") => "image/webp",
+            _ => "image/png"
+        };
+        return $"data:{mime};base64,{base64}";
+    }
+
     private static string GetInitials(string name)
     {
         var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);

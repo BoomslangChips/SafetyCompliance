@@ -12,19 +12,19 @@
     <div class="insp-tab-bar ov-fadeIn">
         <div class="insp-tabs">
             <button class="insp-tab @(_tab == IncTab.All ? "active" : "")" @onclick="() => SetTab(IncTab.All)">
-                <i class="fa-light fa-list-ul"></i> All
+                <i class="fa-sharp fa-light fa-list-ul"></i> All
             </button>
             <button class="insp-tab @(_tab == IncTab.Open ? "active" : "")" @onclick="() => SetTab(IncTab.Open)">
-                <i class="fa-light fa-circle-dot"></i> Open
+                <i class="fa-sharp fa-light fa-circle-dot"></i> Open
             </button>
             <button class="insp-tab @(_tab == IncTab.InProgress ? "active" : "")" @onclick="() => SetTab(IncTab.InProgress)">
-                <i class="fa-light fa-circle-half-stroke"></i> In Progress
+                <i class="fa-sharp fa-light fa-circle-half-stroke"></i> In Progress
             </button>
             <button class="insp-tab @(_tab == IncTab.Resolved ? "active" : "")" @onclick="() => SetTab(IncTab.Resolved)">
-                <i class="fa-light fa-circle-check"></i> Resolved
+                <i class="fa-sharp fa-light fa-circle-check"></i> Resolved
             </button>
         </div>
-        <button class="inc-log-btn" @onclick="OpenCreateModal"><i class="fa-light fa-plus"></i> Log Incident</button>
+        <button class="inc-log-btn" @onclick="OpenCreateModal"><i class="fa-sharp fa-light fa-plus"></i> Log Incident</button>
     </div>
 
     @if (_loading)
@@ -36,35 +36,35 @@
         @* ── Stats row ── *@
         <div class="inc-stats ov-fadeIn">
             <div class="inc-stat @(_openCount > 0 ? "alert" : "")">
-                <div class="inc-stat-icon @(_openCount > 0 ? "red" : "gray")"><i class="fa-light fa-circle-dot"></i></div>
+                <div class="inc-stat-icon @(_openCount > 0 ? "red" : "gray")"><i class="fa-sharp fa-light fa-circle-dot"></i></div>
                 <div class="inc-stat-info">
                     <span class="inc-stat-value">@_openCount</span>
                     <span class="inc-stat-label">Open</span>
                 </div>
             </div>
             <div class="inc-stat @(_criticalCount > 0 ? "alert" : "")">
-                <div class="inc-stat-icon @(_criticalCount > 0 ? "red" : "gray")"><i class="fa-light fa-siren-on"></i></div>
+                <div class="inc-stat-icon @(_criticalCount > 0 ? "red" : "gray")"><i class="fa-sharp fa-light fa-siren-on"></i></div>
                 <div class="inc-stat-info">
                     <span class="inc-stat-value">@_criticalCount</span>
                     <span class="inc-stat-label">Critical</span>
                 </div>
             </div>
             <div class="inc-stat @(_overdueCount > 0 ? "alert" : "")">
-                <div class="inc-stat-icon @(_overdueCount > 0 ? "amber" : "gray")"><i class="fa-light fa-clock"></i></div>
+                <div class="inc-stat-icon @(_overdueCount > 0 ? "amber" : "gray")"><i class="fa-sharp fa-light fa-clock"></i></div>
                 <div class="inc-stat-info">
                     <span class="inc-stat-value">@_overdueCount</span>
                     <span class="inc-stat-label">Overdue</span>
                 </div>
             </div>
             <div class="inc-stat">
-                <div class="inc-stat-icon blue"><i class="fa-light fa-circle-half-stroke"></i></div>
+                <div class="inc-stat-icon blue"><i class="fa-sharp fa-light fa-circle-half-stroke"></i></div>
                 <div class="inc-stat-info">
                     <span class="inc-stat-value">@_inProgressCount</span>
                     <span class="inc-stat-label">In Progress</span>
                 </div>
             </div>
             <div class="inc-stat">
-                <div class="inc-stat-icon green"><i class="fa-light fa-circle-check"></i></div>
+                <div class="inc-stat-icon green"><i class="fa-sharp fa-light fa-circle-check"></i></div>
                 <div class="inc-stat-info">
                     <span class="inc-stat-value">@_resolvedCount</span>
                     <span class="inc-stat-label">Resolved</span>
@@ -85,7 +85,7 @@
                 {
                     <button class="inc-chip inc-chip-priority priority-@p.ToString().ToLower() @(_priorityFilter == p ? "active" : "")"
                             @onclick="() => SetPriorityFilter(pv)">
-                        <i class="fa-light @PriorityIcon(pv)"></i> @p <span class="inc-chip-count">@cnt</span>
+                        <i class="fa-sharp fa-light @PriorityIcon(pv)"></i> @p <span class="inc-chip-count">@cnt</span>
                     </button>
                 }
             }
@@ -95,13 +95,13 @@
         @if (!_display.Any())
         {
             <div class="ov-empty ov-fadeIn">
-                <div class="ov-empty-icon"><i class="fa-light fa-shield-check"></i></div>
+                <div class="ov-empty-icon"><i class="fa-sharp fa-light fa-shield-check"></i></div>
                 <h2>No incidents found</h2>
                 <p>@(_tab == IncTab.All ? "No incidents have been logged yet." : $"No {_tab.ToString().ToLower()} incidents.")</p>
                 @if (_tab == IncTab.All)
                 {
                     <button class="btn btn-primary btn-lg" @onclick="OpenCreateModal">
-                        <i class="fa-light fa-plus"></i> Log First Incident
+                        <i class="fa-sharp fa-light fa-plus"></i> Log First Incident
                     </button>
                 }
             </div>
@@ -123,7 +123,7 @@
                             <div class="inc-card-top">
                                 <div class="inc-card-title-row">
                                     <span class="inc-priority-badge priority-@iss.Priority.ToString().ToLower()">
-                                        <i class="fa-light @PriorityIcon(iss.Priority)"></i> @iss.Priority
+                                        <i class="fa-sharp fa-light @PriorityIcon(iss.Priority)"></i> @iss.Priority
                                     </span>
                                     <h3>@iss.Title</h3>
                                 </div>
@@ -136,33 +136,33 @@
                             <div class="inc-card-meta">
                                 @if (iss.PlantName is not null)
                                 {
-                                    <span class="inc-meta-tag"><i class="fa-light fa-industry"></i> @iss.PlantName</span>
+                                    <span class="inc-meta-tag"><i class="fa-sharp fa-light fa-industry"></i> @iss.PlantName</span>
                                 }
                                 @if (iss.EquipmentIdentifier is not null)
                                 {
-                                    <span class="inc-meta-tag equip"><i class="fa-light fa-gear"></i> @iss.EquipmentIdentifier — @iss.EquipmentTypeName@(iss.EquipmentSubTypeName != null ? $" ({iss.EquipmentSubTypeName})" : "")</span>
+                                    <span class="inc-meta-tag equip"><i class="fa-sharp fa-light fa-gear"></i> @iss.EquipmentIdentifier — @iss.EquipmentTypeName@(iss.EquipmentSubTypeName != null ? $" ({iss.EquipmentSubTypeName})" : "")</span>
                                 }
                                 @if (iss.AssignedTo is not null)
                                 {
-                                    <span class="inc-meta-tag"><i class="fa-light fa-user"></i> @iss.AssignedTo</span>
+                                    <span class="inc-meta-tag"><i class="fa-sharp fa-light fa-user"></i> @iss.AssignedTo</span>
                                 }
                                 @if (iss.DueDate.HasValue)
                                 {
                                     <span class="inc-meta-tag @(isOverdue ? "overdue" : "")">
-                                        <i class="fa-light fa-calendar-@(isOverdue ? "exclamation" : "days")"></i>
+                                        <i class="fa-sharp fa-light fa-calendar-@(isOverdue ? "exclamation" : "days")"></i>
                                         @(isOverdue ? "Overdue · " : "Due · ")@iss.DueDate.Value.ToString("MMM dd, yyyy")
                                     </span>
                                 }
                                 @if (iss.CommentCount > 0)
                                 {
-                                    <span class="inc-meta-tag"><i class="fa-light fa-message"></i> @iss.CommentCount comment@(iss.CommentCount != 1 ? "s" : "")</span>
+                                    <span class="inc-meta-tag"><i class="fa-sharp fa-light fa-message"></i> @iss.CommentCount comment@(iss.CommentCount != 1 ? "s" : "")</span>
                                 }
                                 <span class="inc-meta-tag muted">@iss.CreatedAt.ToString("MMM dd, yyyy")</span>
                             </div>
                             @if (iss.ResolvedAt.HasValue)
                             {
                                 <div class="inc-resolved-bar">
-                                    <i class="fa-light fa-circle-check"></i>
+                                    <i class="fa-sharp fa-light fa-circle-check"></i>
                                     Resolved on @iss.ResolvedAt.Value.ToString("MMM dd, yyyy")
                                 </div>
                             }
@@ -171,19 +171,19 @@
                             @if (iss.Status is IssueStatus.Open or IssueStatus.InProgress)
                             {
                                 <button class="inc-action-btn resolve" @onclick="() => QuickResolve(iss.Id)" title="Mark Resolved">
-                                    <i class="fa-light fa-check"></i>
+                                    <i class="fa-sharp fa-light fa-check"></i>
                                     <span>Resolve</span>
                                 </button>
                             }
                             else if (iss.Status == IssueStatus.Resolved)
                             {
                                 <button class="inc-action-btn reopen" @onclick="() => QuickReopen(iss.Id)" title="Reopen">
-                                    <i class="fa-light fa-rotate-left"></i>
+                                    <i class="fa-sharp fa-light fa-rotate-left"></i>
                                     <span>Reopen</span>
                                 </button>
                             }
                             <button class="inc-action-btn view" @onclick="() => GoToIssue(iss.Id)" title="View Details">
-                                <i class="fa-light fa-chevron-right"></i>
+                                <i class="fa-sharp fa-light fa-chevron-right"></i>
                             </button>
                         </div>
                     </div>
@@ -200,12 +200,12 @@
     <div class="chk-modal-overlay" @onclick="() => _showCreate = false">
         <div class="chk-modal chk-modal-wide ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon warning"><i class="fa-light fa-triangle-exclamation"></i></div>
+                <div class="chk-modal-icon warning"><i class="fa-sharp fa-light fa-triangle-exclamation"></i></div>
                 <div>
                     <h2>Log New Incident</h2>
                     <span class="chk-modal-sub">Document a safety or operational incident</span>
                 </div>
-                <button class="chk-modal-close" @onclick="() => _showCreate = false"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="() => _showCreate = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 <div class="form-group">
@@ -225,7 +225,7 @@
                             var pv = p;
                             <button type="button" class="chk-priority-btn priority-@p.ToString().ToLower() @(_createPriority == p ? "active" : "")"
                                     @onclick="() => _createPriority = pv">
-                                <i class="fa-light @PriorityIcon(pv)"></i> @p
+                                <i class="fa-sharp fa-light @PriorityIcon(pv)"></i> @p
                             </button>
                         }
                     </div>
@@ -265,7 +265,7 @@
                     @if (_createEquipmentId.HasValue)
                     {
                         var sel = _pickerEquipment.FirstOrDefault(e => e.Id == _createEquipmentId);
-                        <div class="picker-summary"><i class="fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName@(sel?.SubTypeName != null ? $" ({sel.SubTypeName})" : "")@(!string.IsNullOrEmpty(sel?.Description) ? $" · {sel!.Description}" : "")</div>
+                        <div class="picker-summary"><i class="fa-sharp fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName@(sel?.SubTypeName != null ? $" ({sel.SubTypeName})" : "")@(!string.IsNullOrEmpty(sel?.Description) ? $" · {sel!.Description}" : "")</div>
                     }
                 </div>
                 <div class="form-row">
@@ -283,7 +283,7 @@
                 <button class="btn btn-ghost" @onclick="() => _showCreate = false">Cancel</button>
                 <button class="btn btn-warning" @onclick="CreateIncident"
                         disabled="@(string.IsNullOrWhiteSpace(_createTitle))">
-                    <i class="fa-light fa-triangle-exclamation"></i> Log Incident
+                    <i class="fa-sharp fa-light fa-triangle-exclamation"></i> Log Incident
                 </button>
             </div>
         </div>
@@ -296,12 +296,12 @@
     <div class="chk-modal-overlay" @onclick="() => _showResolve = false">
         <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon success"><i class="fa-light fa-circle-check"></i></div>
+                <div class="chk-modal-icon success"><i class="fa-sharp fa-light fa-circle-check"></i></div>
                 <div>
                     <h2>Resolve Incident</h2>
                     <span class="chk-modal-sub">Add resolution notes (optional)</span>
                 </div>
-                <button class="chk-modal-close" @onclick="() => _showResolve = false"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="() => _showResolve = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 <div class="form-group">
@@ -313,7 +313,7 @@
             <div class="chk-modal-footer">
                 <button class="btn btn-ghost" @onclick="() => _showResolve = false">Cancel</button>
                 <button class="btn btn-success" @onclick="ConfirmResolve">
-                    <i class="fa-light fa-check"></i> Mark Resolved
+                    <i class="fa-sharp fa-light fa-check"></i> Mark Resolved
                 </button>
             </div>
         </div>

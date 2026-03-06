@@ -26,10 +26,10 @@ else
         <button class="btn btn-primary" @onclick="() => _showCreateSection = true">Add Section</button>
     </div>
 
-    @if (_plant.PhotoBase64 is not null)
+    @if (!string.IsNullOrEmpty(_plant.PhotoBase64))
     {
         <div class="entity-photo">
-            <img src="@($"data:image/jpeg;base64,{_plant.PhotoBase64}")" alt="@_plant.Name" />
+            <img src="@GetPhotoDataUri(_plant.PhotoBase64)" alt="@_plant.Name" />
         </div>
     }
 
@@ -51,10 +51,10 @@ else
                     <div class="form-group">
                         <label>Photo</label>
                         <InputFile OnChange="OnCreateSectionPhotoSelected" class="form-control" accept="image/*" />
-                        @if (_sectionCreate.PhotoBase64 is not null)
+                        @if (!string.IsNullOrEmpty(_sectionCreate.PhotoBase64))
                         {
                             <div class="photo-preview">
-                                <img src="@($"data:image/jpeg;base64,{_sectionCreate.PhotoBase64}")" alt="Preview" />
+                                <img src="@GetPhotoDataUri(_sectionCreate.PhotoBase64)" alt="Preview" />
                                 <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionCreate.PhotoBase64 = null; _sectionCreate.PhotoFileName = null; }">Remove</button>
                             </div>
                         }
@@ -86,11 +86,11 @@ else
                     <div class="form-group">
                         <label>Photo</label>
                         <InputFile OnChange="OnEditSectionPhotoSelected" class="form-control" accept="image/*" />
-                        @if (_sectionEdit.PhotoBase64 is not null)
+                        @if (!string.IsNullOrEmpty(_sectionEdit.PhotoBase64))
                         {
                             <div class="photo-preview">
-                                <img src="@($"data:image/jpeg;base64,{_sectionEdit.PhotoBase64}")" alt="Preview" />
-                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionEdit.PhotoBase64 = null; _sectionEdit.PhotoFileName = null; }">Remove</button>
+                                <img src="@GetPhotoDataUri(_sectionEdit.PhotoBase64)" alt="Preview" />
+                                <button type="button" class="btn btn-sm btn-secondary" @onclick="() => { _sectionEdit.PhotoBase64 = string.Empty; _sectionEdit.PhotoFileName = null; }">Remove</button>
                             </div>
                         }
                     </div>
@@ -349,10 +349,10 @@ else
                 </div>
             </div>
 
-            @if (sect.PhotoBase64 is not null)
+            @if (!string.IsNullOrEmpty(sect.PhotoBase64))
             {
                 <div class="section-photo">
-                    <img src="@($"data:image/jpeg;base64,{sect.PhotoBase64}")" alt="@sect.Name" />
+                    <img src="@GetPhotoDataUri(sect.PhotoBase64)" alt="@sect.Name" />
                 </div>
             }
 
@@ -428,11 +428,11 @@ else
                                 <td>
                                     <div class="action-buttons">
                                         <button class="btn btn-xs btn-secondary" @onclick="() => OpenChecksModal(eq)" title="Compliance Checks">
-                                            <i class="fa-light fa-calendar-check"></i>
+                                            <i class="fa-sharp fa-light fa-calendar-check"></i>
                                         </button>
                                         <button class="btn btn-xs btn-secondary" @onclick="() => StartEditEquipment(eq)">Edit</button>
                                         <button class="btn btn-xs btn-secondary" @onclick="() => { _unassignId = eq.Id; _unassignName = eq.Identifier; }" title="Unassign">
-                                            <i class="fa-light fa-link-slash"></i>
+                                            <i class="fa-sharp fa-light fa-link-slash"></i>
                                         </button>
                                         @if (eq.IsActive)
                                         {
@@ -625,20 +625,43 @@ else
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _sectionCreate.PhotoBase64 = Convert.ToBase64String(buffer);
-        _sectionCreate.PhotoFileName = file.Name;
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _sectionCreate.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
+            _sectionCreate.PhotoFileName = file.Name;
+        }
+        catch { /* file too large or read error */ }
     }
 
     private async Task OnEditSectionPhotoSelected(InputFileChangeEventArgs e)
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _sectionEdit.PhotoBase64 = Convert.ToBase64String(buffer);
-        _sectionEdit.PhotoFileName = file.Name;
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _sectionEdit.PhotoBase64 = Convert.ToBase64String(ms.ToArray());
+            _sectionEdit.PhotoFileName = file.Name;
+        }
+        catch { /* file too large or read error */ }
+    }
+
+    private static string GetPhotoDataUri(string base64)
+    {
+        var mime = base64 switch
+        {
+            _ when base64.StartsWith("/9j/") => "image/jpeg",
+            _ when base64.StartsWith("iVBOR") => "image/png",
+            _ when base64.StartsWith("R0lG") => "image/gif",
+            _ when base64.StartsWith("UklG") => "image/webp",
+            _ => "image/png"
+        };
+        return $"data:{mime};base64,{base64}";
     }
 
     // ===== Equipment CRUD =====

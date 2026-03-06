@@ -7,10 +7,10 @@
     <div class="insp-tab-bar ov-fadeIn">
         <div class="insp-tabs">
             <button class="insp-tab @(_view == "calendar" ? "active" : "")" @onclick='() => _view = "calendar"'>
-                <i class="fa-light fa-calendar-days"></i> Calendar
+                <i class="fa-sharp fa-light fa-calendar-days"></i> Calendar
             </button>
             <button class="insp-tab @(_view == "timeline" ? "active" : "")" @onclick='() => _view = "timeline"'>
-                <i class="fa-light fa-list-timeline"></i> Timeline
+                <i class="fa-sharp fa-light fa-list-timeline"></i> Timeline
             </button>
         </div>
     </div>
@@ -24,42 +24,42 @@
         @* ── Stats row ── *@
         <div class="cal-stats ov-fadeIn">
             <div class="cal-stat">
-                <div class="cal-stat-icon blue"><i class="fa-light fa-clipboard-list"></i></div>
+                <div class="cal-stat-icon blue"><i class="fa-sharp fa-light fa-clipboard-list"></i></div>
                 <div class="cal-stat-info">
                     <span class="cal-stat-value">@_stats.ScheduledThisMonth</span>
                     <span class="cal-stat-label">Scheduled</span>
                 </div>
             </div>
             <div class="cal-stat">
-                <div class="cal-stat-icon green"><i class="fa-light fa-circle-check"></i></div>
+                <div class="cal-stat-icon green"><i class="fa-sharp fa-light fa-circle-check"></i></div>
                 <div class="cal-stat-info">
                     <span class="cal-stat-value">@_stats.CompletedThisMonth</span>
                     <span class="cal-stat-label">Completed</span>
                 </div>
             </div>
             <div class="cal-stat @(_stats.OverdueInspections > 0 ? "alert" : "")">
-                <div class="cal-stat-icon @(_stats.OverdueInspections > 0 ? "red" : "gray")"><i class="fa-light fa-clock"></i></div>
+                <div class="cal-stat-icon @(_stats.OverdueInspections > 0 ? "red" : "gray")"><i class="fa-sharp fa-light fa-clock"></i></div>
                 <div class="cal-stat-info">
                     <span class="cal-stat-value">@_stats.OverdueInspections</span>
                     <span class="cal-stat-label">Overdue</span>
                 </div>
             </div>
             <div class="cal-stat @(_stats.OpenIssues > 0 ? "alert" : "")">
-                <div class="cal-stat-icon @(_stats.OpenIssues > 0 ? "amber" : "gray")"><i class="fa-light fa-triangle-exclamation"></i></div>
+                <div class="cal-stat-icon @(_stats.OpenIssues > 0 ? "amber" : "gray")"><i class="fa-sharp fa-light fa-triangle-exclamation"></i></div>
                 <div class="cal-stat-info">
                     <span class="cal-stat-value">@_stats.OpenIssues</span>
                     <span class="cal-stat-label">Open Issues</span>
                 </div>
             </div>
             <div class="cal-stat @(_stats.CriticalIssues > 0 ? "alert" : "")">
-                <div class="cal-stat-icon @(_stats.CriticalIssues > 0 ? "red" : "gray")"><i class="fa-light fa-siren-on"></i></div>
+                <div class="cal-stat-icon @(_stats.CriticalIssues > 0 ? "red" : "gray")"><i class="fa-sharp fa-light fa-siren-on"></i></div>
                 <div class="cal-stat-info">
                     <span class="cal-stat-value">@_stats.CriticalIssues</span>
                     <span class="cal-stat-label">Critical</span>
                 </div>
             </div>
             <div class="cal-stat">
-                <div class="cal-stat-icon green"><i class="fa-light fa-check-double"></i></div>
+                <div class="cal-stat-icon green"><i class="fa-sharp fa-light fa-check-double"></i></div>
                 <div class="cal-stat-info">
                     <span class="cal-stat-value">@_stats.ResolvedThisMonth</span>
                     <span class="cal-stat-label">Resolved</span>
@@ -73,11 +73,11 @@
             <div class="cal-container ov-fadeIn">
                 <div class="cal-nav">
                     <button class="cal-nav-btn" @onclick="PrevMonth">
-                        <i class="fa-light fa-chevron-left"></i>
+                        <i class="fa-sharp fa-light fa-chevron-left"></i>
                     </button>
                     <h2 class="cal-nav-title">@_calendarMonth.ToString("MMMM yyyy")</h2>
                     <button class="cal-nav-btn" @onclick="NextMonth">
-                        <i class="fa-light fa-chevron-right"></i>
+                        <i class="fa-sharp fa-light fa-chevron-right"></i>
                     </button>
                     <button class="cal-today-btn" @onclick="GoToToday">Today</button>
                 </div>
@@ -121,7 +121,7 @@
                 @if (!_timelineItems.Any())
                 {
                     <div class="ov-empty">
-                        <div class="ov-empty-icon"><i class="fa-light fa-list-timeline"></i></div>
+                        <div class="ov-empty-icon"><i class="fa-sharp fa-light fa-list-timeline"></i></div>
                         <h2>No upcoming items</h2>
                         <p>Create a schedule to get started.</p>
                     </div>
@@ -150,15 +150,15 @@
                             <div class="cal-tl-marker @it.EventType">
                                 @if (it.EventType == "inspection")
                                 {
-                                    <i class="fa-light fa-clipboard-list"></i>
+                                    <i class="fa-sharp fa-light fa-clipboard-list"></i>
                                 }
                                 else if (it.EventType == "issue")
                                 {
-                                    <i class="fa-light fa-triangle-exclamation"></i>
+                                    <i class="fa-sharp fa-light fa-triangle-exclamation"></i>
                                 }
                                 else
                                 {
-                                    <i class="fa-light fa-calendar-clock"></i>
+                                    <i class="fa-sharp fa-light fa-calendar-clock"></i>
                                 }
                             </div>
                             <div class="cal-tl-body">
@@ -184,10 +184,10 @@
                                     </div>
                                 </div>
                                 <div class="cal-tl-meta">
-                                    <span><i class="fa-light fa-industry"></i> @it.PlantName</span>
+                                    <span><i class="fa-sharp fa-light fa-industry"></i> @it.PlantName</span>
                                     @if (it.EquipmentIdentifier is not null)
                                     {
-                                        <span><i class="fa-light fa-barcode"></i> @it.EquipmentIdentifier</span>
+                                        <span><i class="fa-sharp fa-light fa-barcode"></i> @it.EquipmentIdentifier</span>
                                     }
                                 </div>
                                 @if (it.EventType == "inspection" && it.TotalItems > 0)

@@ -1,7 +1,6 @@
 @page "/schedules"
 @inject IScheduleService ScheduleService
 @inject IPlantService PlantService
-@inject ICompanyService CompanyService
 @inject IInspectionService InspectionService
 @inject NavigationManager Navigation
 
@@ -9,13 +8,13 @@
     @* ── Header ── *@
     <div class="sched-hero ov-fadeIn">
         <div class="page-header-left">
-            <div class="page-header-icon"><i class="fa-light fa-calendar-check"></i></div>
+            <div class="page-header-icon"><i class="fa-sharp fa-light fa-calendar-check"></i></div>
             <div class="page-header-info">
                 <h1>Inspection Schedules</h1>
                 <p class="page-header-sub">Manage recurring inspection schedules across your plants</p>
             </div>
         </div>
-        <button class="btn btn-primary btn-lg" @onclick="() => _showCreate = true"><i class="fa-light fa-plus-circle"></i> New Schedule</button>
+        <button class="btn btn-primary btn-lg" @onclick="() => _showCreate = true"><i class="fa-sharp fa-light fa-plus-circle"></i> New Schedule</button>
     </div>
 
     @if (_loading)
@@ -29,7 +28,7 @@
             <div class="sched-filter-pills">
                 <button class="sched-pill @(_filterPlantId == null ? "active" : "")"
                         @onclick="() => FilterByPlant(null)">
-                    <i class="fa-light fa-globe"></i> All Plants
+                    <i class="fa-sharp fa-light fa-globe"></i> All Plants
                     <span class="sched-pill-count">@_schedules.Count</span>
                 </button>
                 @foreach (var plant in _allPlants)
@@ -51,11 +50,11 @@
         @if (!FilteredSchedules.Any())
         {
             <div class="ov-empty ov-fadeIn">
-                <div class="ov-empty-icon"><i class="fa-light fa-calendar-circle-plus"></i></div>
+                <div class="ov-empty-icon"><i class="fa-sharp fa-light fa-calendar-circle-plus"></i></div>
                 <h2>No schedules yet</h2>
                 <p>Create an inspection schedule to automate your compliance tracking.</p>
                 <button class="btn btn-primary btn-lg" @onclick="() => _showCreate = true">
-                    <i class="fa-light fa-plus-circle"></i> Create First Schedule
+                    <i class="fa-sharp fa-light fa-plus-circle"></i> Create First Schedule
                 </button>
             </div>
         }
@@ -82,8 +81,8 @@
                                 <div class="sched-card-info">
                                     <h3>@s.Name</h3>
                                     <div class="sched-card-tags">
-                                        <span class="sched-tag plant"><i class="fa-light fa-industry"></i> @s.PlantName</span>
-                                        <span class="sched-tag freq"><i class="fa-light fa-repeat"></i> @FormatFrequency(s.Frequency, s.FrequencyInterval)</span>
+                                        <span class="sched-tag plant"><i class="fa-sharp fa-light fa-industry"></i> @s.PlantName</span>
+                                        <span class="sched-tag freq"><i class="fa-sharp fa-light fa-repeat"></i> @FormatFrequency(s.Frequency, s.FrequencyInterval)</span>
                                     </div>
                                 </div>
                                 <div class="sched-card-status">
@@ -110,7 +109,7 @@
                             @* Dates row *@
                             <div class="sched-card-dates">
                                 <div class="sched-date-item @(isOverdue ? "overdue" : "")">
-                                    <i class="fa-light fa-calendar-arrow-down"></i>
+                                    <i class="fa-sharp fa-light fa-calendar-arrow-down"></i>
                                     <div>
                                         <span class="sched-date-label">Next Due</span>
                                         <span class="sched-date-value">@s.NextDueDate.ToString("MMM dd, yyyy")</span>
@@ -119,7 +118,7 @@
                                 @if (s.LastCompletedDate.HasValue)
                                 {
                                     <div class="sched-date-item">
-                                        <i class="fa-light fa-calendar-check"></i>
+                                        <i class="fa-sharp fa-light fa-calendar-check"></i>
                                         <div>
                                             <span class="sched-date-label">Last Completed</span>
                                             <span class="sched-date-value">@s.LastCompletedDate.Value.ToString("MMM dd, yyyy")</span>
@@ -127,7 +126,7 @@
                                     </div>
                                 }
                                 <div class="sched-date-item">
-                                    <i class="fa-light fa-calendar-lines"></i>
+                                    <i class="fa-sharp fa-light fa-calendar-lines"></i>
                                     <div>
                                         <span class="sched-date-label">Started</span>
                                         <span class="sched-date-value">@s.StartDate.ToString("MMM dd, yyyy")</span>
@@ -148,12 +147,12 @@
                                     {
                                         <button class="sched-action-btn" title="Start inspection"
                                                 @onclick="() => StartInspection(s)" @onclick:stopPropagation>
-                                            <i class="fa-light fa-play-circle"></i>
+                                            <i class="fa-sharp fa-light fa-play-circle"></i>
                                         </button>
                                     }
                                     <button class="sched-action-btn" title="View rounds"
                                             @onclick="() => ViewScheduleRounds(s)" @onclick:stopPropagation>
-                                        <i class="fa-light fa-list-timeline"></i>
+                                        <i class="fa-sharp fa-light fa-list-timeline"></i>
                                     </button>
                                 </div>
                             </div>
@@ -173,22 +172,22 @@
     <div class="chk-modal-overlay" @onclick="() => _showCreate = false">
         <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon info"><i class="fa-light fa-calendar-plus"></i></div>
+                <div class="chk-modal-icon info"><i class="fa-sharp fa-light fa-calendar-plus"></i></div>
                 <div>
                     <h2>New Schedule</h2>
                     <span class="chk-modal-sub">Set up a recurring inspection</span>
                 </div>
-                <button class="chk-modal-close" @onclick="() => _showCreate = false"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="() => _showCreate = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 <EditForm Model="_createModel" OnValidSubmit="CreateSchedule">
                     <div class="sched-form-row">
                         <div class="sched-form-group">
-                            <label><i class="fa-light fa-tag"></i> Schedule Name</label>
+                            <label><i class="fa-sharp fa-light fa-tag"></i> Schedule Name</label>
                             <InputText @bind-Value="_createModel.Name" class="form-control" placeholder="e.g. Monthly Fire Extinguisher Check" />
                         </div>
                         <div class="sched-form-group">
-                            <label><i class="fa-light fa-industry"></i> Plant</label>
+                            <label><i class="fa-sharp fa-light fa-industry"></i> Plant</label>
                             <select class="form-control" @onchange="OnCreatePlantChanged">
                                 <option value="">Select a plant&hellip;</option>
                                 @foreach (var plant in _allPlants)
@@ -199,12 +198,12 @@
                         </div>
                     </div>
                     <div class="sched-form-group">
-                        <label><i class="fa-light fa-align-left"></i> Description (optional)</label>
+                        <label><i class="fa-sharp fa-light fa-align-left"></i> Description (optional)</label>
                         <InputText @bind-Value="_createModel.Description" class="form-control" placeholder="Brief description of this schedule" />
                     </div>
                     <div class="sched-form-row">
                         <div class="sched-form-group">
-                            <label><i class="fa-light fa-repeat"></i> Frequency</label>
+                            <label><i class="fa-sharp fa-light fa-repeat"></i> Frequency</label>
                             <InputSelect @bind-Value="_createModel.Frequency" class="form-control">
                                 <option value="@FrequencyType.Daily">Daily</option>
                                 <option value="@FrequencyType.Weekly">Weekly</option>
@@ -216,24 +215,24 @@
                             </InputSelect>
                         </div>
                         <div class="sched-form-group">
-                            <label><i class="fa-light fa-arrow-right-arrow-left"></i> Interval</label>
+                            <label><i class="fa-sharp fa-light fa-arrow-right-arrow-left"></i> Interval</label>
                             <InputNumber @bind-Value="_createModel.FrequencyInterval" class="form-control" min="1" />
                         </div>
                     </div>
                     <div class="sched-form-row">
                         <div class="sched-form-group">
-                            <label><i class="fa-light fa-calendar"></i> Start Date</label>
+                            <label><i class="fa-sharp fa-light fa-calendar"></i> Start Date</label>
                             <InputDate @bind-Value="_createModel.StartDate" class="form-control" />
                         </div>
                         <div class="sched-form-group">
-                            <label><i class="fa-light fa-calendar-xmark"></i> End Date (optional)</label>
+                            <label><i class="fa-sharp fa-light fa-calendar-xmark"></i> End Date (optional)</label>
                             <InputDate @bind-Value="_createModel.EndDate" class="form-control" />
                         </div>
                     </div>
                     <div class="chk-modal-footer" style="margin-top: var(--spacing-md); padding: 0; border: none;">
                         <button type="button" class="btn btn-ghost" @onclick="() => _showCreate = false">Cancel</button>
                         <button type="submit" class="btn btn-primary">
-                            <i class="fa-light fa-check"></i> Create Schedule
+                            <i class="fa-sharp fa-light fa-check"></i> Create Schedule
                         </button>
                     </div>
                 </EditForm>
@@ -255,12 +254,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var companies = await CompanyService.GetAllCompaniesAsync();
-        foreach (var company in companies)
-        {
-            var plants = await PlantService.GetPlantsByCompanyAsync(company.Id);
-            _allPlants.AddRange(plants);
-        }
+        _allPlants = await PlantService.GetAllPlantsAsync();
         _schedules = await ScheduleService.GetSchedulesAsync();
         _loading = false;
     }

@@ -33,8 +33,8 @@ public record InventoryEquipmentDto(
 
 public record InventoryStatsDto(
     int TotalEquipment, int AssignedCount, int AvailableCount,
-    int InServiceCount, int DamagedCount, int MissingCount,
-    int OutOfServiceCount, int NeedsReplacementCount, int RetiredCount,
+    int InOrderCount, int DamagedCount, int OutOfPlaceCount,
+    int InForServiceCount, int NeedsReplacementCount, int RetiredCount,
     int OverdueComplianceCount, int DueSoonComplianceCount);
 
 public record AssignEquipmentDto(int EquipmentId, int SectionId);
@@ -43,7 +43,7 @@ public record UnassignEquipmentDto(int EquipmentId);
 public record EquipmentInventoryCreateDto(
     int EquipmentTypeId, int? EquipmentSubTypeId, string IdentifierPrefix,
     int Quantity, string? Description, string? Size, string? SerialNumber,
-    EquipmentStatus Status = EquipmentStatus.InService);
+    EquipmentStatus Status = EquipmentStatus.InOrder);
 
 public record EquipmentStatusUpdateDto(int EquipmentId, EquipmentStatus Status, string? Notes);
 

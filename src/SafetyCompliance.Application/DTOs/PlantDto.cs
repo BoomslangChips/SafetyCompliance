@@ -36,3 +36,21 @@ public record PlantContactUpdateDto(
     string? Email,
     string? Notes,
     bool IsPrimary);
+
+// ── Contact Documents ───────────────────────────────────────────────────────
+public record ContactDocumentDto(
+    int Id,
+    int PlantContactId,
+    string FileName,
+    string DisplayName,
+    string ContentType,
+    long FileSizeBytes,
+    DateTime UploadedAt);
+
+public record ContactDocumentUploadDto(
+    int PlantContactId,
+    string FileName,
+    string DisplayName,
+    string ContentType,
+    long FileSizeBytes,
+    string FileBase64);

@@ -40,4 +40,16 @@ public class LocalPhotoStorageService(IWebHostEnvironment env) : IPhotoStorageSe
 
         return Task.CompletedTask;
     }
+
+    public async Task<byte[]?> ReadPhotoAsync(string webPath)
+    {
+        var physical = Path.Combine(
+            WebRoot,
+            webPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+
+        if (!File.Exists(physical))
+            return null;
+
+        return await File.ReadAllBytesAsync(physical);
+    }
 }

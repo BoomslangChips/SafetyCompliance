@@ -15,7 +15,7 @@ public class Equipment : AuditableEntity
     public DateOnly? LastServiceDate { get; set; }
     public DateOnly? NextServiceDate { get; set; }
     public int SortOrder { get; set; }
-    public EquipmentStatus Status { get; set; } = EquipmentStatus.InService;
+    public EquipmentStatus Status { get; set; } = EquipmentStatus.InOrder;
     public bool IsActive { get; set; } = true;
 
     public Section? Section { get; set; }
@@ -28,10 +28,10 @@ public class Equipment : AuditableEntity
 
 public enum EquipmentStatus : byte
 {
-    InService = 0,
-    OutOfService = 1,
+    InOrder = 0,
+    InForService = 1,
     Damaged = 2,
-    Missing = 3,
+    OutOfPlace = 3,
     NeedsReplacement = 4,
     Retired = 5
 }

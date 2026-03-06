@@ -227,10 +227,15 @@ else
     {
         var file = e.File;
         if (file is null) return;
-        var buffer = new byte[file.Size];
-        await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).ReadAsync(buffer);
-        _commentPhotoBase64 = Convert.ToBase64String(buffer);
-        _commentPhotoFileName = file.Name;
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            _commentPhotoBase64 = Convert.ToBase64String(ms.ToArray());
+            _commentPhotoFileName = file.Name;
+        }
+        catch { /* file too large or read error */ }
     }
 
     private void RemoveCommentPhoto()
@@ -240,5 +245,16 @@ else
     }
 
     private void GoBack() => Navigation.NavigateTo("/issues");
-    private static string GetPhotoSrc(string base64) => $"data:image/jpeg;base64,{base64}";
+    private static string GetPhotoSrc(string base64)
+    {
+        var mime = base64 switch
+        {
+            _ when base64.StartsWith("/9j/") => "image/jpeg",
+            _ when base64.StartsWith("iVBOR") => "image/png",
+            _ when base64.StartsWith("R0lG") => "image/gif",
+            _ when base64.StartsWith("UklG") => "image/webp",
+            _ => "image/png"
+        };
+        return $"data:{mime};base64,{base64}";
+    }
 }

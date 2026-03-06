@@ -10,10 +10,10 @@
     <div class="insp-tab-bar ov-fadeIn">
         <div class="insp-tabs">
             <button class="insp-tab @(_tab == Tab.Overview ? "active" : "")" @onclick="() => SwitchTab(Tab.Overview)">
-                <i class="fa-light fa-gauge-high"></i> Overview
+                <i class="fa-sharp fa-light fa-gauge-high"></i> Overview
             </button>
             <button class="insp-tab @(_tab == Tab.Plant ? "active" : "")" @onclick="() => SwitchTab(Tab.Plant)">
-                <i class="fa-light fa-clipboard-list"></i> Plant Inspections
+                <i class="fa-sharp fa-light fa-clipboard-list"></i> Plant Inspections
             </button>
         </div>
     </div>
@@ -30,7 +30,7 @@
             @* ── Active Inspections ── *@
             <div class="insp-ov-section ov-fadeIn">
                 <div class="insp-ov-section-header">
-                    <div class="insp-ov-section-icon blue"><i class="fa-light fa-clipboard-list-check"></i></div>
+                    <div class="insp-ov-section-icon blue"><i class="fa-sharp fa-light fa-clipboard-list-check"></i></div>
                     <div>
                         <h2>Active Inspections</h2>
                         <p>In-progress and draft rounds across all plants</p>
@@ -66,15 +66,15 @@
                                         <span class="status-badge status-@r.Status.ToString().ToLower()">@StatusLabel(r.Status)</span>
                                     </div>
                                     <div class="insp-ov-card-meta">
-                                        <span><i class="fa-light fa-calendar"></i> @r.InspectionDate.ToString("MMM dd, yyyy")</span>
-                                        <span><i class="fa-light fa-hashtag"></i> @r.InspectionMonth</span>
+                                        <span><i class="fa-sharp fa-light fa-calendar"></i> @r.InspectionDate.ToString("MMM dd, yyyy")</span>
+                                        <span><i class="fa-sharp fa-light fa-hashtag"></i> @r.InspectionMonth</span>
                                         <span class="insp-ov-eq-count">@r.CompletedEquipment/@r.TotalEquipment equipment</span>
                                     </div>
                                     <div class="insp-round-bar">
                                         <div class="insp-round-bar-fill" style="width: @pct%"></div>
                                     </div>
                                 </div>
-                                <div class="insp-round-arrow"><i class="fa-light fa-chevron-right"></i></div>
+                                <div class="insp-round-arrow"><i class="fa-sharp fa-light fa-chevron-right"></i></div>
                             </div>
                             aidx++;
                         }
@@ -83,7 +83,7 @@
                 else
                 {
                     <div class="insp-ov-empty">
-                        <i class="fa-light fa-circle-check"></i>
+                        <i class="fa-sharp fa-light fa-circle-check"></i>
                         <span>No active inspections right now</span>
                     </div>
                 }
@@ -92,7 +92,7 @@
             @* ── Failed Items ── *@
             <div class="insp-ov-section ov-fadeIn" style="animation-delay: 0.1s">
                 <div class="insp-ov-section-header">
-                    <div class="insp-ov-section-icon red"><i class="fa-light fa-triangle-exclamation"></i></div>
+                    <div class="insp-ov-section-icon red"><i class="fa-sharp fa-light fa-triangle-exclamation"></i></div>
                     <div>
                         <h2>Failed Items</h2>
                         <p>Equipment with failed checklist items that need attention</p>
@@ -117,9 +117,9 @@
                                         <span class="insp-fail-type">@f.EquipmentTypeName</span>
                                     </div>
                                     <div class="insp-fail-location">
-                                        <span><i class="fa-light fa-industry"></i> @f.PlantName</span>
-                                        <span><i class="fa-light fa-folder"></i> @f.SectionName</span>
-                                        <span><i class="fa-light fa-calendar"></i> @f.InspectionDate.ToString("MMM dd")</span>
+                                        <span><i class="fa-sharp fa-light fa-industry"></i> @f.PlantName</span>
+                                        <span><i class="fa-sharp fa-light fa-folder"></i> @f.SectionName</span>
+                                        <span><i class="fa-sharp fa-light fa-calendar"></i> @f.InspectionDate.ToString("MMM dd")</span>
                                     </div>
                                     <div class="insp-fail-items">
                                         @foreach (var check in f.FailedChecklistItems)
@@ -128,7 +128,7 @@
                                         }
                                     </div>
                                 </div>
-                                <div class="insp-round-arrow"><i class="fa-light fa-chevron-right"></i></div>
+                                <div class="insp-round-arrow"><i class="fa-sharp fa-light fa-chevron-right"></i></div>
                             </div>
                             fidx++;
                         }
@@ -137,7 +137,7 @@
                 else
                 {
                     <div class="insp-ov-empty success">
-                        <i class="fa-light fa-circle-check"></i>
+                        <i class="fa-sharp fa-light fa-circle-check"></i>
                         <span>All checklist items are passing</span>
                     </div>
                 }
@@ -146,7 +146,7 @@
             @* ── Equipment Out for Service ── *@
             <div class="insp-ov-section ov-fadeIn" style="animation-delay: 0.2s">
                 <div class="insp-ov-section-header">
-                    <div class="insp-ov-section-icon amber"><i class="fa-light fa-wrench"></i></div>
+                    <div class="insp-ov-section-icon amber"><i class="fa-sharp fa-light fa-wrench"></i></div>
                     <div>
                         <h2>Equipment in Service</h2>
                         <p>Equipment currently sent out for repair or calibration</p>
@@ -164,7 +164,7 @@
                             var b = booking;
                             <div class="insp-svc-card ov-staggerUp" style="animation-delay: @(si * 0.05)s">
                                 <div class="insp-svc-icon">
-                                    <i class="fa-light fa-@(b.Status == ServiceBookingStatus.Sent ? "truck" : "screwdriver-wrench")"></i>
+                                    <i class="fa-sharp fa-light fa-@(b.Status == ServiceBookingStatus.Sent ? "truck" : "screwdriver-wrench")"></i>
                                 </div>
                                 <div class="insp-svc-body">
                                     <div class="insp-svc-top">
@@ -172,8 +172,8 @@
                                         <span class="insp-svc-status status-@b.Status.ToString().ToLower()">@b.Status</span>
                                     </div>
                                     <div class="insp-svc-meta">
-                                        <span><i class="fa-light fa-industry"></i> @b.PlantName</span>
-                                        <span><i class="fa-light fa-building"></i> @b.ServiceProvider</span>
+                                        <span><i class="fa-sharp fa-light fa-industry"></i> @b.PlantName</span>
+                                        <span><i class="fa-sharp fa-light fa-building"></i> @b.ServiceProvider</span>
                                     </div>
                                     <div class="insp-svc-dates">
                                         <span>Sent: @b.SentDate.ToString("MMM dd, yyyy")</span>
@@ -199,7 +199,7 @@
                 else
                 {
                     <div class="insp-ov-empty">
-                        <i class="fa-light fa-circle-check"></i>
+                        <i class="fa-sharp fa-light fa-circle-check"></i>
                         <span>No equipment currently out for service</span>
                     </div>
                 }
@@ -221,12 +221,12 @@
                             disabled="@_hasCurrentMonthRound">
                         @if (_hasCurrentMonthRound)
                         {
-                            <i class="fa-light fa-spinner"></i>
+                            <i class="fa-sharp fa-light fa-spinner"></i>
                             <span>Active Round In Progress</span>
                         }
                         else
                         {
-                            <i class="fa-light fa-plus-circle"></i>
+                            <i class="fa-sharp fa-light fa-plus-circle"></i>
                             <span>Start New Inspection</span>
                         }
                     </button>
@@ -236,7 +236,7 @@
             @* Selectors *@
             <div class="insp-selectors ov-fadeIn">
                 <div class="insp-selector-group">
-                    <label><i class="fa-light fa-building"></i> Company</label>
+                    <label><i class="fa-sharp fa-light fa-building"></i> Company</label>
                     <select class="form-control" value="@_selectedCompanyId" @onchange="OnCompanyChanged">
                         <option value="0">Select a company&hellip;</option>
                         @foreach (var company in _companies)
@@ -248,7 +248,7 @@
                 @if (_selectedCompanyId > 0)
                 {
                     <div class="insp-selector-group ov-fadeIn">
-                        <label><i class="fa-light fa-industry"></i> Plant</label>
+                        <label><i class="fa-sharp fa-light fa-industry"></i> Plant</label>
                         <select class="form-control" value="@_selectedPlantId" @onchange="OnPlantChanged">
                             <option value="0">Select a plant&hellip;</option>
                             @foreach (var plant in _plants)
@@ -307,8 +307,8 @@
                                     <span class="status-badge status-@r.Status.ToString().ToLower()">@StatusLabel(r.Status)</span>
                                 </div>
                                 <div class="insp-round-meta">
-                                    <span><i class="fa-light fa-calendar"></i> @r.InspectionDate.ToString("MMM dd, yyyy")</span>
-                                    <span><i class="fa-light fa-user"></i> @r.InspectorName</span>
+                                    <span><i class="fa-sharp fa-light fa-calendar"></i> @r.InspectionDate.ToString("MMM dd, yyyy")</span>
+                                    <span><i class="fa-sharp fa-light fa-user"></i> @r.InspectorName</span>
                                 </div>
                                 <div class="insp-round-progress">
                                     <div class="insp-round-bar">
@@ -317,7 +317,11 @@
                                     <span class="insp-round-count">@r.CompletedEquipment / @r.TotalEquipment</span>
                                 </div>
                             </div>
-                            <div class="insp-round-arrow"><i class="fa-light fa-chevron-right"></i></div>
+                            <button class="insp-round-delete" title="Delete inspection"
+                                    @onclick="() => PromptDeleteRound(r)" @onclick:stopPropagation>
+                                <i class="fa-sharp fa-light fa-trash"></i>
+                            </button>
+                            <div class="insp-round-arrow"><i class="fa-sharp fa-light fa-chevron-right"></i></div>
                         </div>
                         idx++;
                     }
@@ -326,24 +330,64 @@
             else if (_selectedPlantId > 0)
             {
                 <div class="ov-empty ov-fadeIn">
-                    <div class="ov-empty-icon"><i class="fa-light fa-clipboard-list"></i></div>
+                    <div class="ov-empty-icon"><i class="fa-sharp fa-light fa-clipboard-list"></i></div>
                     <h2>No inspections yet</h2>
                     <p>Start your first monthly inspection for this plant.</p>
                     <button class="btn btn-primary btn-lg" @onclick="StartNewRound" disabled="@_hasCurrentMonthRound">
-                        <i class="fa-light fa-plus-circle"></i> Start Monthly Inspection
+                        <i class="fa-sharp fa-light fa-plus-circle"></i> Start Monthly Inspection
                     </button>
                 </div>
             }
             else
             {
                 <div class="insp-prompt ov-fadeIn">
-                    <i class="fa-light fa-hand-pointer"></i>
+                    <i class="fa-sharp fa-light fa-hand-pointer"></i>
                     <p>Select a company and plant above to view inspections</p>
                 </div>
             }
         }
     }
 </div>
+
+@* ── Delete Confirmation Modal ── *@
+@if (_showDeleteConfirm && _deleteTarget is not null)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showDeleteConfirm = false">
+        <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon warning">
+                    <i class="fa-sharp fa-light fa-trash"></i>
+                </div>
+                <div>
+                    <h2>Delete Inspection Round</h2>
+                    <span class="chk-modal-sub">@_deleteTarget.InspectionMonth &mdash; @_deleteTarget.PlantName</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showDeleteConfirm = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                <div class="chk-complete-warnings">
+                    <div class="chk-warning-item">
+                        <i class="fa-sharp fa-light fa-triangle-exclamation"></i>
+                        <span>This will permanently delete the inspection round and all its responses and photos.</span>
+                    </div>
+                    @if (_deleteTarget.CompletedEquipment > 0)
+                    {
+                        <div class="chk-warning-item">
+                            <i class="fa-sharp fa-light fa-clipboard-check"></i>
+                            <span>@_deleteTarget.CompletedEquipment of @_deleteTarget.TotalEquipment equipment inspections have been completed.</span>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showDeleteConfirm = false">Cancel</button>
+                <button class="btn btn-danger" @onclick="ConfirmDeleteRound">
+                    <i class="fa-sharp fa-light fa-trash"></i> Delete Round
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     // Tabs
@@ -431,6 +475,28 @@
             if (existing is not null)
                 Navigation.NavigateTo($"/inspections/{existing.Id}");
         }
+    }
+
+    // Delete round
+    private bool _showDeleteConfirm;
+    private InspectionRoundDto? _deleteTarget;
+
+    private void PromptDeleteRound(InspectionRoundDto round)
+    {
+        _deleteTarget = round;
+        _showDeleteConfirm = true;
+    }
+
+    private async Task ConfirmDeleteRound()
+    {
+        if (_deleteTarget is null) return;
+        await InspectionService.DeleteRoundAsync(_deleteTarget.Id);
+        _showDeleteConfirm = false;
+        _deleteTarget = null;
+        await LoadRounds();
+        // Also refresh overview data
+        _activeRounds = await InspectionService.GetActiveRoundsAsync();
+        _failedItems = await InspectionService.GetFailedItemsAsync();
     }
 
     private static string StatusLabel(InspectionStatus s) => s switch

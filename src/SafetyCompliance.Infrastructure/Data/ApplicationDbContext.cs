@@ -29,6 +29,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IUnitOfW
     public DbSet<PlantContact>  PlantContacts    => Set<PlantContact>();
     public DbSet<EquipmentCheck>       EquipmentChecks       => Set<EquipmentCheck>();
     public DbSet<EquipmentCheckRecord> EquipmentCheckRecords => Set<EquipmentCheckRecord>();
+    public DbSet<ContactDocument>      ContactDocuments      => Set<ContactDocument>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

@@ -5,6 +5,7 @@
 @inject ICompanyService CompanyService
 @inject IPlantService PlantService
 @inject IExcelExportService ExcelExportService
+@inject IPhotoStorageService PhotoStorage
 @inject IJSRuntime JS
 
 <div class="rpt-page">
@@ -13,13 +14,13 @@
     <div class="insp-tab-bar ov-fadeIn">
         <div class="insp-tabs">
             <button class="insp-tab @(_tab == RptTab.Summary ? "active" : "")" @onclick="() => SetTab(RptTab.Summary)">
-                <i class="fa-light fa-chart-pie"></i> Summary
+                <i class="fa-sharp fa-light fa-chart-pie"></i> Summary
             </button>
             <button class="insp-tab @(_tab == RptTab.Monthly ? "active" : "")" @onclick="() => SetTab(RptTab.Monthly)">
-                <i class="fa-light fa-calendar-lines-pen"></i> Monthly Report
+                <i class="fa-sharp fa-light fa-calendar-lines-pen"></i> Monthly Report
             </button>
         </div>
-        <span class="rpt-header-label"><i class="fa-light fa-chart-line-up"></i> Reports</span>
+        <span class="rpt-header-label"><i class="fa-sharp fa-light fa-chart-line-up"></i> Reports</span>
     </div>
 
     @if (_loading)
@@ -43,11 +44,11 @@
                         disabled="@(_exportingAll || _summaries.Count == 0)">
                     @if (_exportingAll)
                     {
-                        <i class="fa-light fa-spinner-third fa-spin"></i><span>Exporting&hellip;</span>
+                        <i class="fa-sharp fa-light fa-spinner-third fa-spin"></i><span>Exporting&hellip;</span>
                     }
                     else
                     {
-                        <i class="fa-light fa-file-excel"></i><span>Export Summary</span>
+                        <i class="fa-sharp fa-light fa-file-excel"></i><span>Export Summary</span>
                     }
                 </button>
             </div>
@@ -55,7 +56,7 @@
             @if (_summaries.Count == 0)
             {
                 <div class="rpt-prompt ov-fadeIn">
-                    <i class="fa-light fa-chart-pie-simple rpt-prompt-icon"></i>
+                    <i class="fa-sharp fa-light fa-chart-pie-simple rpt-prompt-icon"></i>
                     <h3>No plants found</h3>
                     <p>Add companies and plants in the setup wizard to see report summaries here.</p>
                 </div>
@@ -110,7 +111,7 @@
 
                             <div class="rpt-plant-stats">
                                 <div class="rpt-mini-stat">
-                                    <span class="rpt-mini-icon blue"><i class="fa-light fa-clipboard-check"></i></span>
+                                    <span class="rpt-mini-icon blue"><i class="fa-sharp fa-light fa-clipboard-check"></i></span>
                                     <div class="rpt-mini-text">
                                         <span class="rpt-mini-value">@s.InspectionsCompleted<small>/@s.InspectionsTotal</small></span>
                                         <span class="rpt-mini-label">Inspections</span>
@@ -118,7 +119,7 @@
                                 </div>
                                 <div class="rpt-mini-stat">
                                     <span class="rpt-mini-icon @(s.EquipmentInspected < s.TotalEquipment && s.InspectionsTotal > 0 ? "amber" : "green")">
-                                        <i class="fa-light fa-gears"></i>
+                                        <i class="fa-sharp fa-light fa-gears"></i>
                                     </span>
                                     <div class="rpt-mini-text">
                                         <span class="rpt-mini-value">@s.EquipmentInspected<small>/@s.TotalEquipment</small></span>
@@ -127,7 +128,7 @@
                                 </div>
                                 <div class="rpt-mini-stat @(s.CriticalIncidents > 0 ? "rpt-mini-alert" : "")">
                                     <span class="rpt-mini-icon @(s.OpenIncidents > 0 ? "red" : "gray")">
-                                        <i class="fa-light fa-triangle-exclamation"></i>
+                                        <i class="fa-sharp fa-light fa-triangle-exclamation"></i>
                                     </span>
                                     <div class="rpt-mini-text">
                                         <span class="rpt-mini-value">@s.OpenIncidents</span>
@@ -142,7 +143,7 @@
                                 </div>
                                 <div class="rpt-mini-stat">
                                     <span class="rpt-mini-icon @(s.ActiveServiceBookings > 0 ? "amber" : "gray")">
-                                        <i class="fa-light fa-toolbox"></i>
+                                        <i class="fa-sharp fa-light fa-toolbox"></i>
                                     </span>
                                     <div class="rpt-mini-text">
                                         <span class="rpt-mini-value">@s.ActiveServiceBookings</span>
@@ -150,7 +151,7 @@
                                     </div>
                                 </div>
                                 <div class="rpt-mini-stat">
-                                    <span class="rpt-mini-icon purple"><i class="fa-light fa-memo"></i></span>
+                                    <span class="rpt-mini-icon purple"><i class="fa-sharp fa-light fa-memo"></i></span>
                                     <div class="rpt-mini-text">
                                         <span class="rpt-mini-value">@s.NotesCount</span>
                                         <span class="rpt-mini-label">Notes</span>
@@ -160,7 +161,7 @@
 
                             <div class="rpt-plant-card-footer">
                                 <button class="btn btn-sm btn-outline rpt-view-btn" @onclick="() => ViewMonthlyReport(s.PlantId)">
-                                    <i class="fa-light fa-chart-line"></i> View Monthly Report
+                                    <i class="fa-sharp fa-light fa-chart-line"></i> View Monthly Report
                                 </button>
                                 <button class="rpt-export-card-btn"
                                         title="Export monthly report to Excel"
@@ -168,11 +169,11 @@
                                         disabled="@(_exportingCard && _exportingCardId == s.PlantId)">
                                     @if (_exportingCard && _exportingCardId == s.PlantId)
                                     {
-                                        <i class="fa-light fa-spinner-third fa-spin"></i>
+                                        <i class="fa-sharp fa-light fa-spinner-third fa-spin"></i>
                                     }
                                     else
                                     {
-                                        <i class="fa-light fa-file-excel"></i>
+                                        <i class="fa-sharp fa-light fa-file-excel"></i>
                                     }
                                 </button>
                             </div>
@@ -233,24 +234,28 @@
                         disabled="@(_filterPlantId == 0 || _generatingReport)">
                     @if (_generatingReport)
                     {
-                        <i class="fa-light fa-spinner-third fa-spin"></i><span>Generating&hellip;</span>
+                        <i class="fa-sharp fa-light fa-spinner-third fa-spin"></i><span>Generating&hellip;</span>
                     }
                     else
                     {
-                        <i class="fa-light fa-chart-line"></i><span>Generate Report</span>
+                        <i class="fa-sharp fa-light fa-chart-line"></i><span>Generate Report</span>
                     }
                 </button>
                 <button class="rpt-excel-btn" @onclick="ExportMonthlyExcel"
                         disabled="@(_report == null || _exportingMonthly)">
                     @if (_exportingMonthly)
                     {
-                        <i class="fa-light fa-spinner-third fa-spin"></i><span>Exporting&hellip;</span>
+                        <i class="fa-sharp fa-light fa-spinner-third fa-spin"></i><span>Exporting&hellip;</span>
                     }
                     else
                     {
-                        <i class="fa-light fa-file-excel"></i><span>Export Excel</span>
+                        <i class="fa-sharp fa-light fa-file-excel"></i><span>Export Excel</span>
                     }
                 </button>
+                <label class="rpt-photo-toggle" title="Include inspection photos in Excel export">
+                    <input type="checkbox" @bind="_includePhotos" />
+                    <i class="fa-sharp fa-light fa-camera"></i> Photos
+                </label>
             </div>
 
             @if (_report != null)
@@ -261,7 +266,7 @@
                     @* Document header *@
                     <div class="rpt-doc-header">
                         <div class="rpt-doc-header-left">
-                            <div class="rpt-doc-logo"><i class="fa-light fa-shield-check"></i></div>
+                            <div class="rpt-doc-logo"><i class="fa-sharp fa-light fa-shield-check"></i></div>
                             <div>
                                 <h1 class="rpt-doc-title">Monthly Maintenance Report</h1>
                                 <p class="rpt-doc-meta">@_report.PlantName &nbsp;&middot;&nbsp; @_report.CompanyName</p>
@@ -271,14 +276,14 @@
                         <div class="rpt-doc-header-right">
                             @if (!string.IsNullOrEmpty(_report.ContactName))
                             {
-                                <div class="rpt-doc-contact"><i class="fa-light fa-user-tie"></i> @_report.ContactName</div>
+                                <div class="rpt-doc-contact"><i class="fa-sharp fa-light fa-user-tie"></i> @_report.ContactName</div>
                             }
                             @if (!string.IsNullOrEmpty(_report.ContactPhone))
                             {
-                                <div class="rpt-doc-contact"><i class="fa-light fa-phone"></i> @_report.ContactPhone</div>
+                                <div class="rpt-doc-contact"><i class="fa-sharp fa-light fa-phone"></i> @_report.ContactPhone</div>
                             }
                             <div class="rpt-doc-generated">
-                                <i class="fa-light fa-clock"></i>
+                                <i class="fa-sharp fa-light fa-clock"></i>
                                 Generated @_report.GeneratedAt.ToString("dd MMM yyyy, HH:mm")
                             </div>
                         </div>
@@ -286,42 +291,42 @@
 
                     @* Table of Contents with in-page hyperlinks *@
                     <div class="rpt-toc">
-                        <h2 class="rpt-toc-title"><i class="fa-light fa-list-ul"></i> Contents</h2>
+                        <h2 class="rpt-toc-title"><i class="fa-sharp fa-light fa-list-ul"></i> Contents</h2>
                         <div class="rpt-toc-links">
                             <a class="rpt-toc-link" @onclick='() => ScrollTo("rpt-s1")' href="javascript:void(0)">
                                 <span class="rpt-toc-num">01</span>
                                 <span class="rpt-toc-text">Executive Summary</span>
-                                <span class="rpt-toc-arrow"><i class="fa-light fa-arrow-right"></i></span>
+                                <span class="rpt-toc-arrow"><i class="fa-sharp fa-light fa-arrow-right"></i></span>
                             </a>
                             <a class="rpt-toc-link" @onclick='() => ScrollTo("rpt-s2")' href="javascript:void(0)">
                                 <span class="rpt-toc-num">02</span>
                                 <span class="rpt-toc-text">Inspection Rounds</span>
                                 <span class="rpt-toc-count">@_report.Rounds.Count</span>
-                                <span class="rpt-toc-arrow"><i class="fa-light fa-arrow-right"></i></span>
+                                <span class="rpt-toc-arrow"><i class="fa-sharp fa-light fa-arrow-right"></i></span>
                             </a>
                             <a class="rpt-toc-link" @onclick='() => ScrollTo("rpt-s3")' href="javascript:void(0)">
                                 <span class="rpt-toc-num">03</span>
                                 <span class="rpt-toc-text">Equipment Checklist Results</span>
                                 <span class="rpt-toc-count">@_report.Equipment.Count</span>
-                                <span class="rpt-toc-arrow"><i class="fa-light fa-arrow-right"></i></span>
+                                <span class="rpt-toc-arrow"><i class="fa-sharp fa-light fa-arrow-right"></i></span>
                             </a>
                             <a class="rpt-toc-link" @onclick='() => ScrollTo("rpt-s4")' href="javascript:void(0)">
                                 <span class="rpt-toc-num">04</span>
                                 <span class="rpt-toc-text">Incidents &amp; Issues</span>
                                 <span class="rpt-toc-count @(_report.Issues.Count(i => i.Priority == "Critical" && i.Status is "Open" or "InProgress") > 0 ? "rpt-count-danger" : "")">@_report.Issues.Count</span>
-                                <span class="rpt-toc-arrow"><i class="fa-light fa-arrow-right"></i></span>
+                                <span class="rpt-toc-arrow"><i class="fa-sharp fa-light fa-arrow-right"></i></span>
                             </a>
                             <a class="rpt-toc-link" @onclick='() => ScrollTo("rpt-s5")' href="javascript:void(0)">
                                 <span class="rpt-toc-num">05</span>
                                 <span class="rpt-toc-text">Service Bookings</span>
                                 <span class="rpt-toc-count">@_report.ServiceBookings.Count</span>
-                                <span class="rpt-toc-arrow"><i class="fa-light fa-arrow-right"></i></span>
+                                <span class="rpt-toc-arrow"><i class="fa-sharp fa-light fa-arrow-right"></i></span>
                             </a>
                             <a class="rpt-toc-link" @onclick='() => ScrollTo("rpt-s6")' href="javascript:void(0)">
                                 <span class="rpt-toc-num">06</span>
                                 <span class="rpt-toc-text">Notes</span>
                                 <span class="rpt-toc-count">@_report.Notes.Count</span>
-                                <span class="rpt-toc-arrow"><i class="fa-light fa-arrow-right"></i></span>
+                                <span class="rpt-toc-arrow"><i class="fa-sharp fa-light fa-arrow-right"></i></span>
                             </a>
                         </div>
                     </div>
@@ -334,7 +339,7 @@
                         </div>
                         <div class="rpt-kpi-row">
                             <div class="rpt-kpi rpt-kpi-@GetComplianceClass(_report.CompliancePct)">
-                                <i class="fa-light fa-shield-check rpt-kpi-icon"></i>
+                                <i class="fa-sharp fa-light fa-shield-check rpt-kpi-icon"></i>
                                 <span class="rpt-kpi-value">@_report.CompliancePct<small>%</small></span>
                                 <span class="rpt-kpi-label">Compliance Rate</span>
                             </div>
@@ -343,7 +348,7 @@
                                 var roundsTotal = _report.Rounds.Count;
                             }
                             <div class="rpt-kpi @(roundsDone < roundsTotal && roundsTotal > 0 ? "rpt-kpi-warning" : "")">
-                                <i class="fa-light fa-clipboard-list rpt-kpi-icon"></i>
+                                <i class="fa-sharp fa-light fa-clipboard-list rpt-kpi-icon"></i>
                                 <span class="rpt-kpi-value">@roundsDone<small>/@roundsTotal</small></span>
                                 <span class="rpt-kpi-label">Rounds Completed</span>
                             </div>
@@ -353,12 +358,12 @@
                                 var equipInspected = _report.Equipment.Select(e => e.EquipmentId).Distinct().Count();
                             }
                             <div class="rpt-kpi @(totalFailed > 0 ? "rpt-kpi-danger" : "")">
-                                <i class="fa-light fa-circle-xmark rpt-kpi-icon"></i>
+                                <i class="fa-sharp fa-light fa-circle-xmark rpt-kpi-icon"></i>
                                 <span class="rpt-kpi-value">@totalFailed<small>/@totalChecks</small></span>
                                 <span class="rpt-kpi-label">Failed Checks</span>
                             </div>
                             <div class="rpt-kpi">
-                                <i class="fa-light fa-gears rpt-kpi-icon"></i>
+                                <i class="fa-sharp fa-light fa-gears rpt-kpi-icon"></i>
                                 <span class="rpt-kpi-value">@equipInspected<small>/@_report.TotalEquipmentInPlant</small></span>
                                 <span class="rpt-kpi-label">Equipment Inspected</span>
                             </div>
@@ -367,7 +372,7 @@
                                 var criticalIssues = _report.Issues.Count(i => i.Priority == "Critical" && i.Status is "Open" or "InProgress");
                             }
                             <div class="rpt-kpi @(criticalIssues > 0 ? "rpt-kpi-critical" : openIssues > 0 ? "rpt-kpi-danger" : "")">
-                                <i class="fa-light fa-triangle-exclamation rpt-kpi-icon"></i>
+                                <i class="fa-sharp fa-light fa-triangle-exclamation rpt-kpi-icon"></i>
                                 <span class="rpt-kpi-value">@openIssues</span>
                                 <span class="rpt-kpi-label">Open Incidents@(criticalIssues > 0 ? $" ({criticalIssues} critical)" : "")</span>
                             </div>
@@ -375,7 +380,7 @@
                                 var activeService = _report.ServiceBookings.Count(b => b.Status is "Sent" or "InService");
                             }
                             <div class="rpt-kpi @(activeService > 0 ? "rpt-kpi-warning" : "")">
-                                <i class="fa-light fa-toolbox rpt-kpi-icon"></i>
+                                <i class="fa-sharp fa-light fa-toolbox rpt-kpi-icon"></i>
                                 <span class="rpt-kpi-value">@activeService</span>
                                 <span class="rpt-kpi-label">Equipment in Service</span>
                             </div>
@@ -392,7 +397,7 @@
                         @if (_report.Rounds.Count == 0)
                         {
                             <div class="rpt-empty-section">
-                                <i class="fa-light fa-clipboard-list"></i>
+                                <i class="fa-sharp fa-light fa-clipboard-list"></i>
                                 <span>No inspections were conducted this month.</span>
                             </div>
                         }
@@ -450,7 +455,7 @@
                         @if (_report.Equipment.Count == 0)
                         {
                             <div class="rpt-empty-section">
-                                <i class="fa-light fa-gears"></i>
+                                <i class="fa-sharp fa-light fa-gears"></i>
                                 <span>No equipment inspection data for this period.</span>
                             </div>
                         }
@@ -464,7 +469,7 @@
 
                                 <div class="rpt-equip-round-header">
                                     <div class="rpt-equip-round-title">
-                                        <i class="fa-light fa-clipboard-list"></i>
+                                        <i class="fa-sharp fa-light fa-clipboard-list"></i>
                                         Round &mdash; @round.Date.ToString("dd MMMM yyyy")
                                         <span class="rpt-badge rpt-badge-@GetRoundStatusClass(round.Status)">@FormatStatus(round.Status)</span>
                                     </div>
@@ -502,15 +507,15 @@
                                                     <td>
                                                         @if (!eq.IsComplete)
                                                         {
-                                                            <span class="rpt-badge rpt-badge-incomplete"><i class="fa-light fa-circle-minus"></i> Incomplete</span>
+                                                            <span class="rpt-badge rpt-badge-incomplete"><i class="fa-sharp fa-light fa-circle-minus"></i> Incomplete</span>
                                                         }
                                                         else if (eq.FailChecks > 0)
                                                         {
-                                                            <span class="rpt-badge rpt-badge-fail"><i class="fa-light fa-triangle-exclamation"></i> Issues Found</span>
+                                                            <span class="rpt-badge rpt-badge-fail"><i class="fa-sharp fa-light fa-triangle-exclamation"></i> Issues Found</span>
                                                         }
                                                         else
                                                         {
-                                                            <span class="rpt-badge rpt-badge-pass"><i class="fa-light fa-circle-check"></i> Pass</span>
+                                                            <span class="rpt-badge rpt-badge-pass"><i class="fa-sharp fa-light fa-circle-check"></i> Pass</span>
                                                         }
                                                     </td>
                                                     <td class="rpt-cell-pass">@eq.PassChecks</td>
@@ -552,7 +557,7 @@
                         @if (_report.Issues.Count == 0)
                         {
                             <div class="rpt-empty-section rpt-empty-good">
-                                <i class="fa-light fa-circle-check"></i>
+                                <i class="fa-sharp fa-light fa-circle-check"></i>
                                 <span>No incidents logged for this plant — all clear!</span>
                             </div>
                         }
@@ -610,7 +615,7 @@
                         @if (_report.ServiceBookings.Count == 0)
                         {
                             <div class="rpt-empty-section">
-                                <i class="fa-light fa-toolbox"></i>
+                                <i class="fa-sharp fa-light fa-toolbox"></i>
                                 <span>No service bookings recorded for this period.</span>
                             </div>
                         }
@@ -668,7 +673,7 @@
                         @if (_report.Notes.Count == 0)
                         {
                             <div class="rpt-empty-section">
-                                <i class="fa-light fa-memo"></i>
+                                <i class="fa-sharp fa-light fa-memo"></i>
                                 <span>No notes recorded for this plant.</span>
                             </div>
                         }
@@ -696,7 +701,7 @@
                                         <p class="rpt-note-content">@note.Content</p>
                                         @if (!string.IsNullOrEmpty(note.EquipmentIdentifier))
                                         {
-                                            <div class="rpt-note-equip"><i class="fa-light fa-gear"></i> @note.EquipmentIdentifier</div>
+                                            <div class="rpt-note-equip"><i class="fa-sharp fa-light fa-gear"></i> @note.EquipmentIdentifier</div>
                                         }
                                     </div>
                                 }
@@ -709,7 +714,7 @@
             else if (!_generatingReport)
             {
                 <div class="rpt-prompt ov-fadeIn">
-                    <i class="fa-light fa-chart-line-up rpt-prompt-icon"></i>
+                    <i class="fa-sharp fa-light fa-chart-line-up rpt-prompt-icon"></i>
                     <h3>Select a plant and period</h3>
                     <p>Choose a company, plant, month and year above then click <strong>Generate Report</strong>.</p>
                 </div>
@@ -745,6 +750,7 @@
     private bool _exportingMonthly = false;
     private bool _exportingCard    = false;
     private int  _exportingCardId  = 0;
+    private bool _includePhotos    = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -829,7 +835,8 @@
             var report = await ReportService.GetMonthlyReportAsync(plantId, today.Year, today.Month);
             if (report is not null)
             {
-                var bytes  = ExcelExportService.ExportMonthlyReport(report);
+                var photos = _includePhotos ? await LoadPhotoFiles(report) : null;
+                var bytes  = ExcelExportService.ExportMonthlyReport(report, photos);
                 var base64 = Convert.ToBase64String(bytes);
                 var period = new DateTime(report.Year, report.Month, 1).ToString("MMM-yyyy");
                 var plant  = report.PlantName.Replace(" ", "-");
@@ -851,7 +858,8 @@
         StateHasChanged();
         try
         {
-            var bytes  = ExcelExportService.ExportMonthlyReport(_report);
+            var photos = _includePhotos ? await LoadPhotoFiles(_report) : null;
+            var bytes  = ExcelExportService.ExportMonthlyReport(_report, photos);
             var base64 = Convert.ToBase64String(bytes);
             var period = new DateTime(_report.Year, _report.Month, 1).ToString("MMM-yyyy");
             var plant  = _report.PlantName.Replace(" ", "-");
@@ -861,6 +869,25 @@
         {
             _exportingMonthly = false;
         }
+    }
+
+    private async Task<Dictionary<string, byte[]>?> LoadPhotoFiles(MonthlyReportDto report)
+    {
+        var allPaths = report.Equipment
+            .SelectMany(e => e.PhotoPaths)
+            .Distinct()
+            .ToList();
+
+        if (allPaths.Count == 0) return null;
+
+        var result = new Dictionary<string, byte[]>();
+        foreach (var path in allPaths)
+        {
+            var bytes = await PhotoStorage.ReadPhotoAsync(path);
+            if (bytes is not null)
+                result[path] = bytes;
+        }
+        return result.Count > 0 ? result : null;
     }
 
     private ValueTask ScrollTo(string id) =>

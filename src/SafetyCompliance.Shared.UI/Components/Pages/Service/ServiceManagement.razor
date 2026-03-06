@@ -11,13 +11,13 @@
     <div class="insp-tab-bar ov-fadeIn">
         <div class="insp-tabs">
             <button class="insp-tab @(_tab == SvcTab.Active ? "active" : "")" @onclick="() => SetTab(SvcTab.Active)">
-                <i class="fa-light fa-truck"></i> Active
+                <i class="fa-sharp fa-light fa-truck"></i> Active
             </button>
             <button class="insp-tab @(_tab == SvcTab.History ? "active" : "")" @onclick="() => SetTab(SvcTab.History)">
-                <i class="fa-light fa-clock-rotate-left"></i> History
+                <i class="fa-sharp fa-light fa-clock-rotate-left"></i> History
             </button>
         </div>
-        <button class="inc-log-btn" @onclick="OpenCreateModal"><i class="fa-light fa-plus"></i> New Booking</button>
+        <button class="inc-log-btn" @onclick="OpenCreateModal"><i class="fa-sharp fa-light fa-plus"></i> New Booking</button>
     </div>
 
     @if (_loading)
@@ -29,35 +29,35 @@
         @* ── Stats row ── *@
         <div class="inc-stats ov-fadeIn">
             <div class="inc-stat @(_sentCount > 0 ? "alert" : "")">
-                <div class="inc-stat-icon @(_sentCount > 0 ? "amber" : "gray")"><i class="fa-light fa-paper-plane"></i></div>
+                <div class="inc-stat-icon @(_sentCount > 0 ? "amber" : "gray")"><i class="fa-sharp fa-light fa-paper-plane"></i></div>
                 <div class="inc-stat-info">
                     <span class="inc-stat-value">@_sentCount</span>
                     <span class="inc-stat-label">Sent</span>
                 </div>
             </div>
             <div class="inc-stat">
-                <div class="inc-stat-icon blue"><i class="fa-light fa-toolbox"></i></div>
+                <div class="inc-stat-icon blue"><i class="fa-sharp fa-light fa-toolbox"></i></div>
                 <div class="inc-stat-info">
                     <span class="inc-stat-value">@_inServiceCount</span>
                     <span class="inc-stat-label">In Service</span>
                 </div>
             </div>
             <div class="inc-stat @(_overdueCount > 0 ? "alert" : "")">
-                <div class="inc-stat-icon @(_overdueCount > 0 ? "red" : "gray")"><i class="fa-light fa-clock"></i></div>
+                <div class="inc-stat-icon @(_overdueCount > 0 ? "red" : "gray")"><i class="fa-sharp fa-light fa-clock"></i></div>
                 <div class="inc-stat-info">
                     <span class="inc-stat-value">@_overdueCount</span>
                     <span class="inc-stat-label">Overdue</span>
                 </div>
             </div>
             <div class="inc-stat">
-                <div class="inc-stat-icon green"><i class="fa-light fa-circle-check"></i></div>
+                <div class="inc-stat-icon green"><i class="fa-sharp fa-light fa-circle-check"></i></div>
                 <div class="inc-stat-info">
                     <span class="inc-stat-value">@_returnedThisMonth</span>
                     <span class="inc-stat-label">Returned This Month</span>
                 </div>
             </div>
             <div class="inc-stat">
-                <div class="inc-stat-icon gray"><i class="fa-light fa-ban"></i></div>
+                <div class="inc-stat-icon gray"><i class="fa-sharp fa-light fa-ban"></i></div>
                 <div class="inc-stat-info">
                     <span class="inc-stat-value">@_cancelledCount</span>
                     <span class="inc-stat-label">Cancelled</span>
@@ -69,13 +69,13 @@
         @if (!_display.Any())
         {
             <div class="ov-empty ov-fadeIn">
-                <div class="ov-empty-icon"><i class="fa-light fa-toolbox"></i></div>
+                <div class="ov-empty-icon"><i class="fa-sharp fa-light fa-toolbox"></i></div>
                 <h2>No @(_tab == SvcTab.Active ? "active" : "historical") service bookings</h2>
                 <p>@(_tab == SvcTab.Active ? "All equipment is currently on-site." : "No past service records found.")</p>
                 @if (_tab == SvcTab.Active)
                 {
                     <button class="btn btn-primary btn-lg" @onclick="OpenCreateModal">
-                        <i class="fa-light fa-plus"></i> Create First Booking
+                        <i class="fa-sharp fa-light fa-plus"></i> Create First Booking
                     </button>
                 }
             </div>
@@ -101,7 +101,7 @@
                             <div class="svc-card-top">
                                 <div class="svc-card-equip">
                                     <div class="svc-card-equip-icon">
-                                        <i class="fa-light fa-gear"></i>
+                                        <i class="fa-sharp fa-light fa-gear"></i>
                                     </div>
                                     <div>
                                         <div class="svc-card-equip-id">@b.EquipmentIdentifier</div>
@@ -111,7 +111,7 @@
                                 <div class="svc-card-badges">
                                     @if (isOverdue)
                                     {
-                                        <span class="svc-badge svc-badge-overdue"><i class="fa-light fa-clock"></i> Overdue</span>
+                                        <span class="svc-badge svc-badge-overdue"><i class="fa-sharp fa-light fa-clock"></i> Overdue</span>
                                     }
                                     <span class="svc-status-pill svc-status-@b.Status.ToString().ToLower()">
                                         @StatusLabel(b.Status)
@@ -121,34 +121,34 @@
 
                             @* Provider + reason *@
                             <div class="svc-card-provider">
-                                <i class="fa-light fa-building-wrench"></i>
+                                <i class="fa-sharp fa-light fa-building-wrench"></i>
                                 <strong>@b.ServiceProvider</strong>
                                 <span class="svc-card-reason">— @b.Reason</span>
                             </div>
 
                             @* Meta tags *@
                             <div class="svc-card-meta">
-                                <span class="svc-meta-tag"><i class="fa-light fa-industry"></i> @b.PlantName</span>
-                                <span class="svc-meta-tag"><i class="fa-light fa-layer-group"></i> @b.SectionName</span>
-                                <span class="svc-meta-tag"><i class="fa-light fa-calendar-arrow-up"></i> Sent @b.SentDate.ToString("MMM dd, yyyy")</span>
+                                <span class="svc-meta-tag"><i class="fa-sharp fa-light fa-industry"></i> @b.PlantName</span>
+                                <span class="svc-meta-tag"><i class="fa-sharp fa-light fa-layer-group"></i> @b.SectionName</span>
+                                <span class="svc-meta-tag"><i class="fa-sharp fa-light fa-calendar-arrow-up"></i> Sent @b.SentDate.ToString("MMM dd, yyyy")</span>
                                 @if (b.ExpectedReturnDate.HasValue)
                                 {
                                     <span class="svc-meta-tag @(isOverdue ? "overdue" : "")">
-                                        <i class="fa-light fa-calendar-arrow-down"></i>
+                                        <i class="fa-sharp fa-light fa-calendar-arrow-down"></i>
                                         Expected @b.ExpectedReturnDate.Value.ToString("MMM dd, yyyy")
                                     </span>
                                 }
                                 @if (b.ActualReturnDate.HasValue)
                                 {
                                     <span class="svc-meta-tag green">
-                                        <i class="fa-light fa-circle-check"></i>
+                                        <i class="fa-sharp fa-light fa-circle-check"></i>
                                         Returned @b.ActualReturnDate.Value.ToString("MMM dd, yyyy")
                                     </span>
                                 }
                                 @if (b.Status is ServiceBookingStatus.Sent or ServiceBookingStatus.InService)
                                 {
                                     <span class="svc-meta-tag muted">
-                                        <i class="fa-light fa-hourglass"></i> @daysOut day@(daysOut != 1 ? "s" : "") out
+                                        <i class="fa-sharp fa-light fa-hourglass"></i> @daysOut day@(daysOut != 1 ? "s" : "") out
                                     </span>
                                 }
                             </div>
@@ -156,7 +156,7 @@
                             @* Notes *@
                             @if (!string.IsNullOrWhiteSpace(b.Notes))
                             {
-                                <p class="svc-card-notes"><i class="fa-light fa-note"></i> @b.Notes</p>
+                                <p class="svc-card-notes"><i class="fa-sharp fa-light fa-note"></i> @b.Notes</p>
                             }
 
                             @* Action buttons *@
@@ -164,16 +164,16 @@
                                 @if (b.Status == ServiceBookingStatus.Sent)
                                 {
                                     <button class="svc-action-btn inservice" @onclick="() => MarkInService(b.Id)">
-                                        <i class="fa-light fa-toolbox"></i> Mark In Service
+                                        <i class="fa-sharp fa-light fa-toolbox"></i> Mark In Service
                                     </button>
                                     <button class="svc-action-btn cancel" @onclick="() => ConfirmCancel(b.Id, b.EquipmentIdentifier)">
-                                        <i class="fa-light fa-ban"></i> Cancel
+                                        <i class="fa-sharp fa-light fa-ban"></i> Cancel
                                     </button>
                                 }
                                 else if (b.Status == ServiceBookingStatus.InService)
                                 {
                                     <button class="svc-action-btn return" @onclick="() => OpenReturnModal(b)">
-                                        <i class="fa-light fa-truck-arrow-right"></i> Mark Returned
+                                        <i class="fa-sharp fa-light fa-truck-arrow-right"></i> Mark Returned
                                     </button>
                                 }
                             </div>
@@ -192,12 +192,12 @@
     <div class="chk-modal-overlay" @onclick="() => _showCreate = false">
         <div class="chk-modal chk-modal-wide ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon info"><i class="fa-light fa-truck"></i></div>
+                <div class="chk-modal-icon info"><i class="fa-sharp fa-light fa-truck"></i></div>
                 <div>
                     <h2>New Service Booking</h2>
                     <span class="chk-modal-sub">Send equipment for maintenance or repair</span>
                 </div>
-                <button class="chk-modal-close" @onclick="() => _showCreate = false"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="() => _showCreate = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 <div class="form-group picker-section">
@@ -235,7 +235,7 @@
                     @if (_createEquipmentId > 0)
                     {
                         var sel = _pickerEquipment.FirstOrDefault(e => e.Id == _createEquipmentId);
-                        <div class="picker-summary"><i class="fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName@(sel?.SubTypeName != null ? $" ({sel.SubTypeName})" : "")@(!string.IsNullOrEmpty(sel?.Description) ? $" · {sel!.Description}" : "")</div>
+                        <div class="picker-summary"><i class="fa-sharp fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName@(sel?.SubTypeName != null ? $" ({sel.SubTypeName})" : "")@(!string.IsNullOrEmpty(sel?.Description) ? $" · {sel!.Description}" : "")</div>
                     }
                 </div>
                 <div class="form-group">
@@ -263,7 +263,7 @@
                 <button class="btn btn-ghost" @onclick="() => _showCreate = false">Cancel</button>
                 <button class="btn btn-primary" @onclick="CreateBooking"
                         disabled="@(!(_createEquipmentId > 0) || string.IsNullOrWhiteSpace(_createProvider) || string.IsNullOrWhiteSpace(_createReason))">
-                    <i class="fa-light fa-truck"></i> Create Booking
+                    <i class="fa-sharp fa-light fa-truck"></i> Create Booking
                 </button>
             </div>
         </div>
@@ -276,12 +276,12 @@
     <div class="chk-modal-overlay" @onclick="() => _showReturn = false">
         <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon success"><i class="fa-light fa-truck-arrow-right"></i></div>
+                <div class="chk-modal-icon success"><i class="fa-sharp fa-light fa-truck-arrow-right"></i></div>
                 <div>
                     <h2>Mark Returned</h2>
                     <span class="chk-modal-sub">@_returnEquipmentIdentifier</span>
                 </div>
-                <button class="chk-modal-close" @onclick="() => _showReturn = false"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="() => _showReturn = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 <div class="form-group">
@@ -297,7 +297,7 @@
             <div class="chk-modal-footer">
                 <button class="btn btn-ghost" @onclick="() => _showReturn = false">Cancel</button>
                 <button class="btn btn-success" @onclick="ConfirmReturn">
-                    <i class="fa-light fa-circle-check"></i> Confirm Returned
+                    <i class="fa-sharp fa-light fa-circle-check"></i> Confirm Returned
                 </button>
             </div>
         </div>
@@ -310,12 +310,12 @@
     <div class="chk-modal-overlay" @onclick="() => _showCancelConfirm = false">
         <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon warning"><i class="fa-light fa-ban"></i></div>
+                <div class="chk-modal-icon warning"><i class="fa-sharp fa-light fa-ban"></i></div>
                 <div>
                     <h2>Cancel Booking</h2>
                     <span class="chk-modal-sub">@_cancelEquipmentIdentifier</span>
                 </div>
-                <button class="chk-modal-close" @onclick="() => _showCancelConfirm = false"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="() => _showCancelConfirm = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 <p>Are you sure you want to cancel this service booking? This will mark the equipment as available again.</p>
@@ -323,7 +323,7 @@
             <div class="chk-modal-footer">
                 <button class="btn btn-ghost" @onclick="() => _showCancelConfirm = false">Keep Booking</button>
                 <button class="btn btn-danger" @onclick="ConfirmCancelBooking">
-                    <i class="fa-light fa-ban"></i> Cancel Booking
+                    <i class="fa-sharp fa-light fa-ban"></i> Cancel Booking
                 </button>
             </div>
         </div>

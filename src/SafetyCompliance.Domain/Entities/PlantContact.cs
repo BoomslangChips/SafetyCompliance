@@ -27,4 +27,6 @@ public class PlantContact : AuditableEntity
     public bool IsPrimary    { get; set; }
 
     public int  SortOrder    { get; set; }
+
+    public ICollection<ContactDocument> Documents { get; set; } = [];
 }

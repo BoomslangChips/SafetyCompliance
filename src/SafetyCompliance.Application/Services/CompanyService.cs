@@ -136,8 +136,9 @@ public class CompanyService(ApplicationDbContext context) : ICompanyService
         company.IsActive = dto.IsActive;
         if (dto.PhotoBase64 is not null)
         {
-            company.PhotoBase64 = dto.PhotoBase64;
-            company.PhotoFileName = dto.PhotoFileName;
+            // empty string = clear photo, non-empty = new photo
+            company.PhotoBase64 = dto.PhotoBase64 == "" ? null : dto.PhotoBase64;
+            company.PhotoFileName = dto.PhotoBase64 == "" ? null : dto.PhotoFileName;
         }
         company.ModifiedAt = DateTime.UtcNow;
         company.ModifiedById = userId;

@@ -62,8 +62,8 @@ public class SectionService(ApplicationDbContext context) : ISectionService
         section.IsActive = dto.IsActive;
         if (dto.PhotoBase64 is not null)
         {
-            section.PhotoBase64 = dto.PhotoBase64;
-            section.PhotoFileName = dto.PhotoFileName;
+            section.PhotoBase64 = dto.PhotoBase64 == "" ? null : dto.PhotoBase64;
+            section.PhotoFileName = dto.PhotoBase64 == "" ? null : dto.PhotoFileName;
         }
         section.ModifiedAt = DateTime.UtcNow;
         section.ModifiedById = userId;

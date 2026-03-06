@@ -14,12 +14,16 @@
     @* ── Header ── *@
     <div class="chk-header ov-fadeIn">
         <button class="chk-back" @onclick="GoBack">
-            <i class="fa-light fa-arrow-left"></i>
+            <i class="fa-sharp fa-light fa-arrow-left"></i>
         </button>
         <div class="chk-header-info">
             <h1>Inspection Checklist</h1>
             <span class="chk-header-sub">Round #@RoundId</span>
         </div>
+        <button class="chk-delete-btn" title="Delete this inspection round"
+                @onclick="() => _showDeleteConfirm = true">
+            <i class="fa-sharp fa-light fa-trash"></i>
+        </button>
         @if (!_loading && _inspections.Any())
         {
             <div class="chk-header-ring">
@@ -31,14 +35,14 @@
                 <span class="chk-ring-pct">@((int)_progress)%</span>
             </div>
             <div class="chk-header-stats">
-                <span class="chk-stat done"><i class="fa-light fa-circle-check"></i> @_completedCount done</span>
+                <span class="chk-stat done"><i class="fa-sharp fa-light fa-circle-check"></i> @_completedCount done</span>
                 @if (_incompleteCount > 0)
                 {
-                    <span class="chk-stat pending"><i class="fa-light fa-circle-half-stroke"></i> @_incompleteCount remaining</span>
+                    <span class="chk-stat pending"><i class="fa-sharp fa-light fa-circle-half-stroke"></i> @_incompleteCount remaining</span>
                 }
                 @if (_outForServiceCount > 0)
                 {
-                    <span class="chk-stat service"><i class="fa-light fa-wrench"></i> @_outForServiceCount service</span>
+                    <span class="chk-stat service"><i class="fa-sharp fa-light fa-wrench"></i> @_outForServiceCount service</span>
                 }
             </div>
         }
@@ -51,10 +55,10 @@
     else if (!_inspections.Any())
     {
         <div class="ov-empty ov-fadeIn">
-            <div class="ov-empty-icon"><i class="fa-light fa-clipboard-list"></i></div>
+            <div class="ov-empty-icon"><i class="fa-sharp fa-light fa-clipboard-list"></i></div>
             <h2>No equipment found</h2>
             <p>Make sure the plant has active equipment with checklist templates configured.</p>
-            <button class="btn btn-primary" @onclick="GoBack"><i class="fa-light fa-arrow-left"></i> Back to Inspections</button>
+            <button class="btn btn-primary" @onclick="GoBack"><i class="fa-sharp fa-light fa-arrow-left"></i> Back to Inspections</button>
         </div>
     }
     else
@@ -92,7 +96,7 @@
                     <div class="chk-type-group ov-staggerUp">
                         <div class="chk-type-header">
                             <div class="chk-type-icon">
-                                <i class="fa-light fa-gear"></i>
+                                <i class="fa-sharp fa-light fa-gear"></i>
                             </div>
                             <h3>@typeGroup.Key.EquipmentTypeName</h3>
                             <span class="chk-type-count">@typeInspections.Count items</span>
@@ -129,23 +133,23 @@
                                             @if (isOutForService)
                                             {
                                                 <span class="chk-service-tag">
-                                                    <i class="fa-light fa-wrench"></i> @insp.ActiveServiceBooking!.ServiceProvider
+                                                    <i class="fa-sharp fa-light fa-wrench"></i> @insp.ActiveServiceBooking!.ServiceProvider
                                                 </span>
                                             }
                                         </div>
                                         <div class="chk-equip-right">
                                             @if (failedItems.Any())
                                             {
-                                                <span class="chk-fail-count"><i class="fa-light fa-circle-exclamation"></i> @failedItems.Count</span>
+                                                <span class="chk-fail-count"><i class="fa-sharp fa-light fa-circle-exclamation"></i> @failedItems.Count</span>
                                             }
                                             @if (insp.PhotoCount > 0)
                                             {
-                                                <span class="chk-photo-badge"><i class="fa-light fa-camera"></i> @insp.PhotoCount</span>
+                                                <span class="chk-photo-badge"><i class="fa-sharp fa-light fa-camera"></i> @insp.PhotoCount</span>
                                             }
                                             <span class="chk-equip-progress-pill @(insp.IsComplete ? "done" : "")">
                                                 @if (insp.IsComplete)
                                                 {
-                                                    <i class="fa-light fa-check"></i> <text>Done</text>
+                                                    <i class="fa-sharp fa-light fa-check"></i> <text>Done</text>
                                                 }
                                                 else
                                                 {
@@ -154,10 +158,10 @@
                                             </span>
                                             <div class="chk-equip-actions chk-equip-actions-visible">
                                                 <button class="chk-action-btn flag" @onclick="() => ShowFlagIssue(insp)" title="Flag Issue">
-                                                    <i class="fa-light fa-flag"></i>
+                                                    <i class="fa-sharp fa-light fa-flag"></i>
                                                 </button>
                                                 <button class="chk-action-btn service" @onclick="() => ShowServiceModal(insp)" title="Send for Service">
-                                                    <i class="fa-light fa-truck"></i>
+                                                    <i class="fa-sharp fa-light fa-truck"></i>
                                                 </button>
                                             </div>
                                         </div>
@@ -176,11 +180,11 @@
                                                     <div class="chk-toggle">
                                                         <button class="chk-toggle-pass @(response.Response == true ? "active" : "")"
                                                                 @onclick="() => SubmitResponse(insp.Id, header.ChecklistItemTemplateId, true)">
-                                                            <i class="fa-light fa-check"></i> Pass
+                                                            <i class="fa-sharp fa-light fa-check"></i> Pass
                                                         </button>
                                                         <button class="chk-toggle-fail @(response.Response == false ? "active" : "")"
                                                                 @onclick="() => SubmitResponse(insp.Id, header.ChecklistItemTemplateId, false)">
-                                                            <i class="fa-light fa-xmark"></i> Fail
+                                                            <i class="fa-sharp fa-light fa-xmark"></i> Fail
                                                         </button>
                                                     </div>
                                                 </div>
@@ -192,7 +196,7 @@
                                     @if (failedItems.Any())
                                     {
                                         <div class="chk-failed-bar">
-                                            <i class="fa-light fa-triangle-exclamation"></i>
+                                            <i class="fa-sharp fa-light fa-triangle-exclamation"></i>
                                             <span>Failed:</span>
                                             @foreach (var f in failedItems)
                                             {
@@ -204,7 +208,7 @@
                                     @* Notes + Photos — always visible *@
                                     <div class="chk-equip-expand">
                                         <div class="chk-comment-input">
-                                            <i class="fa-light fa-message"></i>
+                                            <i class="fa-sharp fa-light fa-message"></i>
                                             <textarea rows="1"
                                                       placeholder="Add a note for @insp.EquipmentIdentifier..."
                                                       value="@(_equipmentComments.GetValueOrDefault(insp.Id))"
@@ -215,7 +219,7 @@
                                         <div class="chk-photo-section">
                                             <div class="chk-photo-header">
                                                 <span class="chk-photo-title">
-                                                    <i class="fa-light fa-camera"></i> Photos
+                                                    <i class="fa-sharp fa-light fa-camera"></i> Photos
                                                     @if (equipPhotos.Count > 0)
                                                     {
                                                         <span class="chk-photo-count-badge">@equipPhotos.Count</span>
@@ -231,11 +235,11 @@
                                                             disabled="@isUploadingPhoto">
                                                         @if (isUploadingPhoto)
                                                         {
-                                                            <i class="fa-light fa-spinner-third fa-spin"></i><span>Uploading&hellip;</span>
+                                                            <i class="fa-sharp fa-light fa-spinner-third fa-spin"></i><span>Uploading&hellip;</span>
                                                         }
                                                         else
                                                         {
-                                                            <i class="fa-light fa-camera-plus"></i><span>Add Photo</span>
+                                                            <i class="fa-sharp fa-light fa-camera-plus"></i><span>Add Photo</span>
                                                         }
                                                     </button>
                                                 </div>
@@ -250,7 +254,7 @@
                                             else if (equipPhotos.Count == 0)
                                             {
                                                 <div class="chk-photo-empty">
-                                                    <i class="fa-light fa-image-slash"></i>
+                                                    <i class="fa-sharp fa-light fa-image-slash"></i>
                                                     <span>No photos yet — tap <strong>Add Photo</strong> to capture or upload one.</span>
                                                 </div>
                                             }
@@ -270,7 +274,7 @@
                                                             <button class="chk-photo-delete"
                                                                     title="Delete photo"
                                                                     @onclick="async () => await DeletePhoto(_photo.Id, insp.Id)">
-                                                                <i class="fa-light fa-trash"></i>
+                                                                <i class="fa-sharp fa-light fa-trash"></i>
                                                             </button>
                                                         </div>
                                                     }
@@ -284,7 +288,7 @@
                         else
                         {
                             <div class="chk-no-items">
-                                <i class="fa-light fa-clipboard-question"></i>
+                                <i class="fa-sharp fa-light fa-clipboard-question"></i>
                                 <span>No checklist items configured for this equipment type.</span>
                             </div>
                         }
@@ -296,9 +300,9 @@
         @* ── Incidents section ── *@
         <div class="chk-incidents-section ov-fadeIn">
             <div class="chk-section-heading">
-                <h2><i class="fa-light fa-triangle-exclamation"></i> Incidents (@_roundIssues.Count)</h2>
+                <h2><i class="fa-sharp fa-light fa-triangle-exclamation"></i> Incidents (@_roundIssues.Count)</h2>
                 <button class="svc-action-btn inservice" style="font-size:0.82rem;padding:0.4rem 1rem;" @onclick="OpenLogIncident">
-                    <i class="fa-light fa-plus"></i> Log Incident
+                    <i class="fa-sharp fa-light fa-plus"></i> Log Incident
                 </button>
             </div>
 
@@ -317,7 +321,7 @@
                                 <div class="inc-card-top">
                                     <div class="inc-card-title-row">
                                         <span class="inc-priority-badge priority-@iss.Priority.ToString().ToLower()">
-                                            <i class="fa-light @PriorityIcon(iss.Priority)"></i> @iss.Priority
+                                            <i class="fa-sharp fa-light @PriorityIcon(iss.Priority)"></i> @iss.Priority
                                         </span>
                                         <h3>@iss.Title</h3>
                                     </div>
@@ -330,15 +334,15 @@
                                 <div class="inc-card-meta">
                                     @if (iss.EquipmentIdentifier is not null)
                                     {
-                                        <span class="inc-meta-tag equip"><i class="fa-light fa-gear"></i> @iss.EquipmentIdentifier</span>
+                                        <span class="inc-meta-tag equip"><i class="fa-sharp fa-light fa-gear"></i> @iss.EquipmentIdentifier</span>
                                     }
                                     @if (iss.AssignedTo is not null)
                                     {
-                                        <span class="inc-meta-tag"><i class="fa-light fa-user"></i> @iss.AssignedTo</span>
+                                        <span class="inc-meta-tag"><i class="fa-sharp fa-light fa-user"></i> @iss.AssignedTo</span>
                                     }
                                     @if (isOverdue)
                                     {
-                                        <span class="inc-meta-tag overdue"><i class="fa-light fa-calendar-exclamation"></i> Overdue</span>
+                                        <span class="inc-meta-tag overdue"><i class="fa-sharp fa-light fa-calendar-exclamation"></i> Overdue</span>
                                     }
                                 </div>
                             </div>
@@ -346,12 +350,12 @@
                                 @if (iss.Status is IssueStatus.Open or IssueStatus.InProgress)
                                 {
                                     <button class="inc-action-btn resolve" @onclick="() => QuickResolveIssue(iss.Id)" title="Resolve">
-                                        <i class="fa-light fa-check"></i>
+                                        <i class="fa-sharp fa-light fa-check"></i>
                                         <span>Resolve</span>
                                     </button>
                                 }
                                 <button class="inc-action-btn view" @onclick="() => GoToIncident(iss.Id)" title="View">
-                                    <i class="fa-light fa-chevron-right"></i>
+                                    <i class="fa-sharp fa-light fa-chevron-right"></i>
                                 </button>
                             </div>
                         </div>
@@ -361,7 +365,7 @@
             else
             {
                 <div class="chk-incidents-empty">
-                    <i class="fa-light fa-shield-check"></i>
+                    <i class="fa-sharp fa-light fa-shield-check"></i>
                     <span>No incidents logged for this inspection round.</span>
                 </div>
             }
@@ -369,7 +373,7 @@
 
         @* ── Comments section ── *@
         <div class="chk-comments-section ov-fadeIn">
-            <h2><i class="fa-light fa-messages"></i> Comments (@_comments.Count)</h2>
+            <h2><i class="fa-sharp fa-light fa-messages"></i> Comments (@_comments.Count)</h2>
 
             @if (_comments.Any())
             {
@@ -378,7 +382,7 @@
                     {
                         <div class="chk-comment">
                             <div class="chk-comment-avatar">
-                                <i class="fa-light fa-user"></i>
+                                <i class="fa-sharp fa-light fa-user"></i>
                             </div>
                             <div class="chk-comment-body">
                                 <div class="chk-comment-header">
@@ -397,7 +401,7 @@
                                placeholder="Add a comment about this inspection..." />
                 <button class="btn btn-primary btn-sm" @onclick="AddComment"
                         disabled="@(string.IsNullOrWhiteSpace(_newCommentText))">
-                    <i class="fa-light fa-paper-plane"></i> Post
+                    <i class="fa-sharp fa-light fa-paper-plane"></i> Post
                 </button>
             </div>
         </div>
@@ -406,22 +410,22 @@
         <div class="chk-footer">
             <div class="chk-footer-inner">
                 <div class="chk-footer-stats">
-                    <span class="chk-footer-stat done"><i class="fa-light fa-circle-check"></i> @_completedCount inspected</span>
+                    <span class="chk-footer-stat done"><i class="fa-sharp fa-light fa-circle-check"></i> @_completedCount inspected</span>
                     @if (_incompleteCount > 0)
                     {
-                        <span class="chk-footer-stat warn"><i class="fa-light fa-circle-half-stroke"></i> @_incompleteCount incomplete</span>
+                        <span class="chk-footer-stat warn"><i class="fa-sharp fa-light fa-circle-half-stroke"></i> @_incompleteCount incomplete</span>
                     }
                     @if (_failedItemCount > 0)
                     {
-                        <span class="chk-footer-stat fail"><i class="fa-light fa-circle-exclamation"></i> @_failedItemCount failed</span>
+                        <span class="chk-footer-stat fail"><i class="fa-sharp fa-light fa-circle-exclamation"></i> @_failedItemCount failed</span>
                     }
                     @if (_outForServiceCount > 0)
                     {
-                        <span class="chk-footer-stat svc"><i class="fa-light fa-wrench"></i> @_outForServiceCount service</span>
+                        <span class="chk-footer-stat svc"><i class="fa-sharp fa-light fa-wrench"></i> @_outForServiceCount service</span>
                     }
                 </div>
                 <button class="btn btn-success btn-lg" @onclick="ShowCompleteConfirmation">
-                    <i class="fa-light fa-badge-check"></i> Complete Round
+                    <i class="fa-sharp fa-light fa-badge-check"></i> Complete Round
                 </button>
             </div>
         </div>
@@ -434,12 +438,12 @@
     <div class="chk-modal-overlay" @onclick="() => _showFlagIssue = false">
         <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon warning"><i class="fa-light fa-flag"></i></div>
+                <div class="chk-modal-icon warning"><i class="fa-sharp fa-light fa-flag"></i></div>
                 <div>
                     <h2>Flag Issue</h2>
                     <span class="chk-modal-sub">@_flagEquipmentIdentifier</span>
                 </div>
-                <button class="chk-modal-close" @onclick="() => _showFlagIssue = false"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="() => _showFlagIssue = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 <div class="form-group">
@@ -467,7 +471,7 @@
             <div class="chk-modal-footer">
                 <button class="btn btn-ghost" @onclick="() => _showFlagIssue = false">Cancel</button>
                 <button class="btn btn-warning" @onclick="CreateFlaggedIssue">
-                    <i class="fa-light fa-flag"></i> Create Issue
+                    <i class="fa-sharp fa-light fa-flag"></i> Create Issue
                 </button>
             </div>
         </div>
@@ -480,12 +484,12 @@
     <div class="chk-modal-overlay" @onclick="() => _showServiceModal = false">
         <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon info"><i class="fa-light fa-truck"></i></div>
+                <div class="chk-modal-icon info"><i class="fa-sharp fa-light fa-truck"></i></div>
                 <div>
                     <h2>Send for Service</h2>
                     <span class="chk-modal-sub">@_serviceEquipmentIdentifier</span>
                 </div>
-                <button class="chk-modal-close" @onclick="() => _showServiceModal = false"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="() => _showServiceModal = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 <div class="form-group">
@@ -509,7 +513,7 @@
                 <button class="btn btn-ghost" @onclick="() => _showServiceModal = false">Cancel</button>
                 <button class="btn btn-primary" @onclick="CreateServiceBooking"
                         disabled="@(string.IsNullOrWhiteSpace(_serviceProvider) || string.IsNullOrWhiteSpace(_serviceReason))">
-                    <i class="fa-light fa-truck"></i> Send for Service
+                    <i class="fa-sharp fa-light fa-truck"></i> Send for Service
                 </button>
             </div>
         </div>
@@ -524,13 +528,13 @@
         <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
                 <div class="chk-modal-icon @(hasIssues ? "warning" : "success")">
-                    <i class="fa-light @(hasIssues ? "fa-triangle-exclamation" : "fa-badge-check")"></i>
+                    <i class="fa-sharp fa-light @(hasIssues ? "fa-triangle-exclamation" : "fa-badge-check")"></i>
                 </div>
                 <div>
                     <h2>@(hasIssues ? "Close with Issues" : "Complete Inspection")</h2>
                     <span class="chk-modal-sub">Round #@RoundId</span>
                 </div>
-                <button class="chk-modal-close" @onclick="() => _showCompleteConfirmation = false"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="() => _showCompleteConfirmation = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 @if (hasIssues || _outForServiceCount > 0)
@@ -539,21 +543,21 @@
                         @if (_incompleteCount > 0)
                         {
                             <div class="chk-warn-item orange">
-                                <i class="fa-light fa-circle-half-stroke"></i>
+                                <i class="fa-sharp fa-light fa-circle-half-stroke"></i>
                                 <span>@_incompleteCount equipment not fully inspected</span>
                             </div>
                         }
                         @if (_failedItemCount > 0)
                         {
                             <div class="chk-warn-item red">
-                                <i class="fa-light fa-circle-exclamation"></i>
+                                <i class="fa-sharp fa-light fa-circle-exclamation"></i>
                                 <span>@_failedItemCount checklist items marked as failed</span>
                             </div>
                         }
                         @if (_outForServiceCount > 0)
                         {
                             <div class="chk-warn-item blue">
-                                <i class="fa-light fa-wrench"></i>
+                                <i class="fa-sharp fa-light fa-wrench"></i>
                                 <span>@_outForServiceCount equipment out for service</span>
                             </div>
                         }
@@ -569,7 +573,7 @@
                 else
                 {
                     <div class="chk-complete-ready">
-                        <i class="fa-light fa-circle-check"></i>
+                        <i class="fa-sharp fa-light fa-circle-check"></i>
                         <p>All equipment has been inspected and passed. Ready to complete!</p>
                     </div>
                 }
@@ -577,8 +581,48 @@
             <div class="chk-modal-footer">
                 <button class="btn btn-ghost" @onclick="() => _showCompleteConfirmation = false">Cancel</button>
                 <button class="btn @(hasIssues ? "btn-warning" : "btn-success")" @onclick="ConfirmCompleteRound">
-                    <i class="fa-light @(hasIssues ? "fa-triangle-exclamation" : "fa-badge-check")"></i>
+                    <i class="fa-sharp fa-light @(hasIssues ? "fa-triangle-exclamation" : "fa-badge-check")"></i>
                     @(hasIssues ? "Close with Issues" : "Confirm Complete")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Delete Round Confirmation Modal ── *@
+@if (_showDeleteConfirm)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showDeleteConfirm = false">
+        <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon warning">
+                    <i class="fa-sharp fa-light fa-trash"></i>
+                </div>
+                <div>
+                    <h2>Delete Inspection Round</h2>
+                    <span class="chk-modal-sub">Round #@RoundId</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showDeleteConfirm = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                <div class="chk-complete-warnings">
+                    <div class="chk-warning-item">
+                        <i class="fa-sharp fa-light fa-triangle-exclamation"></i>
+                        <span>This will permanently delete this inspection round and all its responses and photos.</span>
+                    </div>
+                    @if (_completedCount > 0)
+                    {
+                        <div class="chk-warning-item">
+                            <i class="fa-sharp fa-light fa-clipboard-check"></i>
+                            <span>@_completedCount of @_inspections.Count equipment inspections have been completed.</span>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showDeleteConfirm = false">Cancel</button>
+                <button class="btn btn-danger" @onclick="ConfirmDeleteRound">
+                    <i class="fa-sharp fa-light fa-trash"></i> Delete Round
                 </button>
             </div>
         </div>
@@ -591,12 +635,12 @@
     <div class="chk-modal-overlay" @onclick="() => _showLogIncident = false">
         <div class="chk-modal chk-modal-wide ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon warning"><i class="fa-light fa-triangle-exclamation"></i></div>
+                <div class="chk-modal-icon warning"><i class="fa-sharp fa-light fa-triangle-exclamation"></i></div>
                 <div>
                     <h2>Log Incident</h2>
                     <span class="chk-modal-sub">Round #@RoundId</span>
                 </div>
-                <button class="chk-modal-close" @onclick="() => _showLogIncident = false"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="() => _showLogIncident = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 <div class="form-group">
@@ -616,7 +660,7 @@
                             var pv = p;
                             <button type="button" class="chk-priority-btn priority-@p.ToString().ToLower() @(_incPriority == p ? "active" : "")"
                                     @onclick="() => _incPriority = pv">
-                                <i class="fa-light @PriorityIconStatic(pv)"></i> @p
+                                <i class="fa-sharp fa-light @PriorityIconStatic(pv)"></i> @p
                             </button>
                         }
                     </div>
@@ -656,7 +700,7 @@
                     @if (_incEquipmentId.HasValue)
                     {
                         var sel = _incPickerEquipment.FirstOrDefault(e => e.Id == _incEquipmentId);
-                        <div class="picker-summary"><i class="fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName@(sel?.SubTypeName != null ? $" ({sel.SubTypeName})" : "")@(!string.IsNullOrEmpty(sel?.Description) ? $" · {sel!.Description}" : "")</div>
+                        <div class="picker-summary"><i class="fa-sharp fa-light fa-circle-check"></i> @sel?.Identifier — @sel?.EquipmentTypeName@(sel?.SubTypeName != null ? $" ({sel.SubTypeName})" : "")@(!string.IsNullOrEmpty(sel?.Description) ? $" · {sel!.Description}" : "")</div>
                     }
                 </div>
                 <div class="form-row">
@@ -674,7 +718,7 @@
                 <button class="btn btn-ghost" @onclick="() => _showLogIncident = false">Cancel</button>
                 <button class="btn btn-warning" @onclick="SubmitLogIncident"
                         disabled="@(string.IsNullOrWhiteSpace(_incTitle))">
-                    <i class="fa-light fa-triangle-exclamation"></i> Log Incident
+                    <i class="fa-sharp fa-light fa-triangle-exclamation"></i> Log Incident
                 </button>
             </div>
         </div>
@@ -687,16 +731,16 @@
     var _lb = _lightboxPhotos[_lightboxIndex];
     <div class="photo-lightbox" @onclick="CloseLightbox">
         <button class="photo-lb-close" @onclick="CloseLightbox" @onclick:stopPropagation="true" aria-label="Close">
-            <i class="fa-light fa-xmark"></i>
+            <i class="fa-sharp fa-light fa-xmark"></i>
         </button>
         <div class="photo-lb-counter">@(_lightboxIndex + 1) / @_lightboxPhotos.Count</div>
         @if (_lightboxPhotos.Count > 1)
         {
             <button class="photo-lb-nav prev" @onclick="LightboxPrev" @onclick:stopPropagation="true" aria-label="Previous">
-                <i class="fa-light fa-chevron-left"></i>
+                <i class="fa-sharp fa-light fa-chevron-left"></i>
             </button>
             <button class="photo-lb-nav next" @onclick="LightboxNext" @onclick:stopPropagation="true" aria-label="Next">
-                <i class="fa-light fa-chevron-right"></i>
+                <i class="fa-sharp fa-light fa-chevron-right"></i>
             </button>
         }
         <div class="photo-lb-img-wrap" @onclick:stopPropagation="true">
@@ -712,12 +756,12 @@
     <div class="chk-modal-overlay" @onclick="() => _showQuickResolve = false">
         <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
             <div class="chk-modal-header">
-                <div class="chk-modal-icon success"><i class="fa-light fa-circle-check"></i></div>
+                <div class="chk-modal-icon success"><i class="fa-sharp fa-light fa-circle-check"></i></div>
                 <div>
                     <h2>Resolve Incident</h2>
                     <span class="chk-modal-sub">Add resolution notes (optional)</span>
                 </div>
-                <button class="chk-modal-close" @onclick="() => _showQuickResolve = false"><i class="fa-light fa-xmark"></i></button>
+                <button class="chk-modal-close" @onclick="() => _showQuickResolve = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
             </div>
             <div class="chk-modal-body">
                 <div class="form-group">
@@ -729,7 +773,7 @@
             <div class="chk-modal-footer">
                 <button class="btn btn-ghost" @onclick="() => _showQuickResolve = false">Cancel</button>
                 <button class="btn btn-success" @onclick="DoResolveIssue">
-                    <i class="fa-light fa-check"></i> Mark Resolved
+                    <i class="fa-sharp fa-light fa-check"></i> Mark Resolved
                 </button>
             </div>
         </div>
@@ -774,6 +818,9 @@
     private string _serviceReason = string.Empty;
     private DateOnly? _serviceExpectedReturn;
     private string? _serviceNotes;
+
+    // Delete confirmation
+    private bool _showDeleteConfirm;
 
     // Complete confirmation
     private bool _showCompleteConfirmation;
@@ -855,6 +902,7 @@
 
     private async Task SubmitResponse(int equipmentInspectionId, int checklistItemTemplateId, bool response)
     {
+        try { await JS.InvokeVoidAsync("hapticTap"); } catch { }
         await InspectionService.SubmitResponseAsync(new SubmitResponseDto(equipmentInspectionId, checklistItemTemplateId, response, null));
         await LoadData();
     }
@@ -924,6 +972,13 @@
     {
         await InspectionService.CompleteRoundAsync(RoundId);
         _showCompleteConfirmation = false;
+        Navigation.NavigateTo("/inspections");
+    }
+
+    private async Task ConfirmDeleteRound()
+    {
+        await InspectionService.DeleteRoundAsync(RoundId);
+        _showDeleteConfirm = false;
         Navigation.NavigateTo("/inspections");
     }
 
@@ -1021,18 +1076,59 @@
 
         try
         {
-            const long maxSize = 10L * 1024 * 1024; // 10 MB
-            await using var stream = file.OpenReadStream(maxSize);
-            var webPath = await PhotoStorage.SavePhotoAsync(stream, file.Name, equipmentInspectionId);
+            // Try client-side compression first (for images > 500KB)
+            var inputId = $"photo-input-{equipmentInspectionId}";
+            string webPath;
+            string fileName;
+            string contentType;
+            long fileSize;
+
+            try
+            {
+                var compressed = await JS.InvokeAsync<CompressedPhoto?>("compressPhoto", inputId, 1920, 0.80);
+                if (compressed is not null)
+                {
+                    // Use compressed version
+                    var bytes = Convert.FromBase64String(compressed.Base64);
+                    using var ms = new MemoryStream(bytes);
+                    webPath = await PhotoStorage.SavePhotoAsync(ms, compressed.FileName, equipmentInspectionId);
+                    fileName = compressed.FileName;
+                    contentType = compressed.ContentType;
+                    fileSize = compressed.Size;
+                }
+                else
+                {
+                    // Small file — upload as-is
+                    const long maxSize = 10L * 1024 * 1024;
+                    await using var stream = file.OpenReadStream(maxSize);
+                    webPath = await PhotoStorage.SavePhotoAsync(stream, file.Name, equipmentInspectionId);
+                    fileName = file.Name;
+                    contentType = file.ContentType;
+                    fileSize = file.Size;
+                }
+            }
+            catch
+            {
+                // Compression failed — fallback to raw upload
+                const long maxSize = 10L * 1024 * 1024;
+                await using var stream = file.OpenReadStream(maxSize);
+                webPath = await PhotoStorage.SavePhotoAsync(stream, file.Name, equipmentInspectionId);
+                fileName = file.Name;
+                contentType = file.ContentType;
+                fileSize = file.Size;
+            }
 
             await InspectionService.UploadPhotoAsync(
-                equipmentInspectionId, file.Name, webPath,
-                file.ContentType, file.Size, "current-user");
+                equipmentInspectionId, fileName, webPath,
+                contentType, fileSize, "current-user");
 
             _photos[equipmentInspectionId] = await InspectionService.GetPhotosAsync(equipmentInspectionId);
             var idx = _inspections.FindIndex(i => i.Id == equipmentInspectionId);
             if (idx >= 0)
                 _inspections[idx] = _inspections[idx] with { PhotoCount = _photos[equipmentInspectionId].Count };
+
+            // Haptic feedback on success
+            try { await JS.InvokeVoidAsync("hapticSuccess"); } catch { }
         }
         catch (Exception ex)
         {
@@ -1043,6 +1139,8 @@
             _uploadingPhoto.Remove(equipmentInspectionId);
         }
     }
+
+    private record CompressedPhoto(string Base64, string FileName, string ContentType, long Size);
 
     private async Task DeletePhoto(int photoId, int equipmentInspectionId)
     {

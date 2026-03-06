@@ -14,7 +14,7 @@ public class EquipmentConfiguration : IEntityTypeConfiguration<Equipment>
         builder.Property(x => x.Description).HasMaxLength(300);
         builder.Property(x => x.Size).HasMaxLength(50);
         builder.Property(x => x.SerialNumber).HasMaxLength(100);
-        builder.Property(x => x.Status).HasConversion<byte>().HasDefaultValue(EquipmentStatus.InService);
+        builder.Property(x => x.Status).HasConversion<byte>().HasDefaultValue(EquipmentStatus.InOrder);
         builder.HasIndex(x => x.SectionId);
         builder.HasIndex(x => x.EquipmentTypeId);
         builder.HasIndex(x => x.Status);
