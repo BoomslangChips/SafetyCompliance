@@ -336,20 +336,47 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
             .Select(p => p.FilePath)
             .ToList();
 
-        // Null-out FK references on Issues and Comments (nullable FKs)
+        var equipmentInspectionIds = round.EquipmentInspections.Select(ei => ei.Id).ToList();
+
+        // Delete InspectionResponses (no cascade on FK_Resp_EqInsp)
+        var responses = await context.InspectionResponses
+            .Where(r => equipmentInspectionIds.Contains(r.EquipmentInspectionId))
+            .ToListAsync(ct);
+        context.InspectionResponses.RemoveRange(responses);
+
+        // Delete InspectionPhotos (no cascade on FK_Photos_EqInsp)
+        var photos = await context.InspectionPhotos
+            .Where(p => equipmentInspectionIds.Contains(p.EquipmentInspectionId))
+            .ToListAsync(ct);
+        context.InspectionPhotos.RemoveRange(photos);
+
+        // Null-out FK references on ServiceBookings (nullable FK)
+        var linkedBookings = await context.ServiceBookings
+            .Where(sb => sb.EquipmentInspectionId != null && equipmentInspectionIds.Contains(sb.EquipmentInspectionId.Value))
+            .ToListAsync(ct);
+        foreach (var booking in linkedBookings)
+            booking.EquipmentInspectionId = null;
+
+        // Null-out FK references on Issues (nullable FKs to both round and equipment inspection)
         var linkedIssues = await context.Issues
-            .Where(i => i.InspectionRoundId == roundId)
+            .Where(i => i.InspectionRoundId == roundId
+                || (i.EquipmentInspectionId != null && equipmentInspectionIds.Contains(i.EquipmentInspectionId.Value)))
             .ToListAsync(ct);
         foreach (var issue in linkedIssues)
+        {
             issue.InspectionRoundId = null;
+            issue.EquipmentInspectionId = null;
+        }
 
+        // Null-out FK references on Comments (nullable FK)
         var linkedComments = await context.Comments
             .Where(c => c.InspectionRoundId == roundId)
             .ToListAsync(ct);
         foreach (var comment in linkedComments)
             comment.InspectionRoundId = null;
 
-        // Remove the round — cascade deletes EquipmentInspections → Responses & Photos
+        // Remove EquipmentInspections then the round
+        context.EquipmentInspections.RemoveRange(round.EquipmentInspections);
         context.InspectionRounds.Remove(round);
         await context.SaveChangesAsync(ct);
 

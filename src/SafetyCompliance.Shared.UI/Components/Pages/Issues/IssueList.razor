@@ -182,6 +182,9 @@
                                     <span>Reopen</span>
                                 </button>
                             }
+                            <button class="inc-action-btn delete" @onclick="() => PromptDelete(iss)" title="Delete">
+                                <i class="fa-sharp fa-light fa-trash"></i>
+                            </button>
                             <button class="inc-action-btn view" @onclick="() => GoToIssue(iss.Id)" title="View Details">
                                 <i class="fa-sharp fa-light fa-chevron-right"></i>
                             </button>
@@ -320,6 +323,33 @@
     </div>
 }
 
+@* ── Delete Confirmation Modal ── *@
+@if (_showDelete)
+{
+    <div class="chk-modal-overlay" @onclick="() => _showDelete = false">
+        <div class="chk-modal ov-scaleIn" @onclick:stopPropagation>
+            <div class="chk-modal-header">
+                <div class="chk-modal-icon danger"><i class="fa-sharp fa-light fa-trash"></i></div>
+                <div>
+                    <h2>Delete Incident</h2>
+                    <span class="chk-modal-sub">This action cannot be undone</span>
+                </div>
+                <button class="chk-modal-close" @onclick="() => _showDelete = false"><i class="fa-sharp fa-light fa-xmark"></i></button>
+            </div>
+            <div class="chk-modal-body">
+                <p>Are you sure you want to permanently delete <strong>@_deleteTarget?.Title</strong>?</p>
+                <p style="color: var(--color-text-muted); font-size: 0.85rem;">All comments linked to this incident will also be removed.</p>
+            </div>
+            <div class="chk-modal-footer">
+                <button class="btn btn-ghost" @onclick="() => _showDelete = false">Cancel</button>
+                <button class="btn btn-danger" @onclick="ConfirmDelete">
+                    <i class="fa-sharp fa-light fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private enum IncTab { All, Open, InProgress, Resolved }
 
@@ -350,6 +380,9 @@
     private bool _showResolve;
     private int _resolveId;
     private string? _resolveNotes;
+
+    private bool _showDelete;
+    private IssueDto? _deleteTarget;
 
     protected override async Task OnInitializedAsync()
     {
@@ -456,6 +489,17 @@
     private async Task QuickReopen(int id)
     {
         await IssueService.ReopenIssueAsync(id, "current-user");
+        await LoadIssues();
+    }
+
+    private void PromptDelete(IssueDto issue) { _deleteTarget = issue; _showDelete = true; }
+
+    private async Task ConfirmDelete()
+    {
+        if (_deleteTarget is null) return;
+        await IssueService.DeleteIssueAsync(_deleteTarget.Id);
+        _showDelete = false;
+        _deleteTarget = null;
         await LoadIssues();
     }
 

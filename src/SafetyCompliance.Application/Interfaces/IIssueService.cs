@@ -11,6 +11,7 @@ public interface IIssueService
     Task UpdateIssueAsync(IssueUpdateDto dto, string userId, CancellationToken ct = default);
     Task ResolveIssueAsync(int id, string? resolutionNotes, string userId, CancellationToken ct = default);
     Task ReopenIssueAsync(int id, string userId, CancellationToken ct = default);
+    Task DeleteIssueAsync(int id, CancellationToken ct = default);
     Task<List<CommentDto>> GetCommentsAsync(int issueId, CancellationToken ct = default);
     Task<CommentDto> AddCommentAsync(CommentCreateDto dto, string userId, CancellationToken ct = default);
     Task<List<CommentDto>> GetInspectionCommentsAsync(int inspectionRoundId, CancellationToken ct = default);

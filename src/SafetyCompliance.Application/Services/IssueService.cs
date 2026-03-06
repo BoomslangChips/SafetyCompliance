@@ -145,6 +145,21 @@ public class IssueService(ApplicationDbContext context) : IIssueService
         await context.SaveChangesAsync(ct);
     }
 
+    public async Task DeleteIssueAsync(int id, CancellationToken ct = default)
+    {
+        var issue = await context.Issues.FindAsync([id], ct)
+            ?? throw new InvalidOperationException($"Issue {id} not found");
+
+        // Delete linked comments (no cascade on FK_Comments_Issues_IssueId)
+        var comments = await context.Comments
+            .Where(c => c.IssueId == id)
+            .ToListAsync(ct);
+        context.Comments.RemoveRange(comments);
+
+        context.Issues.Remove(issue);
+        await context.SaveChangesAsync(ct);
+    }
+
     public async Task<List<CommentDto>> GetCommentsAsync(int issueId, CancellationToken ct = default)
     {
         return await context.Comments

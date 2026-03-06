@@ -94,15 +94,43 @@ public class ScheduleService(ApplicationDbContext context) : IScheduleService
                 && (r.Status == InspectionStatus.Draft || r.Status == InspectionStatus.InProgress))
             .ToListAsync(ct);
 
+        var allPhotoPaths = new List<string>();
+
         foreach (var round in linkedRounds)
         {
-            // Null-out FK references on Issues and Comments (nullable FKs)
+            var equipmentInspectionIds = round.EquipmentInspections.Select(ei => ei.Id).ToList();
+
+            // Delete InspectionResponses (no cascade on FK)
+            var responses = await context.InspectionResponses
+                .Where(r => equipmentInspectionIds.Contains(r.EquipmentInspectionId))
+                .ToListAsync(ct);
+            context.InspectionResponses.RemoveRange(responses);
+
+            // Delete InspectionPhotos (no cascade on FK)
+            var photos = await context.InspectionPhotos
+                .Where(p => equipmentInspectionIds.Contains(p.EquipmentInspectionId))
+                .ToListAsync(ct);
+            context.InspectionPhotos.RemoveRange(photos);
+
+            // Null-out FK on ServiceBookings
+            var linkedBookings = await context.ServiceBookings
+                .Where(sb => sb.EquipmentInspectionId != null && equipmentInspectionIds.Contains(sb.EquipmentInspectionId.Value))
+                .ToListAsync(ct);
+            foreach (var booking in linkedBookings)
+                booking.EquipmentInspectionId = null;
+
+            // Null-out FK on Issues
             var linkedIssues = await context.Issues
-                .Where(i => i.InspectionRoundId == round.Id)
+                .Where(i => i.InspectionRoundId == round.Id
+                    || (i.EquipmentInspectionId != null && equipmentInspectionIds.Contains(i.EquipmentInspectionId.Value)))
                 .ToListAsync(ct);
             foreach (var issue in linkedIssues)
+            {
                 issue.InspectionRoundId = null;
+                issue.EquipmentInspectionId = null;
+            }
 
+            // Null-out FK on Comments
             var linkedComments = await context.Comments
                 .Where(c => c.InspectionRoundId == round.Id)
                 .ToListAsync(ct);
@@ -110,29 +138,27 @@ public class ScheduleService(ApplicationDbContext context) : IScheduleService
                 comment.InspectionRoundId = null;
 
             // Collect photo paths for cleanup
-            var photoPaths = round.EquipmentInspections
+            allPhotoPaths.AddRange(round.EquipmentInspections
                 .SelectMany(ei => ei.Photos)
-                .Select(p => p.FilePath)
-                .ToList();
+                .Select(p => p.FilePath));
 
+            context.EquipmentInspections.RemoveRange(round.EquipmentInspections);
             context.InspectionRounds.Remove(round);
-            await context.SaveChangesAsync(ct);
-
-            // Best-effort physical photo cleanup
-            foreach (var path in photoPaths)
-            {
-                try
-                {
-                    var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", path.TrimStart('/'));
-                    if (File.Exists(fullPath))
-                        File.Delete(fullPath);
-                }
-                catch { /* best-effort */ }
-            }
         }
 
-        if (!linkedRounds.Any())
-            await context.SaveChangesAsync(ct);
+        await context.SaveChangesAsync(ct);
+
+        // Best-effort physical photo cleanup
+        foreach (var path in allPhotoPaths)
+        {
+            try
+            {
+                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", path.TrimStart('/'));
+                if (File.Exists(fullPath))
+                    File.Delete(fullPath);
+            }
+            catch { /* best-effort */ }
+        }
     }
 
     public async Task<List<CalendarEventDto>> GetCalendarEventsAsync(DateOnly from, DateOnly to, int? plantId = null, CancellationToken ct = default)
