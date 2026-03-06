@@ -84,16 +84,65 @@ public class ScheduleService(ApplicationDbContext context) : IScheduleService
             ?? throw new InvalidOperationException($"Schedule {id} not found");
 
         schedule.IsActive = false;
-        await context.SaveChangesAsync(ct);
+
+        // Also remove any linked Draft/InProgress inspection rounds so they
+        // don't linger on the dashboard after the schedule is deactivated.
+        var linkedRounds = await context.InspectionRounds
+            .Include(r => r.EquipmentInspections)
+                .ThenInclude(ei => ei.Photos)
+            .Where(r => r.InspectionScheduleId == id
+                && (r.Status == InspectionStatus.Draft || r.Status == InspectionStatus.InProgress))
+            .ToListAsync(ct);
+
+        foreach (var round in linkedRounds)
+        {
+            // Null-out FK references on Issues and Comments (nullable FKs)
+            var linkedIssues = await context.Issues
+                .Where(i => i.InspectionRoundId == round.Id)
+                .ToListAsync(ct);
+            foreach (var issue in linkedIssues)
+                issue.InspectionRoundId = null;
+
+            var linkedComments = await context.Comments
+                .Where(c => c.InspectionRoundId == round.Id)
+                .ToListAsync(ct);
+            foreach (var comment in linkedComments)
+                comment.InspectionRoundId = null;
+
+            // Collect photo paths for cleanup
+            var photoPaths = round.EquipmentInspections
+                .SelectMany(ei => ei.Photos)
+                .Select(p => p.FilePath)
+                .ToList();
+
+            context.InspectionRounds.Remove(round);
+            await context.SaveChangesAsync(ct);
+
+            // Best-effort physical photo cleanup
+            foreach (var path in photoPaths)
+            {
+                try
+                {
+                    var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", path.TrimStart('/'));
+                    if (File.Exists(fullPath))
+                        File.Delete(fullPath);
+                }
+                catch { /* best-effort */ }
+            }
+        }
+
+        if (!linkedRounds.Any())
+            await context.SaveChangesAsync(ct);
     }
 
     public async Task<List<CalendarEventDto>> GetCalendarEventsAsync(DateOnly from, DateOnly to, int? plantId = null, CancellationToken ct = default)
     {
         var events = new List<CalendarEventDto>();
 
-        // Get completed/in-progress inspection rounds
+        // Get completed/in-progress inspection rounds (exclude rounds from deactivated schedules)
         var roundsQuery = context.InspectionRounds
-            .Where(r => r.InspectionDate >= from && r.InspectionDate <= to);
+            .Where(r => r.InspectionDate >= from && r.InspectionDate <= to)
+            .Where(r => r.InspectionScheduleId == null || r.InspectionSchedule!.IsActive);
         if (plantId.HasValue)
             roundsQuery = roundsQuery.Where(r => r.PlantId == plantId.Value);
 
@@ -140,9 +189,10 @@ public class ScheduleService(ApplicationDbContext context) : IScheduleService
         var items = new List<TimelineItemDto>();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        // Upcoming and recent rounds
+        // Upcoming and recent rounds (exclude rounds from deactivated schedules)
         var roundsQuery = context.InspectionRounds
-            .Where(r => r.InspectionDate >= today.AddDays(-30));
+            .Where(r => r.InspectionDate >= today.AddDays(-30))
+            .Where(r => r.InspectionScheduleId == null || r.InspectionSchedule!.IsActive);
         if (plantId.HasValue)
             roundsQuery = roundsQuery.Where(r => r.PlantId == plantId.Value);
 

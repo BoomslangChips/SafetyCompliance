@@ -125,6 +125,11 @@
             var theme = await JS.InvokeAsync<string>("getTheme");
             _themeIconClass = theme == "dark" ? "fa-moon" : "fa-sun-bright";
 
+            // Apply saved theme to native MAUI status bar on launch
+            var nativeTheme = ServiceProvider.GetService(typeof(SafetyCompliance.Application.Interfaces.INativeThemeService))
+                as SafetyCompliance.Application.Interfaces.INativeThemeService;
+            nativeTheme?.ApplyTheme(theme == "dark");
+
             _sidebarCollapsed = await JS.InvokeAsync<bool>("getSidebarCollapsed");
 
             // JS-based network status (web + mobile)
@@ -209,6 +214,11 @@
     {
         var newTheme = await JS.InvokeAsync<string>("toggleTheme");
         _themeIconClass = newTheme == "dark" ? "fa-moon" : "fa-sun-bright";
+
+        // Update native MAUI status bar color (no-op on web — service not registered)
+        var nativeTheme = ServiceProvider.GetService(typeof(SafetyCompliance.Application.Interfaces.INativeThemeService))
+            as SafetyCompliance.Application.Interfaces.INativeThemeService;
+        nativeTheme?.ApplyTheme(newTheme == "dark");
     }
 
     private void ToggleSidebar()

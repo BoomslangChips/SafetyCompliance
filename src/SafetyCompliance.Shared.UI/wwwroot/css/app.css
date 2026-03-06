@@ -9804,6 +9804,11 @@ th input[type="checkbox"]:checked::after {
     border-radius: var(--radius-md);
 }
 
+/* Mobile sort row — hidden on desktop */
+.inv-mobile-sort-row {
+    display: none;
+}
+
 /* Filter toggle button */
 .inv-filter-toggle-btn {
     display: flex;
@@ -10004,6 +10009,53 @@ th input[type="checkbox"]:checked::after {
     /* Show mobile search + filter toggle */
     .inv-mobile-search {
         display: block;
+    }
+
+    /* Mobile sort row */
+    .inv-mobile-sort-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .inv-mobile-sort-label {
+        font-size: 0.75rem;
+        color: var(--color-text-secondary);
+        font-weight: 500;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .inv-mobile-sort-label i {
+        font-size: 0.8rem;
+    }
+    .inv-mobile-sort-select {
+        flex: 1;
+        height: 34px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-surface);
+        color: var(--color-text);
+        font-size: 0.78rem;
+        padding: 0 8px;
+        font-family: var(--font-body);
+    }
+    .inv-mobile-sort-dir {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: var(--color-surface);
+        color: var(--color-text-secondary);
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .inv-mobile-sort-dir:active {
+        background: var(--color-tint-indigo);
+        color: var(--color-primary);
     }
 
     /* Hide desktop search inside filter bar */

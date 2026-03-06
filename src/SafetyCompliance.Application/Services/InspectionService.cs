@@ -309,6 +309,8 @@ public class InspectionService(ApplicationDbContext context) : IInspectionServic
             .Where(ir => ir.Status == InspectionStatus.InProgress
                       || ir.Status == InspectionStatus.Draft
                       || ir.Status == InspectionStatus.CompletedWithIssues)
+            // Exclude rounds whose linked schedule has been deactivated
+            .Where(ir => ir.InspectionScheduleId == null || ir.InspectionSchedule!.IsActive)
             .OrderByDescending(ir => ir.InspectionDate)
             .Select(ir => new InspectionRoundDto(
                 ir.Id, ir.PlantId, ir.Plant.Name,

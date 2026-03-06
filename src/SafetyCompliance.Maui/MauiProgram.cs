@@ -41,6 +41,7 @@ public static class MauiProgram
         builder.Services.AddInfrastructureMobile(dbPath);
         builder.Services.AddApplication();
         builder.Services.AddScoped<IPhotoStorageService, MauiPhotoStorageService>();
+        builder.Services.AddSingleton<INativeThemeService, MauiNativeThemeService>();
 
         // Auth state for Blazor AuthorizeView (no ASP.NET Identity needed)
         builder.Services.AddAuthorizationCore();

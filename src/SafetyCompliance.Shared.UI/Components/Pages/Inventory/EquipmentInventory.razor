@@ -104,6 +104,20 @@
             }
         </button>
     </div>
+    <div class="inv-mobile-sort-row">
+        <span class="inv-mobile-sort-label"><i class="fa-sharp fa-light fa-arrow-down-arrow-up"></i> Sort:</span>
+        <select class="inv-mobile-sort-select" @bind="_sortColumn" @bind:after="ApplySort">
+            <option value="Identifier">Identifier</option>
+            <option value="Type">Type</option>
+            <option value="Size">Size</option>
+            <option value="Status">Status</option>
+            <option value="Location">Location</option>
+            <option value="Compliance">Compliance</option>
+        </select>
+        <button class="inv-mobile-sort-dir" @onclick="() => { _sortAscending = !_sortAscending; ApplySort(); }">
+            <i class="fa-sharp fa-light @(_sortAscending ? "fa-arrow-up" : "fa-arrow-down")"></i>
+        </button>
+    </div>
 </div>
 
 @* ── Filter Panel (collapsible on mobile, always visible on desktop) ── *@
