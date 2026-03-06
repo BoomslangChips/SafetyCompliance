@@ -6449,6 +6449,39 @@ textarea.form-control {
     cursor: pointer;
 }
 
+/* ── Dark mode — Report filter bar & document ── */
+[data-theme="dark"] .rpt-filter-bar {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+}
+[data-theme="dark"] .rpt-filter-select {
+    background: var(--color-bg);
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+[data-theme="dark"] .rpt-filter-select:focus {
+    border-color: var(--color-primary);
+}
+[data-theme="dark"] .rpt-plant-card {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+}
+[data-theme="dark"] .rpt-plant-card-footer {
+    background: var(--color-bg);
+}
+[data-theme="dark"] .rpt-doc {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+}
+[data-theme="dark"] .rpt-section {
+    background: var(--color-surface);
+}
+[data-theme="dark"] .rpt-photo-toggle {
+    background: var(--color-surface);
+    border-color: var(--color-border);
+    color: var(--color-text-secondary);
+}
+
 /* ══════════════════════════════════════════
    MONTHLY REPORT TAB — Filter Bar
    ══════════════════════════════════════════ */
@@ -6780,8 +6813,17 @@ textarea.form-control {
 /* ── Responsive ── */
 @media (max-width: 768px) {
     .rpt-summary-grid    { grid-template-columns: 1fr; }
-    .rpt-filter-bar      { flex-direction: column; }
-    .rpt-filter-group    { min-width: 100%; }
+    .rpt-filter-bar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 12px;
+        align-items: end;
+    }
+    .rpt-filter-group    { min-width: 0; }
+    .rpt-filter-select   { height: 38px; font-size: 16px; }
+    .rpt-gen-btn         { grid-column: 1 / -1; height: 42px; justify-content: center; }
+    .rpt-filter-bar .rpt-excel-btn { grid-column: 1 / -1; justify-content: center; }
     .rpt-kpi-row         { grid-template-columns: repeat(2, 1fr); }
     .rpt-toc-links       { grid-template-columns: 1fr; }
     .rpt-notes-grid      { grid-template-columns: 1fr; }
