@@ -888,11 +888,15 @@
         if (_activeSectionId == 0 && _sectionGroups.Any())
             _activeSectionId = _sectionGroups.First().SectionId;
 
-        // Eagerly load photos for all inspections
+        // Load all photos for this round in a single query
+        var allPhotos = await InspectionService.GetPhotosByRoundAsync(RoundId);
+        foreach (var kvp in allPhotos)
+            _photos[kvp.Key] = kvp.Value;
+        // Ensure empty lists for inspections with no photos
         foreach (var insp in _inspections)
         {
             if (!_photos.ContainsKey(insp.Id))
-                _photos[insp.Id] = await InspectionService.GetPhotosAsync(insp.Id);
+                _photos[insp.Id] = [];
         }
 
         _loading = false;
