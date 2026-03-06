@@ -77,6 +77,35 @@ public class EquipmentService(ApplicationDbContext context) : IEquipmentService
         await context.SaveChangesAsync(ct);
     }
 
+    public async Task<DeleteResult> DeleteOrDeactivateEquipmentAsync(int id, CancellationToken ct = default)
+    {
+        var equipment = await context.Equipment.FindAsync([id], ct);
+        if (equipment is null)
+            return new DeleteResult(DeleteOutcome.Blocked, "Equipment not found.");
+
+        // Check if part of any inspection round (active or historical)
+        var hasInspections = await context.EquipmentInspections.AnyAsync(ei => ei.EquipmentId == id, ct);
+        if (hasInspections)
+            return new DeleteResult(DeleteOutcome.Blocked,
+                "Cannot delete: this equipment has inspection history. Retire it instead.");
+
+        // Check if has any service bookings
+        var hasBookings = await context.ServiceBookings.AnyAsync(sb => sb.EquipmentId == id, ct);
+        if (hasBookings)
+            return new DeleteResult(DeleteOutcome.Blocked,
+                "Cannot delete: this equipment has service booking records. Retire it instead.");
+
+        // Safe to delete — remove check records first, then the equipment
+        var checkRecords = await context.EquipmentCheckRecords
+            .Where(r => r.EquipmentId == id).ToListAsync(ct);
+        context.EquipmentCheckRecords.RemoveRange(checkRecords);
+
+        context.Equipment.Remove(equipment);
+        await context.SaveChangesAsync(ct);
+
+        return new DeleteResult(DeleteOutcome.Deleted, "Equipment permanently deleted.");
+    }
+
     // ── Equipment Types ───────────────────────────────────────────────────────
 
     public async Task<List<EquipmentTypeDto>> GetEquipmentTypesAsync(bool includeInactive = false, CancellationToken ct = default)

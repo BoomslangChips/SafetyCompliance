@@ -610,8 +610,24 @@ else
                 }
             </div>
 
-            <div class="form-actions" style="margin-top: var(--spacing-lg);">
+            <div class="form-actions" style="margin-top: var(--spacing-lg); justify-content: space-between;">
                 <button type="button" class="btn btn-secondary" @onclick="CloseDetail">Close</button>
+                @if (!_confirmDeleteEquipment)
+                {
+                    <button type="button" class="btn btn-danger btn-sm" @onclick="() => _confirmDeleteEquipment = true">
+                        <i class="fa-light fa-trash-can"></i> Delete
+                    </button>
+                }
+                else
+                {
+                    <div style="display:flex; gap:var(--spacing-xs); align-items:center;">
+                        <span style="color:var(--color-danger); font-size:0.85rem; font-weight:500;">Are you sure?</span>
+                        <button type="button" class="btn btn-danger btn-sm" @onclick="DeleteDetailEquipment">
+                            <i class="fa-light fa-check"></i> Confirm Delete
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" @onclick="() => _confirmDeleteEquipment = false">Cancel</button>
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -750,6 +766,7 @@ else
     private string _detailEditDescription = string.Empty;
     private string _detailEditSize = string.Empty;
     private string _detailEditSerial = string.Empty;
+    private bool _confirmDeleteEquipment;
 
     // Assign modal
     private bool _showAssignModal;
@@ -1065,10 +1082,15 @@ else
     {
         _detailEquipment = await EquipmentService.GetEquipmentDetailAsync(equipmentId);
         _detailCheckDates = [];
+        _confirmDeleteEquipment = false;
         InitDetailEdits();
     }
 
-    private void CloseDetail() => _detailEquipment = null;
+    private void CloseDetail()
+    {
+        _detailEquipment = null;
+        _confirmDeleteEquipment = false;
+    }
 
     private void InitDetailEdits()
     {
@@ -1163,6 +1185,23 @@ else
         _detailEquipment = await EquipmentService.GetEquipmentDetailAsync(_detailEquipment.Id);
         await Reload();
         ShowFeedback("Equipment returned to inventory pool.", true);
+    }
+
+    private async Task DeleteDetailEquipment()
+    {
+        if (_detailEquipment is null) return;
+        var result = await EquipmentService.DeleteOrDeactivateEquipmentAsync(_detailEquipment.Id);
+        if (result.Outcome == DeleteOutcome.Deleted)
+        {
+            CloseDetail();
+            await Reload();
+            ShowFeedback(result.Message, true);
+        }
+        else
+        {
+            _confirmDeleteEquipment = false;
+            ShowFeedback(result.Message, false);
+        }
     }
 
     // ── Assign ──
