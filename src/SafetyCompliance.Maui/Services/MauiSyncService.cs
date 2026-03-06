@@ -221,6 +221,7 @@ public class MauiSyncService : ISyncService, IDisposable
 
         var pendingChanges = await localCtx.PendingChanges
             .OrderBy(p => p.ChangedAt)
+            .ThenBy(p => p.Id) // Stable sort: children are queued before parents in same SaveChanges call
             .ToListAsync(ct);
 
         if (pendingChanges.Count == 0) return 0;
@@ -299,6 +300,8 @@ public class MauiSyncService : ISyncService, IDisposable
             var serverEntity = await serverCtx.Set<T>().FindAsync([change.RecordId], ct);
             if (serverEntity is not null)
             {
+                // Server has no CASCADE DELETE — clean up FK children first
+                await CleanupServerChildren(serverCtx, change.TableName, change.RecordId, ct);
                 serverCtx.Set<T>().Remove(serverEntity);
                 await serverCtx.SaveChangesAsync(ct);
             }
@@ -338,6 +341,87 @@ public class MauiSyncService : ISyncService, IDisposable
 
         await serverCtx.SaveChangesAsync(ct);
         return true;
+    }
+
+    /// <summary>
+    /// Removes FK child records on the server before deleting a parent.
+    /// The server DB has NO CASCADE DELETE, so we must do this manually.
+    /// </summary>
+    private async Task CleanupServerChildren(
+        ApplicationDbContext serverCtx, string tableName, int recordId, CancellationToken ct)
+    {
+        switch (tableName)
+        {
+            case "Issues":
+                var issueComments = await serverCtx.Comments
+                    .Where(c => c.IssueId == recordId).ToListAsync(ct);
+                serverCtx.Comments.RemoveRange(issueComments);
+                break;
+
+            case "InspectionRounds":
+                var eiIds = await serverCtx.EquipmentInspections
+                    .Where(ei => ei.InspectionRoundId == recordId)
+                    .Select(ei => ei.Id).ToListAsync(ct);
+                if (eiIds.Count > 0)
+                {
+                    var responses = await serverCtx.InspectionResponses
+                        .Where(r => eiIds.Contains(r.EquipmentInspectionId)).ToListAsync(ct);
+                    serverCtx.InspectionResponses.RemoveRange(responses);
+                    var photos = await serverCtx.InspectionPhotos
+                        .Where(p => eiIds.Contains(p.EquipmentInspectionId)).ToListAsync(ct);
+                    serverCtx.InspectionPhotos.RemoveRange(photos);
+                    // Null optional FKs on related records
+                    var bookings = await serverCtx.ServiceBookings
+                        .Where(sb => sb.EquipmentInspectionId != null && eiIds.Contains(sb.EquipmentInspectionId.Value)).ToListAsync(ct);
+                    foreach (var b in bookings) b.EquipmentInspectionId = null;
+                    var issues = await serverCtx.Issues
+                        .Where(i => i.EquipmentInspectionId != null && eiIds.Contains(i.EquipmentInspectionId.Value)).ToListAsync(ct);
+                    foreach (var i in issues) { i.EquipmentInspectionId = null; i.InspectionRoundId = null; }
+                    var roundComments = await serverCtx.Comments
+                        .Where(c => c.InspectionRoundId == recordId).ToListAsync(ct);
+                    foreach (var c in roundComments) c.InspectionRoundId = null;
+                    var eqInsps = await serverCtx.EquipmentInspections
+                        .Where(ei => ei.InspectionRoundId == recordId).ToListAsync(ct);
+                    serverCtx.EquipmentInspections.RemoveRange(eqInsps);
+                }
+                break;
+
+            case "InspectionSchedules":
+                // Delete linked rounds (and their children via recursive call)
+                var roundIds = await serverCtx.InspectionRounds
+                    .Where(r => r.InspectionScheduleId == recordId)
+                    .Select(r => r.Id).ToListAsync(ct);
+                foreach (var rid in roundIds)
+                    await CleanupServerChildren(serverCtx, "InspectionRounds", rid, ct);
+                var rounds = await serverCtx.InspectionRounds
+                    .Where(r => r.InspectionScheduleId == recordId).ToListAsync(ct);
+                serverCtx.InspectionRounds.RemoveRange(rounds);
+                break;
+
+            case "Equipment":
+                // Null FK on equipment inspections (they belong to rounds, not directly deleted)
+                var eqEiList = await serverCtx.EquipmentInspections
+                    .Where(ei => ei.EquipmentId == recordId).ToListAsync(ct);
+                // Clean up each equipment inspection's children
+                var eqEiIds = eqEiList.Select(ei => ei.Id).ToList();
+                if (eqEiIds.Count > 0)
+                {
+                    var eqResponses = await serverCtx.InspectionResponses
+                        .Where(r => eqEiIds.Contains(r.EquipmentInspectionId)).ToListAsync(ct);
+                    serverCtx.InspectionResponses.RemoveRange(eqResponses);
+                    var eqPhotos = await serverCtx.InspectionPhotos
+                        .Where(p => eqEiIds.Contains(p.EquipmentInspectionId)).ToListAsync(ct);
+                    serverCtx.InspectionPhotos.RemoveRange(eqPhotos);
+                    serverCtx.EquipmentInspections.RemoveRange(eqEiList);
+                }
+                var eqCheckRecords = await serverCtx.EquipmentCheckRecords
+                    .Where(r => r.EquipmentId == recordId).ToListAsync(ct);
+                serverCtx.EquipmentCheckRecords.RemoveRange(eqCheckRecords);
+                break;
+        }
+
+        if (serverCtx.ChangeTracker.HasChanges())
+            await serverCtx.SaveChangesAsync(ct);
     }
 
     private ApplicationDbContext CreateServerContext()
