@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:SafetyCompliance.Maui.Components"
              x:Class="SafetyCompliance.Maui.MainPage">
     <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
         <BlazorWebView.RootComponents>
-            <RootComponent Selector="#app" ComponentType="{x:Type local:Routes}" xmlns:local="clr-namespace:SafetyCompliance.Maui.Components" />
+            <RootComponent Selector="#app" ComponentType="{x:Type local:Routes}" />
         </BlazorWebView.RootComponents>
     </BlazorWebView>
 </ContentPage>

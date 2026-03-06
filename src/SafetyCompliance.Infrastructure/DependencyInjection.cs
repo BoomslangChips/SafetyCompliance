@@ -34,4 +34,20 @@ public static class DependencyInjection
 
         return services;
     }
+
+    /// <summary>
+    /// Lightweight registration for MAUI — DbContext + repositories only, no Identity.
+    /// </summary>
+    public static IServiceCollection AddInfrastructureMobile(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlServer(
+                configuration.GetConnectionString("DefaultConnection"),
+                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+
+        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
+
+        return services;
+    }
 }
