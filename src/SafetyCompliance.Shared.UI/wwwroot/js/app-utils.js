@@ -13,6 +13,40 @@
  * @param {number} quality — JPEG quality 0–1 (default 0.80)
  * @returns {Promise<{base64:string, fileName:string, contentType:string, size:number}>}
  */
+/**
+ * Draw a timestamp watermark on the bottom-right of a canvas context.
+ */
+function _drawTimestamp(ctx, w, h) {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}  ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    // Scale font size relative to image width (min 14px, max 36px)
+    const fontSize = Math.max(14, Math.min(36, Math.round(w * 0.025)));
+    ctx.font = `bold ${fontSize}px sans-serif`;
+
+    const metrics = ctx.measureText(stamp);
+    const textW = metrics.width;
+    const textH = fontSize;
+    const padX = fontSize * 0.6;
+    const padY = fontSize * 0.4;
+    const margin = fontSize * 0.5;
+
+    // Semi-transparent dark background
+    const bgX = w - textW - padX * 2 - margin;
+    const bgY = h - textH - padY * 2 - margin;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.beginPath();
+    const r = fontSize * 0.25;
+    ctx.roundRect(bgX, bgY, textW + padX * 2, textH + padY * 2, r);
+    ctx.fill();
+
+    // White text
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'top';
+    ctx.fillText(stamp, bgX + padX, bgY + padY);
+}
+
 window.compressPhoto = async function (inputId, maxDim, quality) {
     maxDim = maxDim || 1920;
     quality = quality || 0.80;
@@ -21,14 +55,14 @@ window.compressPhoto = async function (inputId, maxDim, quality) {
     if (!input || !input.files || !input.files[0]) throw new Error('No file selected');
     const file = input.files[0];
 
-    // Skip compression for small files (< 500KB)
-    if (file.size < 500 * 1024) return null;
+    // For small files we still need to stamp, so don't skip — just don't resize
+    const needsResize = file.size >= 500 * 1024;
 
     const bitmap = await createImageBitmap(file);
     let w = bitmap.width, h = bitmap.height;
 
     // Scale down if larger than maxDim
-    if (w > maxDim || h > maxDim) {
+    if (needsResize && (w > maxDim || h > maxDim)) {
         const ratio = Math.min(maxDim / w, maxDim / h);
         w = Math.round(w * ratio);
         h = Math.round(h * ratio);
@@ -40,6 +74,9 @@ window.compressPhoto = async function (inputId, maxDim, quality) {
     const ctx = canvas.getContext('2d');
     ctx.drawImage(bitmap, 0, 0, w, h);
     bitmap.close();
+
+    // Always add timestamp watermark
+    _drawTimestamp(ctx, w, h);
 
     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
     const arrayBuffer = await blob.arrayBuffer();

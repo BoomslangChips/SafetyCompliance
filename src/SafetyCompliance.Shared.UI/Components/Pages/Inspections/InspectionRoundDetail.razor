@@ -1089,10 +1089,10 @@
 
             try
             {
+                // compressPhoto always returns a stamped image (with timestamp watermark)
                 var compressed = await JS.InvokeAsync<CompressedPhoto?>("compressPhoto", inputId, 1920, 0.80);
                 if (compressed is not null)
                 {
-                    // Use compressed version
                     var bytes = Convert.FromBase64String(compressed.Base64);
                     using var ms = new MemoryStream(bytes);
                     webPath = await PhotoStorage.SavePhotoAsync(ms, compressed.FileName, equipmentInspectionId);
@@ -1102,7 +1102,7 @@
                 }
                 else
                 {
-                    // Small file — upload as-is
+                    // Fallback if JS returns null unexpectedly
                     const long maxSize = 10L * 1024 * 1024;
                     await using var stream = file.OpenReadStream(maxSize);
                     webPath = await PhotoStorage.SavePhotoAsync(stream, file.Name, equipmentInspectionId);
@@ -1113,7 +1113,7 @@
             }
             catch
             {
-                // Compression failed — fallback to raw upload
+                // JS failed — fallback to raw upload (no timestamp)
                 const long maxSize = 10L * 1024 * 1024;
                 await using var stream = file.OpenReadStream(maxSize);
                 webPath = await PhotoStorage.SavePhotoAsync(stream, file.Name, equipmentInspectionId);
