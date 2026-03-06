@@ -2,6 +2,7 @@ using SafetyCompliance.Application;
 using SafetyCompliance.Application.Interfaces;
 using SafetyCompliance.Infrastructure;
 using SafetyCompliance.Maui.Services;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Configuration;
 using System.Reflection;
 
@@ -37,6 +38,11 @@ public static class MauiProgram
         builder.Services.AddInfrastructureMobile(builder.Configuration);
         builder.Services.AddApplication();
         builder.Services.AddScoped<IPhotoStorageService, MauiPhotoStorageService>();
+
+        // Auth state for Blazor AuthorizeView (no ASP.NET Identity needed)
+        builder.Services.AddAuthorizationCore();
+        builder.Services.AddScoped<AuthenticationStateProvider, MobileAuthStateProvider>();
+        builder.Services.AddCascadingAuthenticationState();
 
         return builder.Build();
     }
