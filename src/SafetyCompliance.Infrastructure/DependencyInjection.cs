@@ -36,14 +36,12 @@ public static class DependencyInjection
     }
 
     /// <summary>
-    /// Lightweight registration for MAUI — DbContext + repositories only, no Identity.
+    /// Lightweight registration for MAUI — SQLite local DB, no Identity.
     /// </summary>
-    public static IServiceCollection AddInfrastructureMobile(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructureMobile(this IServiceCollection services, string sqlitePath)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(
-                configuration.GetConnectionString("DefaultConnection"),
-                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+            options.UseSqlite($"Data Source={sqlitePath}"));
 
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<ApplicationDbContext>());
