@@ -14,6 +14,12 @@
     <ApplicationVersion>1</ApplicationVersion>
   </PropertyGroup>
   <ItemGroup>
+    <EmbeddedResource Include="appsettings.json" LogicalName="SafetyCompliance.Maui.appsettings.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="10.0.0-*" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\SafetyCompliance.Application\SafetyCompliance.Application.csproj" />
     <ProjectReference Include="..\SafetyCompliance.Infrastructure\SafetyCompliance.Infrastructure.csproj" />
     <ProjectReference Include="..\SafetyCompliance.Shared.UI\SafetyCompliance.Shared.UI.csproj" />
