@@ -26,10 +26,8 @@
     <EmbeddedResource Include="appsettings.json" LogicalName="SafetyCompliance.Maui.appsettings.json" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\..\..\..\Downloads\Untitled.png">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
+    <MauiIcon Include="Resources\AppIcon\appicon.png" Color="#FFFFFF" />
+    <MauiSplashScreen Include="Resources\Splash\splash.png" Color="#4f46e5" BaseSize="192,192" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SafetyCompliance.Application\SafetyCompliance.Application.csproj" />
