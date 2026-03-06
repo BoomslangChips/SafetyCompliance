@@ -13,14 +13,20 @@
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
-    <PackageIcon>background-removed-background-removed.png</PackageIcon>
+    <PackageIcon>Untitled.png</PackageIcon>
     <Title>MIS</Title>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net10.0-android|AnyCPU'">
+    <ApplicationTitle>Majesty Inspection</ApplicationTitle>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net10.0-android|AnyCPU'">
+    <ApplicationTitle>Majesty Inspection</ApplicationTitle>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="appsettings.json" LogicalName="SafetyCompliance.Maui.appsettings.json" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\..\..\..\Downloads\background-removed-background-removed.png">
+    <None Include="..\..\..\..\..\..\..\Downloads\Untitled.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
