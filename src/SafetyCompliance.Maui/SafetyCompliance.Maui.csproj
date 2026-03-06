@@ -13,9 +13,17 @@
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
+    <PackageIcon>background-removed-background-removed.png</PackageIcon>
+    <Title>MIS</Title>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="appsettings.json" LogicalName="SafetyCompliance.Maui.appsettings.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\..\..\..\Downloads\background-removed-background-removed.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SafetyCompliance.Application\SafetyCompliance.Application.csproj" />
